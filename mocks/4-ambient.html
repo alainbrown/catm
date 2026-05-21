@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>catm — listen softly</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Outfit:wght@200;300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1c1a2b;
+    --ink-soft:#5a546e;
+    --paper:#fbf7f2;
+    --lilac:#c6b9ff;
+    --peach:#ffc7a8;
+    --sage:#b9dcc4;
+    --rose:#ffb8cf;
+    --gold:#e8c87a;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:'Outfit',ui-sans-serif,system-ui,sans-serif;
+    font-weight:300;
+    color:var(--ink);
+    background:var(--paper);
+    overflow-x:hidden;
+    min-height:100vh;
+    position:relative;
+  }
+  /* gradient mesh background */
+  body::before{
+    content:"";position:fixed;inset:-10%;z-index:0;pointer-events:none;
+    background:
+      radial-gradient(circle at 20% 18%, var(--lilac) 0%, transparent 38%),
+      radial-gradient(circle at 82% 22%, var(--peach) 0%, transparent 42%),
+      radial-gradient(circle at 78% 84%, var(--sage) 0%, transparent 40%),
+      radial-gradient(circle at 14% 90%, var(--rose) 0%, transparent 38%),
+      radial-gradient(circle at 50% 50%, var(--gold) 0%, transparent 50%);
+    filter:saturate(1.05) blur(40px);
+    opacity:.85;
+    animation:drift 22s ease-in-out infinite alternate;
+  }
+  @keyframes drift{
+    0%{transform:translate(0,0) rotate(0deg)}
+    100%{transform:translate(-2%,1%) rotate(2deg)}
+  }
+  /* grain */
+  body::after{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:1;opacity:.5;
+    background:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .1 0 0 0 0 .1 0 0 0 0 .14 0 0 0 .035 0'/></filter><rect width='200' height='200' filter='url(%23n)'/></svg>");
+  }
+  .layout{
+    position:relative;z-index:2;
+    min-height:100vh;
+    display:grid;grid-template-columns:1fr;
+    padding:38px clamp(20px,5vw,72px) 60px;
+    gap:48px;
+  }
+
+  /* Top nav */
+  nav.top{
+    display:flex;justify-content:space-between;align-items:center;
+  }
+  .logo{
+    font-family:'Instrument Serif',serif;font-style:italic;
+    font-size:34px;color:var(--ink);letter-spacing:-.02em;
+    display:flex;align-items:center;gap:10px;
+  }
+  .logo .dot{
+    width:10px;height:10px;border-radius:50%;
+    background:radial-gradient(circle, #fff, var(--lilac));
+    box-shadow:0 0 18px rgba(198,185,255,.8);
+    animation:pulse 3s ease-in-out infinite;
+  }
+  @keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.3);opacity:.7}}
+  .top-nav{
+    display:flex;gap:4px;
+    background:rgba(255,255,255,.55);
+    backdrop-filter:blur(20px) saturate(1.4);
+    -webkit-backdrop-filter:blur(20px) saturate(1.4);
+    border:1px solid rgba(255,255,255,.7);
+    border-radius:100px;padding:5px;
+    box-shadow:0 8px 30px -10px rgba(28,26,43,.15);
+  }
+  .top-nav a{
+    text-decoration:none;color:var(--ink-soft);
+    font-size:13px;font-weight:400;padding:8px 18px;border-radius:100px;
+    transition:all .3s;
+  }
+  .top-nav a.on{background:var(--ink);color:var(--paper)}
+  .top-nav a:not(.on):hover{background:rgba(255,255,255,.6)}
+
+  /* Hero / now playing */
+  .stage{
+    display:grid;grid-template-columns:1.05fr .95fr;gap:60px;align-items:center;
+  }
+  @media (max-width:880px){
+    .stage{grid-template-columns:1fr;gap:42px}
+  }
+
+  .meta-kicker{
+    font-size:11px;letter-spacing:.32em;text-transform:uppercase;
+    color:var(--ink-soft);font-weight:500;margin-bottom:18px;
+    display:flex;align-items:center;gap:10px;
+  }
+  .meta-kicker::before{
+    content:"";width:24px;height:1px;background:var(--ink-soft);
+  }
+  h1.title{
+    font-family:'Instrument Serif',serif;
+    font-weight:400;font-size:clamp(44px,6vw,78px);
+    line-height:.98;letter-spacing:-.025em;
+    color:var(--ink);
+    margin-bottom:18px;
+  }
+  h1.title em{font-style:italic;color:#5a3a8a}
+  .byline{
+    font-family:'Instrument Serif',serif;font-style:italic;
+    font-size:18px;color:var(--ink-soft);margin-bottom:32px;
+  }
+  .lede{
+    font-size:16px;line-height:1.65;color:var(--ink);
+    max-width:48ch;font-weight:300;
+    margin-bottom:36px;
+  }
+  .lede::first-letter{
+    font-family:'Instrument Serif',serif;font-style:italic;
+    font-size:1.4em;color:#5a3a8a;
+  }
+
+  /* Tier chips */
+  .tier{
+    display:flex;gap:8px;flex-wrap:wrap;
+  }
+  .tier-chip{
+    border:1px solid rgba(28,26,43,.18);
+    border-radius:100px;padding:10px 18px;
+    font-size:12px;letter-spacing:.06em;
+    background:rgba(255,255,255,.4);
+    backdrop-filter:blur(10px);
+    color:var(--ink);font-weight:400;cursor:pointer;
+    display:flex;align-items:center;gap:8px;
+  }
+  .tier-chip .d{font-size:10px;color:var(--ink-soft)}
+  .tier-chip.on{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+  .tier-chip.on .d{color:rgba(251,247,242,.7)}
+  .tier-chip[disabled]{opacity:.5;cursor:not-allowed}
+
+  /* Player — circular */
+  .player{
+    position:relative;aspect-ratio:1;width:100%;max-width:480px;
+    margin:0 auto;display:grid;place-items:center;
+  }
+  .ring-wrap{
+    position:absolute;inset:0;
+  }
+  .ring{
+    position:absolute;inset:0;border-radius:50%;
+  }
+  .ring.bg{
+    background:
+      conic-gradient(from 90deg,
+        rgba(28,26,43,.08) 0deg 360deg);
+    -webkit-mask:radial-gradient(circle, transparent 64%, black 65%);
+            mask:radial-gradient(circle, transparent 64%, black 65%);
+  }
+  .ring.prepared{
+    background:conic-gradient(from -90deg,
+      rgba(28,26,43,.35) 0deg 194deg,
+      transparent 194deg 360deg);
+    -webkit-mask:radial-gradient(circle, transparent 64%, black 65%);
+            mask:radial-gradient(circle, transparent 64%, black 65%);
+  }
+  .ring.played{
+    background:conic-gradient(from -90deg,
+      var(--ink) 0deg 112deg,
+      transparent 112deg 360deg);
+    -webkit-mask:radial-gradient(circle, transparent 64%, black 65%);
+            mask:radial-gradient(circle, transparent 64%, black 65%);
+  }
+  .ring.glow{
+    background:conic-gradient(from -90deg,
+      rgba(198,185,255,.9) 0deg 112deg,
+      transparent 112deg 360deg);
+    filter:blur(18px);opacity:.75;
+    -webkit-mask:radial-gradient(circle, transparent 60%, black 75%);
+            mask:radial-gradient(circle, transparent 60%, black 75%);
+  }
+  .head-dot{
+    position:absolute;top:50%;left:50%;
+    width:18px;height:18px;border-radius:50%;
+    background:radial-gradient(circle, #fff, var(--lilac));
+    transform:
+      translate(-50%,-50%)
+      rotate(112deg) translateY(calc(-50% - -100%));
+    transform-origin:center;
+    box-shadow:0 0 24px var(--lilac), 0 0 50px rgba(198,185,255,.6);
+  }
+  /* The above hack approximation — replace with custom positioning */
+  .head-dot{
+    transform:rotate(112deg) translate(0,-186px);
+    top:50%;left:calc(50% - 9px);
+  }
+  .center{
+    position:relative;z-index:2;
+    width:62%;aspect-ratio:1;border-radius:50%;
+    background:
+      radial-gradient(circle at 32% 28%, rgba(255,255,255,.85), rgba(255,255,255,.35) 50%, rgba(255,255,255,.15) 100%);
+    backdrop-filter:blur(20px);
+    -webkit-backdrop-filter:blur(20px);
+    border:1px solid rgba(255,255,255,.7);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.9),
+      0 30px 60px -20px rgba(28,26,43,.25);
+    display:grid;place-items:center;
+    text-align:center;padding:24px;
+  }
+  .center .now-time{
+    font-family:'Instrument Serif',serif;
+    font-size:46px;font-weight:400;letter-spacing:-.02em;line-height:1;
+    color:var(--ink);
+  }
+  .center .of{
+    font-family:'Outfit';font-size:11px;color:var(--ink-soft);
+    letter-spacing:.24em;text-transform:uppercase;margin-top:8px;
+  }
+  .center .chunk{
+    font-family:'Instrument Serif',serif;font-style:italic;
+    font-size:13px;color:var(--ink-soft);margin-top:10px;
+  }
+  /* Transport orbit */
+  .orbit{
+    position:absolute;left:50%;bottom:-32px;transform:translateX(-50%);
+    display:flex;gap:12px;align-items:center;z-index:3;
+    background:rgba(255,255,255,.7);
+    backdrop-filter:blur(20px) saturate(1.4);
+    -webkit-backdrop-filter:blur(20px) saturate(1.4);
+    padding:10px;border-radius:100px;
+    border:1px solid rgba(255,255,255,.9);
+    box-shadow:0 20px 50px -15px rgba(28,26,43,.25);
+  }
+  .orbit button{
+    background:transparent;border:none;cursor:pointer;color:var(--ink);
+    width:42px;height:42px;border-radius:50%;
+    display:grid;place-items:center;
+    font-family:'Outfit';font-size:11px;font-weight:500;
+    transition:background .25s;
+  }
+  .orbit button:hover{background:rgba(28,26,43,.06)}
+  .orbit button.play{
+    width:62px;height:62px;
+    background:var(--ink);color:var(--paper);
+    box-shadow:0 10px 30px -8px rgba(28,26,43,.5);
+  }
+  .orbit button.play:hover{background:#2a2640}
+
+  /* Bottom strip */
+  .strip{
+    display:flex;justify-content:space-between;align-items:center;
+    gap:24px;padding-top:24px;border-top:1px solid rgba(28,26,43,.12);
+    flex-wrap:wrap;
+  }
+  .strip .group{display:flex;align-items:center;gap:14px;color:var(--ink-soft);font-size:13px}
+  .strip .group .lbl{font-size:10px;letter-spacing:.22em;text-transform:uppercase}
+  .speed{display:flex;gap:0;border:1px solid rgba(28,26,43,.18);border-radius:100px;overflow:hidden;background:rgba(255,255,255,.4);backdrop-filter:blur(10px)}
+  .speed button{background:transparent;border:none;padding:7px 14px;font-family:inherit;font-size:12px;color:var(--ink);cursor:pointer}
+  .speed button.on{background:var(--ink);color:var(--paper)}
+
+  @media (max-width:880px){
+    h1.title{font-size:48px}
+    .player{max-width:380px}
+    .head-dot{transform:rotate(112deg) translate(0,-148px)}
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+
+  <nav class="top">
+    <div class="logo"><span class="dot"></span>catm</div>
+    <div class="top-nav">
+      <a href="#" class="on">Listen</a>
+      <a href="#">Library</a>
+      <a href="#">Settings</a>
+    </div>
+  </nav>
+
+  <main class="stage">
+    <section class="copy">
+      <div class="meta-kicker">now listening · chapter vii</div>
+      <h1 class="title">On the pleasure<br>of <em>reading aloud.</em></h1>
+      <div class="byline">an essay by Alberto Manguel</div>
+      <p class="lede">The voice that reads aloud is the most ancient of literary instruments. To listen is to be carried — to surrender briefly, the way a small boat surrenders to a current it cannot see beneath it.</p>
+
+      <div class="tier" role="group" aria-label="model tier">
+        <button class="tier-chip on">Low <span class="d">80mb · ready</span></button>
+        <button class="tier-chip" disabled>Medium <span class="d">~500mb · soon</span></button>
+        <button class="tier-chip" disabled>High <span class="d">~700mb · soon</span></button>
+      </div>
+    </section>
+
+    <section class="player">
+      <div class="ring-wrap">
+        <div class="ring glow"></div>
+        <div class="ring bg"></div>
+        <div class="ring prepared"></div>
+        <div class="ring played"></div>
+      </div>
+      <div class="head-dot"></div>
+      <div class="center">
+        <div class="now-time">14:32</div>
+        <div class="of">of 46:18</div>
+        <div class="chunk">— preparing 18 / 32 —</div>
+      </div>
+      <div class="orbit">
+        <button aria-label="back 30 seconds">−30</button>
+        <button class="play" aria-label="pause">
+          <svg width="16" height="18" viewBox="0 0 16 18" fill="currentColor"><rect x="2" y="0" width="4" height="18" rx="1"/><rect x="10" y="0" width="4" height="18" rx="1"/></svg>
+        </button>
+        <button aria-label="forward 30 seconds">+30</button>
+      </div>
+    </section>
+  </main>
+
+  <footer class="strip">
+    <div class="group">
+      <span class="lbl">voice</span>
+      <span><em style="font-family:'Instrument Serif';font-style:italic">af_heart</em> · english</span>
+    </div>
+    <div class="group">
+      <span class="lbl">speed</span>
+      <div class="speed">
+        <button>0.75</button>
+        <button>1.0</button>
+        <button class="on">1.25</button>
+        <button>1.5</button>
+        <button>2.0</button>
+      </div>
+    </div>
+    <div class="group">
+      <span class="lbl">status</span>
+      <span>offline · 487 mb cached</span>
+    </div>
+  </footer>
+
+</div>
+</body>
+</html>

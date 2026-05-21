@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>catm — library · empty</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Mono:wght@400;700&family=Archivo:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shell.css">
+<style>
+  /* Tabs */
+  .tabs{
+    margin-top:32px;display:flex;gap:0;
+    font-family:'Archivo Black',sans-serif;font-size:12px;letter-spacing:.06em;text-transform:uppercase;
+  }
+  .tabs a{
+    text-decoration:none;color:var(--ink);
+    border:2.5px solid var(--ink);border-bottom:none;
+    padding:11px 18px;background:var(--paper-2);
+    position:relative;
+    margin-right:-2.5px;
+  }
+  .tabs a.on{
+    background:var(--pink);color:var(--paper);
+    box-shadow:0 -3px 0 var(--ink) inset;
+    z-index:1;
+  }
+  .tabs a:hover:not(.on){background:var(--paper)}
+
+  /* Empty panel */
+  .empty-panel{
+    background:var(--paper);border:3px solid var(--ink);box-shadow:8px 8px 0 var(--ink);
+    padding:60px 40px 56px;text-align:center;position:relative;overflow:hidden;
+  }
+  .empty-panel::before{
+    content:"";position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(circle, rgba(45,41,53,.1) 1px, transparent 1.3px);
+    background-size:5px 5px;opacity:.4;mix-blend-mode:multiply;
+  }
+  .empty-panel::after{
+    content:"00";position:absolute;right:-30px;bottom:-60px;
+    font-family:'Archivo Black',sans-serif;font-size:280px;line-height:.8;letter-spacing:-.05em;
+    color:var(--pink);opacity:.18;pointer-events:none;
+  }
+  .empty-illu{
+    margin:0 auto 22px;width:120px;height:120px;position:relative;
+  }
+  .empty-illu svg{display:block}
+  .empty-kicker{
+    font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.32em;text-transform:uppercase;
+    color:var(--pink);font-weight:700;margin-bottom:14px;position:relative;z-index:1;
+  }
+  .empty-title{
+    font-family:'Archivo Black',sans-serif;font-size:clamp(48px,6vw,72px);
+    letter-spacing:-.04em;line-height:.9;color:var(--ink);position:relative;z-index:1;
+  }
+  .empty-title em{color:var(--pink);font-style:normal}
+  .empty-copy{
+    margin:18px auto 30px;font-family:'Archivo',sans-serif;font-size:16px;line-height:1.5;
+    max-width:42ch;color:var(--ink);opacity:.78;position:relative;z-index:1;
+  }
+  .empty-actions{
+    display:flex;gap:12px;justify-content:center;flex-wrap:wrap;position:relative;z-index:1;
+  }
+
+  /* Storage strip — even when empty, the voice takes space */
+  .storage-strip{
+    margin-top:28px;
+    background:var(--paper);border:3px solid var(--ink);box-shadow:6px 6px 0 var(--blue);
+    padding:18px 22px;
+    display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:18px;
+  }
+  .storage-strip .meta{
+    font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink);
+    display:flex;gap:20px;flex-wrap:wrap;
+  }
+  .storage-strip .meta b{color:var(--pink);font-weight:700}
+  .storage-bar{
+    flex:1;min-width:220px;
+    height:22px;border:2px solid var(--ink);background:var(--paper-2);position:relative;
+  }
+  .storage-bar::before{
+    content:"";position:absolute;inset:0;
+    background:repeating-linear-gradient(90deg, var(--ink) 0 2px, transparent 2px 14px);
+    background-size:100% 2px;background-position:0 50%;background-repeat:repeat-x;
+  }
+  .storage-bar .voice{
+    position:absolute;left:0;top:0;bottom:0;width:16%;
+    background:var(--blue);box-shadow:inset 0 0 0 2px var(--ink);
+  }
+  .storage-bar .label{
+    position:absolute;right:8px;top:50%;transform:translateY(-50%);
+    font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--ink);
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="masthead">
+    <div class="vol">Vol. <b>01</b> Issue 07 · MMXXVI</div>
+    <div class="brand"><h1 class="wordmark">catm.</h1><div class="tagline">come and talk to me</div></div>
+    <div class="price">Cover <b>$0.00</b> Free · MIT</div>
+  </header>
+  <div class="strapline">
+    <span>★ ★ ★ <b>READ ANYTHING.</b> OUT LOUD. ★ ★ ★</span>
+    <span><b>Library</b> · 0 sessions · model 80 mb</span>
+  </div>
+
+  <nav class="screen-nav">
+    <span class="lbl">screens →</span>
+    <a href="01-first-launch.html">01 first launch</a>
+    <a href="02-downloading.html">02 downloading</a>
+    <a href="03-ready-empty.html">03 ready</a>
+    <a href="04-editor-pasted.html">04 editor</a>
+    <a href="05-library-empty.html" class="on">05 library</a>
+    <a href="06-settings.html">06 settings</a>
+    <a href="07-edge-cases.html">07 edge cases</a>
+  </nav>
+
+  <nav class="tabs">
+    <a href="#">Editor</a>
+    <a href="#" class="on">Library</a>
+    <a href="#">Settings</a>
+  </nav>
+
+  <section class="empty-panel">
+    <div class="empty-illu" aria-hidden="true">
+      <!-- riso-style stack of papers + sound waves -->
+      <svg width="120" height="120" viewBox="0 0 120 120" fill="none">
+        <!-- offset paper stack -->
+        <rect x="22" y="32" width="60" height="74" fill="none" stroke="#6580ad" stroke-width="2.5"/>
+        <rect x="28" y="26" width="60" height="74" fill="#ede2c7" stroke="#2a2530" stroke-width="3"/>
+        <!-- writing lines on top sheet -->
+        <line x1="36" y1="40" x2="78" y2="40" stroke="#2a2530" stroke-width="1.5" opacity=".5"/>
+        <line x1="36" y1="48" x2="80" y2="48" stroke="#2a2530" stroke-width="1.5" opacity=".5"/>
+        <line x1="36" y1="56" x2="70" y2="56" stroke="#2a2530" stroke-width="1.5" opacity=".5"/>
+        <line x1="36" y1="64" x2="78" y2="64" stroke="#2a2530" stroke-width="1.5" opacity=".5"/>
+        <line x1="36" y1="72" x2="62" y2="72" stroke="#2a2530" stroke-width="1.5" opacity=".5"/>
+        <!-- sound waves emerging -->
+        <path d="M95 36 q6 6 0 14" fill="none" stroke="#bf7488" stroke-width="2.5" stroke-linecap="round"/>
+        <path d="M101 30 q9 10 0 24" fill="none" stroke="#bf7488" stroke-width="2.5" stroke-linecap="round" opacity=".6"/>
+        <path d="M107 24 q12 14 0 36" fill="none" stroke="#bf7488" stroke-width="2.5" stroke-linecap="round" opacity=".35"/>
+        <!-- small stars -->
+        <path d="M14 86 l3 0 M15.5 84.5 l0 3" stroke="#bf7488" stroke-width="1.5" stroke-linecap="round"/>
+        <path d="M100 88 l3 0 M101.5 86.5 l0 3" stroke="#6580ad" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div class="empty-kicker">▸ no sessions yet</div>
+    <h2 class="empty-title">Nothing<br><em>here yet.</em></h2>
+    <p class="empty-copy">Your past reads will live here. Paste some text and press Read — it'll show up when it's done.</p>
+    <div class="empty-actions">
+      <a href="04-editor-pasted.html" class="btn primary" style="text-decoration:none">+ Start a read</a>
+      <a href="06-settings.html" class="btn" style="text-decoration:none">Settings</a>
+    </div>
+  </section>
+
+  <section class="storage-strip">
+    <div class="meta">
+      <span><b>0</b> sessions</span>
+      <span><b>0 mb</b> session storage</span>
+      <span><b>80 mb</b> model (kokoro · low)</span>
+    </div>
+    <div class="storage-bar" title="Storage in use">
+      <div class="voice"></div>
+      <span class="label">80 / 500 mb</span>
+    </div>
+  </section>
+
+  <footer class="colophon">
+    <a href="https://github.com/catm-app"><span class="arrow">↗</span>source · github.com/catm-app</a>
+    <span class="meta">printed in your browser · mmxxvi</span>
+  </footer>
+
+</div>
+</body>
+</html>

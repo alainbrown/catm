@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>catm — mocks index</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;700;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:'Fraunces',Georgia,serif;
+    background:#0f0f12;color:#f3ead8;
+    min-height:100vh;padding:60px 40px;
+  }
+  .wrap{max-width:980px;margin:0 auto}
+  h1{font-size:54px;font-weight:900;letter-spacing:-.03em;margin-bottom:8px}
+  h1 em{color:#ff7a18;font-style:italic;font-weight:300}
+  .sub{font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:#8a8a90;margin-bottom:48px}
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:20px}
+  @media (max-width:720px){.grid{grid-template-columns:1fr}}
+  a.card{
+    display:block;text-decoration:none;color:inherit;
+    border:1px solid #2a2a30;border-radius:14px;overflow:hidden;
+    background:#16161a;transition:transform .25s, border-color .25s, box-shadow .25s;
+  }
+  a.card:hover{transform:translateY(-4px);border-color:#ff7a18;box-shadow:0 20px 40px -20px rgba(255,122,24,.35)}
+  .swatch{height:140px;display:flex;align-items:flex-end;padding:18px}
+  .swatch span{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:rgba(0,0,0,.6);background:rgba(255,255,255,.6);padding:4px 8px;border-radius:4px}
+  .s1{background:linear-gradient(135deg,#f3ead8 0%,#ebe0c8 60%,#c9b896 100%)}
+  .s2{background:linear-gradient(135deg,#15110d,#ff7a18 70%,#c1382b)}
+  .s3{background:radial-gradient(circle at 30% 50%,#7fff7f 0%,#0a0e0a 70%)}
+  .s4{background:radial-gradient(circle at 20% 18%,#c6b9ff 0%,transparent 50%),radial-gradient(circle at 82% 22%,#ffc7a8 0%,transparent 50%),radial-gradient(circle at 78% 84%,#b9dcc4 0%,transparent 50%),#fbf7f2}
+  .body{padding:22px}
+  h2{font-size:24px;font-weight:700;letter-spacing:-.01em;margin-bottom:8px}
+  h2 em{font-style:italic;font-weight:400;color:#ff7a18}
+  p{font-size:14px;line-height:1.55;color:#b8b8c0;font-family:'Fraunces',serif}
+  .tag{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:#8a8a90;margin-top:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>catm <em>mocks.</em></h1>
+  <div class="sub">four directions · same product · pick a flavor</div>
+
+  <div class="grid">
+    <a class="card" href="1-literary.html">
+      <div class="swatch s1"><span>cream · burgundy · gold</span></div>
+      <div class="body">
+        <h2>The <em>Reading Room.</em></h2>
+        <p>Editorial. Magazine layout, drop caps, ornaments. The product is a serious literary instrument; the UI behaves like a New Yorker page.</p>
+        <div class="tag">Fraunces + Newsreader</div>
+      </div>
+    </a>
+
+    <a class="card" href="2-cassette.html">
+      <div class="swatch s2"><span>charcoal · amber · cream</span></div>
+      <div class="body">
+        <h2>Side <em>A.</em></h2>
+        <p>Tactile retro deck. Spinning reels, VU meters, glowing LCDs, mechanical transport buttons. Audio you can feel through the glass.</p>
+        <div class="tag">Big Shoulders Stencil + DM Mono</div>
+      </div>
+    </a>
+
+    <a class="card" href="3-terminal.html">
+      <div class="swatch s3"><span>phosphor green on black</span></div>
+      <div class="body">
+        <h2><em>catm</em>(1).</h2>
+        <p>Brutalist terminal. ASCII waveforms, scanlines, man-page typography, keyboard-first transport. For developers who think a player is overkill.</p>
+        <div class="tag">JetBrains Mono only</div>
+      </div>
+    </a>
+
+    <a class="card" href="4-ambient.html">
+      <div class="swatch s4"><span>lilac · peach · sage</span></div>
+      <div class="body">
+        <h2>Listen <em>softly.</em></h2>
+        <p>Ambient sonic. Gradient mesh, glassmorphism, circular orbital scrub bar, a soft glowing playhead. A meditative reading lamp.</p>
+        <div class="tag">Instrument Serif + Outfit</div>
+      </div>
+    </a>
+  </div>
+</div>
+</body>
+</html>

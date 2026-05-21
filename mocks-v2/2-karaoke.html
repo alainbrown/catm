@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>catm — Read along</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,500;0,700;1,400;1,500&family=Geist+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0e1424;
+    --bg-2:#141b30;
+    --bg-3:#1c2342;
+    --text:#cfd5e8;
+    --text-dim:#6c7390;
+    --text-ghost:#3a4060;
+    --amber:#ffc36b;
+    --amber-glow:#ffd99a;
+    --rose:#ff8aa8;
+    --rule:#252b48;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Spectral',Georgia,serif;
+    font-weight:300;font-size:17px;line-height:1.7;
+    min-height:100vh;
+    background-image:
+      radial-gradient(ellipse at top, rgba(255,195,107,.05), transparent 60%),
+      radial-gradient(ellipse at bottom, rgba(255,138,168,.05), transparent 60%);
+    -webkit-font-smoothing:antialiased;
+  }
+  .frame{
+    max-width:840px;margin:0 auto;
+    padding:30px clamp(20px,4vw,40px) 220px;
+    min-height:100vh;
+    position:relative;
+  }
+
+  /* HUD top */
+  .hud{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:12px 18px;margin-bottom:32px;
+    background:rgba(20,27,48,.7);
+    backdrop-filter:blur(14px);
+    border:1px solid var(--rule);border-radius:14px;
+  }
+  .brand{
+    font-family:'Spectral';font-weight:500;font-style:italic;
+    font-size:22px;letter-spacing:-.01em;color:var(--amber);
+  }
+  .hud-meta{
+    display:flex;align-items:center;gap:18px;
+    font-family:'Geist Mono';font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--text-dim);
+  }
+  .hud-meta .live{
+    display:flex;align-items:center;gap:8px;color:var(--amber);
+  }
+  .hud-meta .live::before{
+    content:"";width:7px;height:7px;border-radius:50%;background:var(--amber);
+    box-shadow:0 0 12px var(--amber-glow);
+    animation:pulse 1.4s ease-in-out infinite;
+  }
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+
+  /* article head */
+  .article-head{margin-bottom:38px}
+  .kicker{
+    font-family:'Geist Mono';font-size:10px;letter-spacing:.32em;text-transform:uppercase;color:var(--text-dim);margin-bottom:14px;
+  }
+  h1.title{
+    font-family:'Spectral';font-weight:500;font-size:42px;
+    letter-spacing:-.015em;line-height:1.05;color:var(--text);
+    max-width:14ch;
+  }
+  h1.title em{font-style:italic;font-weight:400;color:var(--amber)}
+  .byline{
+    margin-top:14px;color:var(--text-dim);font-style:italic;font-size:15px;
+  }
+
+  /* Article body — karaoke */
+  .body{
+    font-size:22px;line-height:1.85;
+    /* Each paragraph holds .w spans */
+  }
+  .body p{margin-bottom:1.2em}
+  .body .w{
+    color:var(--text-ghost);
+    transition:color .25s ease, text-shadow .25s ease;
+    cursor:default;
+  }
+  .body .w.spoken{color:var(--text-dim)}
+  .body .w.current{
+    color:var(--amber);
+    text-shadow:0 0 20px rgba(255,195,107,.6);
+    background:linear-gradient(180deg, transparent 60%, rgba(255,195,107,.22) 60% 95%, transparent 95%);
+    padding:0 2px;border-radius:3px;
+    animation:wordpulse 1.2s ease-in-out infinite;
+  }
+  @keyframes wordpulse{
+    0%,100%{text-shadow:0 0 14px rgba(255,195,107,.5)}
+    50%{text-shadow:0 0 28px rgba(255,195,107,.85)}
+  }
+  /* Sentence under playhead gets a subtle warming */
+  .body .s.current .w:not(.current):not(.spoken){color:var(--text-dim)}
+
+  /* Floating sidebar — chunk progress */
+  .gutter{
+    position:fixed;top:50%;left:max(16px, calc(50% - 520px));
+    transform:translateY(-50%);
+    display:flex;flex-direction:column;gap:6px;
+    font-family:'Geist Mono';font-size:9px;letter-spacing:.18em;
+    color:var(--text-dim);text-transform:uppercase;
+  }
+  .gutter .seg{
+    width:3px;height:14px;background:var(--text-ghost);border-radius:2px;
+  }
+  .gutter .seg.done{background:var(--rose)}
+  .gutter .seg.current{background:var(--amber);box-shadow:0 0 8px var(--amber)}
+  .gutter .seg.prepared{background:var(--text-dim)}
+  .gutter .label{margin-top:8px;writing-mode:vertical-rl}
+
+  @media (max-width:1080px){.gutter{display:none}}
+
+  /* CONSOLE bottom */
+  .console{
+    position:fixed;bottom:0;left:0;right:0;
+    background:
+      linear-gradient(180deg, transparent, var(--bg) 35%, var(--bg) 100%);
+    padding:40px 0 22px;
+    z-index:10;
+  }
+  .console-inner{
+    max-width:840px;margin:0 auto;
+    padding:0 clamp(20px,4vw,40px);
+  }
+  .scrub-row{
+    display:flex;align-items:center;gap:14px;
+    font-family:'Geist Mono';font-size:11px;color:var(--text-dim);
+  }
+  .scrub-row .time{color:var(--text);min-width:46px}
+  .scrub-row .time.r{text-align:right}
+  .scrub{
+    flex:1;position:relative;height:18px;cursor:pointer;
+  }
+  .scrub .track{
+    position:absolute;top:8px;left:0;right:0;height:2px;background:var(--bg-3);border-radius:1px;
+  }
+  .scrub .prepared{
+    position:absolute;top:7px;left:0;width:54%;height:4px;
+    background:var(--text-dim);opacity:.6;border-radius:2px;
+  }
+  .scrub .played{
+    position:absolute;top:6px;left:0;width:31%;height:6px;
+    background:linear-gradient(90deg, var(--rose), var(--amber));
+    border-radius:3px;box-shadow:0 0 14px rgba(255,195,107,.4);
+  }
+  .scrub .head{
+    position:absolute;top:0;left:31%;width:3px;height:18px;
+    background:var(--amber);border-radius:2px;
+    box-shadow:0 0 12px var(--amber);
+  }
+  .scrub .head::after{
+    content:"";position:absolute;top:-3px;left:-4px;width:11px;height:11px;
+    border-radius:50%;background:var(--amber);
+    box-shadow:0 0 18px var(--amber-glow);
+  }
+
+  .transport{
+    display:flex;justify-content:space-between;align-items:center;
+    margin-top:18px;
+  }
+  .controls{display:flex;align-items:center;gap:10px}
+  .ctl{
+    background:transparent;border:1px solid var(--rule);
+    color:var(--text);padding:10px 14px;border-radius:10px;
+    font-family:'Geist Mono';font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+    cursor:pointer;transition:all .2s;
+  }
+  .ctl:hover{border-color:var(--amber);color:var(--amber)}
+  .ctl.primary{
+    width:52px;height:52px;padding:0;border-radius:50%;
+    background:var(--amber);color:var(--bg);border-color:var(--amber);
+    display:grid;place-items:center;
+    box-shadow:0 0 30px -4px var(--amber-glow);
+  }
+  .right-controls{
+    display:flex;align-items:center;gap:18px;
+    font-family:'Geist Mono';font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--text-dim);
+  }
+  .speed{
+    display:flex;background:var(--bg-2);border:1px solid var(--rule);border-radius:10px;overflow:hidden;
+  }
+  .speed button{
+    background:transparent;border:none;color:var(--text-dim);
+    padding:8px 11px;font-family:'Geist Mono';font-size:11px;cursor:pointer;
+  }
+  .speed button.on{background:var(--amber);color:var(--bg);font-weight:500}
+
+  /* Auto-scroll spotlight from playhead — keep current line near center */
+  .body .s.current{
+    background:linear-gradient(180deg, transparent 0%, rgba(255,195,107,.04) 50%, transparent 100%);
+    padding:.2em .4em;margin:0 -.4em;border-radius:4px;
+  }
+</style>
+</head>
+<body>
+<div class="frame">
+
+  <header class="hud">
+    <span class="brand">catm</span>
+    <div class="hud-meta">
+      <span>Voice · af_heart</span>
+      <span>·</span>
+      <span class="live">Reading</span>
+    </div>
+  </header>
+
+  <section class="article-head">
+    <div class="kicker">Now Reading · Chapter VII · 4,218 words</div>
+    <h1 class="title">On the Pleasure of <em>Reading Aloud.</em></h1>
+    <div class="byline">an essay by Alberto Manguel</div>
+  </section>
+
+  <article class="body">
+    <p class="s">
+      <span class="w spoken">The</span> <span class="w spoken">voice</span> <span class="w spoken">that</span> <span class="w spoken">reads</span> <span class="w spoken">aloud</span> <span class="w spoken">to</span> <span class="w spoken">itself</span> <span class="w spoken">is</span> <span class="w spoken">the</span> <span class="w spoken">most</span> <span class="w spoken">ancient</span> <span class="w spoken">of</span> <span class="w spoken">literary</span> <span class="w spoken">instruments.</span>
+    </p>
+    <p class="s current">
+      <span class="w spoken">Long</span> <span class="w spoken">before</span> <span class="w spoken">the</span> <span class="w spoken">printed</span> <span class="w spoken">page,</span> <span class="w spoken">long</span> <span class="w spoken">before</span> <span class="w spoken">the</span> <span class="w spoken">silent</span> <span class="w spoken">eye</span> <span class="w spoken">learned</span> <span class="w spoken">its</span> <span class="w spoken">trick</span> <span class="w spoken">of</span> <span class="w current">swallowing</span> <span class="w">meaning</span> <span class="w">in</span> <span class="w">a</span> <span class="w">glance,</span> <span class="w">there</span> <span class="w">was</span> <span class="w">the</span> <span class="w">mouth,</span> <span class="w">the</span> <span class="w">breath,</span> <span class="w">the</span> <span class="w">unhurried</span> <span class="w">turning</span> <span class="w">of</span> <span class="w">one</span> <span class="w">syllable</span> <span class="w">into</span> <span class="w">the</span> <span class="w">next.</span>
+    </p>
+    <p class="s">
+      <span class="w">To</span> <span class="w">listen</span> <span class="w">is</span> <span class="w">to</span> <span class="w">be</span> <span class="w">carried</span> <span class="w">—</span> <span class="w">to</span> <span class="w">surrender</span> <span class="w">the</span> <span class="w">self</span> <span class="w">briefly,</span> <span class="w">the</span> <span class="w">way</span> <span class="w">a</span> <span class="w">small</span> <span class="w">boat</span> <span class="w">surrenders</span> <span class="w">to</span> <span class="w">a</span> <span class="w">current</span> <span class="w">it</span> <span class="w">cannot</span> <span class="w">see</span> <span class="w">beneath</span> <span class="w">it.</span>
+    </p>
+    <p class="s">
+      <span class="w">What</span> <span class="w">we</span> <span class="w">lose</span> <span class="w">in</span> <span class="w">silent</span> <span class="w">reading</span> <span class="w">is</span> <span class="w">not</span> <span class="w">understanding</span> <span class="w">but</span> <span class="w">tempo.</span> <span class="w">The</span> <span class="w">page</span> <span class="w">on</span> <span class="w">the</span> <span class="w">desk</span> <span class="w">is</span> <span class="w">consumed;</span> <span class="w">the</span> <span class="w">page</span> <span class="w">read</span> <span class="w">aloud</span> <span class="w">is</span> <span class="w">unfolded.</span>
+    </p>
+    <p class="s">
+      <span class="w">Each</span> <span class="w">word</span> <span class="w">is</span> <span class="w">given</span> <span class="w">the</span> <span class="w">time</span> <span class="w">it</span> <span class="w">deserves,</span> <span class="w">and</span> <span class="w">the</span> <span class="w">listener</span> <span class="w">—</span> <span class="w">even</span> <span class="w">when</span> <span class="w">the</span> <span class="w">listener</span> <span class="w">is</span> <span class="w">also</span> <span class="w">the</span> <span class="w">reader</span> <span class="w">—</span> <span class="w">is</span> <span class="w">made</span> <span class="w">to</span> <span class="w">wait,</span> <span class="w">and</span> <span class="w">in</span> <span class="w">waiting,</span> <span class="w">to</span> <span class="w">attend.</span>
+    </p>
+  </article>
+
+  <aside class="gutter" aria-hidden="true">
+    <div class="seg done"></div>
+    <div class="seg done"></div>
+    <div class="seg done"></div>
+    <div class="seg done"></div>
+    <div class="seg done"></div>
+    <div class="seg done"></div>
+    <div class="seg done"></div>
+    <div class="seg done"></div>
+    <div class="seg done"></div>
+    <div class="seg current"></div>
+    <div class="seg prepared"></div>
+    <div class="seg prepared"></div>
+    <div class="seg prepared"></div>
+    <div class="seg prepared"></div>
+    <div class="seg prepared"></div>
+    <div class="seg prepared"></div>
+    <div class="seg prepared"></div>
+    <div class="seg prepared"></div>
+    <div class="seg"></div>
+    <div class="seg"></div>
+    <div class="seg"></div>
+    <div class="seg"></div>
+    <div class="seg"></div>
+    <div class="label">chunks 10 / 32</div>
+  </aside>
+
+</div>
+
+<footer class="console">
+  <div class="console-inner">
+    <div class="scrub-row">
+      <span class="time">14:32</span>
+      <div class="scrub">
+        <div class="track"></div>
+        <div class="prepared"></div>
+        <div class="played"></div>
+        <div class="head"></div>
+      </div>
+      <span class="time r">46:18</span>
+    </div>
+    <div class="transport">
+      <div class="controls">
+        <button class="ctl">−30</button>
+        <button class="ctl primary" aria-label="pause">
+          <svg width="14" height="16" viewBox="0 0 14 16" fill="currentColor"><rect x="2" y="0" width="3" height="16" rx="1"/><rect x="9" y="0" width="3" height="16" rx="1"/></svg>
+        </button>
+        <button class="ctl">+30</button>
+        <button class="ctl">Stop</button>
+      </div>
+      <div class="right-controls">
+        <span>Low · 80mb</span>
+        <div class="speed">
+          <button>0.75</button>
+          <button>1.0</button>
+          <button class="on">1.25</button>
+          <button>1.5</button>
+          <button>2.0</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</footer>
+</body>
+</html>

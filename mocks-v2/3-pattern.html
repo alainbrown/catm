@@ -1,0 +1,440 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>catm — apothecary of voices</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#f3ede0;
+    --paper-2:#e8dec8;
+    --ink:#0e2a26;
+    --ink-soft:#3f5a55;
+    --teal:#0e7a6f;
+    --teal-soft:#3aa298;
+    --copper:#b35a2a;
+    --gold:#a78a3a;
+    --rule:#c8baa0;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:'IBM Plex Sans',ui-sans-serif,system-ui,sans-serif;
+    font-weight:300;font-size:15px;line-height:1.6;
+    color:var(--ink);
+    background:var(--paper);
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* SVG pattern background — custom: a fine herbarium-style scatter of tiny waveform glyphs */
+  body{
+    background-color:var(--paper);
+    background-image:
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120'>\
+        <g fill='none' stroke='%230e2a26' stroke-width='.8' stroke-linecap='round' opacity='.16'>\
+          <path d='M10 20 q3 -5 6 0 t6 0 t6 0 t6 0' />\
+          <path d='M70 80 q3 -7 6 0 t6 0 t6 0' />\
+          <circle cx='95' cy='28' r='1.4' fill='%230e2a26' stroke='none'/>\
+          <circle cx='30' cy='95' r='1' fill='%230e2a26' stroke='none'/>\
+          <circle cx='62' cy='52' r='1.6' fill='%230e2a26' stroke='none'/>\
+          <path d='M52 12 l4 0 M54 10 l0 4' />\
+          <path d='M14 70 l4 0 M16 68 l0 4' />\
+          <path d='M95 105 l4 0 M97 103 l0 4' stroke='%23b35a2a'/>\
+          <circle cx='105' cy='62' r='2' fill='none' stroke='%230e7a6f'/>\
+        </g>\
+      </svg>"),
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='400'><filter id='n'><feTurbulence baseFrequency='.85' numOctaves='2'/><feColorMatrix values='0 0 0 0 .05 0 0 0 0 .16 0 0 0 0 .15 0 0 0 .04 0'/></filter><rect width='400' height='400' filter='url(%23n)'/></svg>");
+    background-size:120px 120px, 400px 400px;
+    background-repeat:repeat, repeat;
+  }
+
+  .frame{
+    max-width:960px;margin:0 auto;
+    padding:36px clamp(20px,4vw,52px) 60px;
+  }
+
+  /* Header — apothecary label */
+  .label{
+    border:1.5px solid var(--ink);
+    background:var(--paper);
+    padding:22px 32px;
+    position:relative;
+    box-shadow:0 18px 40px -22px rgba(14,42,38,.3);
+  }
+  .label::before,.label::after{
+    content:"";position:absolute;
+    background:var(--paper);
+    border:1.5px solid var(--ink);
+  }
+  .label::before{top:-1.5px;left:-1.5px;right:-1.5px;height:6px;border-bottom:none}
+  .label::after{bottom:-1.5px;left:-1.5px;right:-1.5px;height:6px;border-top:none}
+  .label-inner{
+    border-top:1px solid var(--ink);border-bottom:1px solid var(--ink);
+    padding:18px 0;display:flex;justify-content:space-between;align-items:center;gap:24px;
+  }
+  .label-top, .label-bot{
+    display:flex;justify-content:space-between;align-items:center;
+    font-family:'IBM Plex Sans';font-size:10px;letter-spacing:.32em;text-transform:uppercase;
+    color:var(--ink-soft);padding:0;
+  }
+  .label-top{padding-bottom:14px}
+  .label-bot{padding-top:14px}
+  .crest{
+    font-family:'EB Garamond',serif;font-style:italic;font-size:12px;
+    color:var(--ink);letter-spacing:0;
+  }
+  .mark{
+    text-align:center;
+  }
+  .mark h1{
+    font-family:'EB Garamond',serif;
+    font-weight:500;font-size:64px;line-height:.95;letter-spacing:-.02em;
+    color:var(--ink);
+  }
+  .mark h1 em{font-style:italic;color:var(--teal);font-weight:400}
+  .mark .latin{
+    font-family:'EB Garamond',serif;font-style:italic;font-size:14px;color:var(--ink-soft);
+    margin-top:8px;
+  }
+  .specimen{
+    text-align:right;
+    font-family:'EB Garamond',serif;font-size:14px;color:var(--ink);
+  }
+  .specimen b{display:block;font-style:italic;color:var(--teal);font-weight:500;font-size:16px}
+
+  /* Card / vial — the player */
+  .layout{
+    margin-top:32px;display:grid;grid-template-columns:1fr 1fr;gap:28px;
+  }
+  @media (max-width:820px){.layout{grid-template-columns:1fr}}
+
+  .card{
+    background:var(--paper);
+    border:1px solid var(--ink);
+    padding:28px;
+    box-shadow:0 18px 40px -22px rgba(14,42,38,.3);
+    position:relative;
+  }
+  .card .corner{
+    position:absolute;width:14px;height:14px;border:1px solid var(--ink);background:var(--paper);
+  }
+  .card .corner.tl{top:-7px;left:-7px}
+  .card .corner.tr{top:-7px;right:-7px}
+  .card .corner.bl{bottom:-7px;left:-7px}
+  .card .corner.br{bottom:-7px;right:-7px}
+  .card h3{
+    font-family:'IBM Plex Sans';font-size:10px;letter-spacing:.32em;text-transform:uppercase;
+    color:var(--ink-soft);font-weight:500;
+    padding-bottom:10px;margin-bottom:18px;
+    border-bottom:1px solid var(--rule);
+    display:flex;justify-content:space-between;
+  }
+  .card h3 span{color:var(--copper)}
+
+  /* Vial illustration */
+  .vial-card{
+    display:flex;flex-direction:column;align-items:center;
+  }
+  .vial-stage{
+    display:flex;align-items:flex-end;gap:24px;justify-content:center;
+    padding:14px 0 22px;
+  }
+  .vial{
+    width:84px;height:200px;
+    position:relative;
+  }
+  .vial .stopper{
+    position:absolute;left:50%;transform:translateX(-50%);
+    width:42px;height:18px;background:var(--copper);
+    border:1.5px solid var(--ink);border-radius:3px 3px 1px 1px;top:0;
+    box-shadow:inset 0 -3px 0 rgba(0,0,0,.15);
+  }
+  .vial .neck{
+    position:absolute;left:50%;transform:translateX(-50%);
+    width:30px;height:16px;background:var(--paper-2);
+    border:1.5px solid var(--ink);border-bottom:none;top:18px;
+  }
+  .vial .body{
+    position:absolute;left:0;right:0;top:34px;bottom:0;
+    border:1.5px solid var(--ink);border-radius:6px 6px 16px 16px;
+    background:var(--paper-2);
+    overflow:hidden;
+  }
+  .vial .liquid{
+    position:absolute;left:0;right:0;bottom:0;height:54%;
+    background:linear-gradient(180deg, rgba(14,122,111,.85), rgba(14,42,38,.9));
+    border-top:1.5px solid rgba(14,42,38,.5);
+  }
+  .vial .liquid::before{
+    content:"";position:absolute;top:-3px;left:0;right:0;height:6px;
+    background:rgba(255,255,255,.25);
+  }
+  /* bubbles */
+  .vial .bubble{
+    position:absolute;width:5px;height:5px;border-radius:50%;
+    background:rgba(243,237,224,.6);bottom:10%;
+    animation:bub 4s ease-in infinite;
+  }
+  .vial .bubble:nth-child(3){left:30%;animation-delay:.5s}
+  .vial .bubble:nth-child(4){left:55%;animation-delay:1.8s;width:3px;height:3px}
+  .vial .bubble:nth-child(5){left:70%;animation-delay:2.7s;width:4px;height:4px}
+  @keyframes bub{
+    0%{transform:translateY(0);opacity:0}
+    20%{opacity:.7}
+    100%{transform:translateY(-160px);opacity:0}
+  }
+  .vial.med .liquid{height:0%;background:linear-gradient(180deg, rgba(179,90,42,.4), rgba(179,90,42,.2))}
+  .vial.high .liquid{height:0%;background:linear-gradient(180deg, rgba(167,138,58,.4), rgba(167,138,58,.2))}
+  .vial-meta{
+    text-align:center;margin-top:10px;
+    font-family:'EB Garamond',serif;font-style:italic;font-size:14px;color:var(--ink);
+  }
+  .vial-meta small{
+    display:block;font-family:'IBM Plex Sans';font-size:9px;
+    letter-spacing:.28em;text-transform:uppercase;color:var(--ink-soft);
+    font-style:normal;margin-top:4px;
+  }
+  .vial.disabled{opacity:.4}
+
+  /* Folio — reading content */
+  .folio{
+    grid-column:1 / -1;
+    background:var(--paper);
+    border:1px solid var(--ink);
+    padding:36px 44px;
+    position:relative;
+  }
+  .folio-head{
+    text-align:center;border-bottom:1px solid var(--rule);
+    padding-bottom:20px;margin-bottom:22px;
+  }
+  .folio-kicker{
+    font-family:'IBM Plex Sans';font-size:10px;letter-spacing:.32em;
+    text-transform:uppercase;color:var(--copper);font-weight:500;
+  }
+  .folio-head h2{
+    font-family:'EB Garamond',serif;font-weight:500;font-size:38px;
+    letter-spacing:-.015em;line-height:1.05;margin:8px 0 6px;
+    font-style:italic;
+  }
+  .folio-byline{
+    font-family:'EB Garamond',serif;font-style:italic;color:var(--ink-soft);font-size:13px;
+  }
+  .folio-body{
+    font-family:'EB Garamond',serif;font-size:17px;line-height:1.7;color:var(--ink);
+    column-count:2;column-gap:34px;
+  }
+  .folio-body p{break-inside:avoid;margin-bottom:.8em}
+  .folio-body p:first-child::first-letter{
+    font-family:'EB Garamond',serif;font-weight:500;font-style:italic;
+    font-size:62px;line-height:.85;float:left;padding:4px 10px 0 0;color:var(--teal);
+  }
+  /* engraved underline link */
+  .folio-body em{color:var(--copper);font-weight:500}
+
+  /* Console — pocket-watch style */
+  .console{
+    margin-top:28px;
+    background:var(--paper);
+    border:1px solid var(--ink);
+    padding:24px 28px;
+    display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:28px;
+  }
+  .dial{
+    width:120px;height:120px;border-radius:50%;
+    background:
+      radial-gradient(circle at center, var(--paper) 0 55%, var(--paper-2) 55% 100%);
+    border:1.5px solid var(--ink);
+    position:relative;display:grid;place-items:center;
+    box-shadow:inset 0 0 0 6px var(--paper), inset 0 0 0 7px var(--ink);
+  }
+  .dial::before{
+    content:"";position:absolute;inset:14px;border-radius:50%;border:1px dashed var(--rule);
+  }
+  .dial .time{
+    font-family:'EB Garamond',serif;font-style:italic;font-size:30px;color:var(--ink);
+    line-height:1;
+  }
+  .dial .of{
+    position:absolute;bottom:18px;left:50%;transform:translateX(-50%);
+    font-family:'IBM Plex Sans';font-size:9px;letter-spacing:.28em;text-transform:uppercase;color:var(--ink-soft);
+  }
+  /* hand */
+  .dial .hand{
+    position:absolute;top:50%;left:50%;width:2px;height:38px;
+    background:var(--teal);transform-origin:bottom center;
+    transform:translate(-50%,-100%) rotate(112deg);border-radius:1px;
+  }
+  .dial .pivot{
+    position:absolute;top:50%;left:50%;width:8px;height:8px;border-radius:50%;
+    background:var(--copper);transform:translate(-50%,-50%);
+    border:1px solid var(--ink);
+  }
+
+  .scrub-col{display:flex;flex-direction:column;gap:10px;min-width:0}
+  .scrub-meta{
+    display:flex;justify-content:space-between;
+    font-family:'IBM Plex Sans';font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-soft);
+  }
+  .scrub-meta b{color:var(--teal);font-weight:500}
+  .scrub{
+    position:relative;height:14px;cursor:pointer;
+    background:repeating-linear-gradient(90deg, var(--ink) 0 1px, transparent 1px 8px);
+    background-position:0 50%;background-size:100% 1px;background-repeat:repeat-x;
+  }
+  .scrub .prepared{
+    position:absolute;top:5px;left:0;width:54%;height:4px;background:var(--teal-soft);opacity:.6;
+  }
+  .scrub .played{
+    position:absolute;top:4px;left:0;width:31%;height:6px;background:var(--teal);
+  }
+  .scrub .head{
+    position:absolute;top:-2px;left:31%;width:2px;height:18px;background:var(--copper);
+  }
+  .scrub .head::after{
+    content:"";position:absolute;top:-4px;left:-4px;width:10px;height:10px;
+    background:var(--copper);border-radius:50%;border:1.5px solid var(--ink);
+  }
+
+  .controls{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+  .ctl{
+    background:var(--paper);border:1.5px solid var(--ink);
+    padding:9px 14px;cursor:pointer;
+    font-family:'EB Garamond',serif;font-style:italic;font-size:14px;color:var(--ink);
+    transition:all .2s;
+  }
+  .ctl:hover{background:var(--ink);color:var(--paper)}
+  .ctl.primary{
+    width:50px;height:50px;border-radius:50%;padding:0;display:grid;place-items:center;
+    background:var(--teal);color:var(--paper);border-color:var(--ink);
+  }
+  .ctl.primary:hover{background:var(--copper)}
+
+  .footnote{
+    margin-top:18px;
+    font-family:'EB Garamond',serif;font-style:italic;font-size:13px;
+    color:var(--ink-soft);text-align:center;
+  }
+</style>
+</head>
+<body>
+<div class="frame">
+
+  <header class="label">
+    <div class="label-inner">
+      <div class="label-top" style="position:absolute;top:8px;left:32px;right:32px;border:none;padding:0">
+        <span>Est. MMXXVI</span>
+        <span class="crest">— No. 001 —</span>
+        <span>Offline · 487 mb cached</span>
+      </div>
+      <div class="mark" style="flex:1">
+        <h1>catm<em>.</em></h1>
+        <div class="latin">apothecarius vocum · keeper of voices</div>
+      </div>
+      <div class="specimen">
+        Specimen No. <b>VII</b>
+        Tier · <b>Low</b><br>
+        Voice · <b>af_heart</b>
+      </div>
+    </div>
+  </header>
+
+  <div class="layout">
+
+    <section class="card vial-card">
+      <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+      <h3>Voice Tier<span>3 specimens</span></h3>
+      <div class="vial-stage">
+        <div>
+          <div class="vial">
+            <div class="stopper"></div>
+            <div class="neck"></div>
+            <div class="body">
+              <div class="liquid"></div>
+              <div class="bubble"></div><div class="bubble"></div><div class="bubble"></div>
+            </div>
+          </div>
+          <div class="vial-meta">Kokoro<small>Low · 80mb</small></div>
+        </div>
+        <div>
+          <div class="vial med disabled">
+            <div class="stopper" style="background:var(--ink-soft)"></div>
+            <div class="neck"></div>
+            <div class="body"><div class="liquid"></div></div>
+          </div>
+          <div class="vial-meta" style="opacity:.5">CosyVoice<small>Med · soon</small></div>
+        </div>
+        <div>
+          <div class="vial high disabled">
+            <div class="stopper" style="background:var(--ink-soft)"></div>
+            <div class="neck"></div>
+            <div class="body"><div class="liquid"></div></div>
+          </div>
+          <div class="vial-meta" style="opacity:.5">Qwen3<small>High · soon</small></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <span class="corner tl"></span><span class="corner tr"></span><span class="corner bl"></span><span class="corner br"></span>
+      <h3>Library<span>14 sessions</span></h3>
+      <ul style="list-style:none;font-family:'EB Garamond',serif;font-size:15px">
+        <li style="padding:10px 0;border-bottom:1px dashed var(--rule);display:flex;justify-content:space-between"><i>On the Pleasure of Reading Aloud</i><span style="color:var(--ink-soft);font-style:italic;font-size:12px">46:18 · today</span></li>
+        <li style="padding:10px 0;border-bottom:1px dashed var(--rule);display:flex;justify-content:space-between"><i>Letters to a Young Poet, II</i><span style="color:var(--ink-soft);font-style:italic;font-size:12px">21:04 · yesterday</span></li>
+        <li style="padding:10px 0;border-bottom:1px dashed var(--rule);display:flex;justify-content:space-between"><i>The Library at Night, ch. III</i><span style="color:var(--ink-soft);font-style:italic;font-size:12px">38:42 · 3d</span></li>
+        <li style="padding:10px 0;display:flex;justify-content:space-between"><i>On Solitude — Montaigne</i><span style="color:var(--ink-soft);font-style:italic;font-size:12px">19:18 · 5d</span></li>
+      </ul>
+    </section>
+
+    <section class="folio">
+      <div class="folio-head">
+        <div class="folio-kicker">Now Reading · Chapter VII</div>
+        <h2>On the Pleasure of Reading Aloud</h2>
+        <div class="folio-byline">an essay by Alberto Manguel · 4,218 words</div>
+      </div>
+      <div class="folio-body">
+        <p>The voice that reads aloud to itself is the most ancient of literary instruments. Long before the printed page, long before the silent eye learned its trick of swallowing meaning in a glance, there was the mouth, the breath, the unhurried turning of one syllable into the next.</p>
+        <p>To listen is to be carried — to surrender the self briefly, the way a small boat surrenders to a current it <em>cannot see beneath it.</em></p>
+        <p>What we lose in silent reading is not understanding but tempo. The page on the desk is consumed; the page read aloud is unfolded. Each word is given the time it deserves, and the listener — even when the listener is also the reader — is made to wait, and in waiting, to attend.</p>
+      </div>
+
+      <div class="console">
+        <div class="dial">
+          <div class="time">14:32</div>
+          <div class="of">of 46:18</div>
+          <div class="hand"></div>
+          <div class="pivot"></div>
+        </div>
+        <div class="scrub-col">
+          <div class="scrub-meta">
+            <span><b>played</b> · 31%</span>
+            <span><b>prepared</b> · chunks 18 / 32</span>
+            <span><b>remaining</b> · 31:46</span>
+          </div>
+          <div class="scrub">
+            <div class="prepared"></div>
+            <div class="played"></div>
+            <div class="head"></div>
+          </div>
+          <div style="font-family:'EB Garamond',serif;font-style:italic;color:var(--ink-soft);font-size:13px">— preparing the next phrase —</div>
+        </div>
+        <div class="controls">
+          <button class="ctl">−30</button>
+          <button class="ctl primary" aria-label="pause">
+            <svg width="14" height="16" viewBox="0 0 14 16" fill="currentColor"><rect x="2" y="0" width="3" height="16"/><rect x="9" y="0" width="3" height="16"/></svg>
+          </button>
+          <button class="ctl">+30</button>
+        </div>
+      </div>
+
+      <div class="footnote">— sit a while, and listen —</div>
+    </section>
+
+  </div>
+</div>
+</body>
+</html>

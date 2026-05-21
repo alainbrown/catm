@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>catm — downloading voice</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Mono:wght@400;700&family=Archivo:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shell.css">
+<style>
+  .stage{
+    margin-top:32px;display:grid;grid-template-columns:1.1fr 1fr;gap:28px;align-items:stretch;
+  }
+  @media (max-width:880px){.stage{grid-template-columns:1fr}}
+
+  .hero{
+    background:var(--pink);color:var(--paper);
+    border:3px solid var(--ink);box-shadow:8px 8px 0 var(--ink);
+    padding:32px 30px 28px;position:relative;overflow:hidden;
+  }
+  .hero::before{
+    content:"";position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(circle, rgba(45,41,53,.28) 1.2px, transparent 1.4px);
+    background-size:6px 6px;opacity:.35;mix-blend-mode:multiply;
+  }
+  .hero .num{
+    position:absolute;right:-12px;top:-30px;font-family:'Archivo Black',sans-serif;
+    font-size:200px;line-height:.85;letter-spacing:-.05em;color:var(--paper);opacity:.13;pointer-events:none;
+  }
+  .hero .kicker{
+    font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.28em;text-transform:uppercase;
+    color:var(--paper);border:2px solid var(--paper);padding:5px 11px;display:inline-block;margin-bottom:18px;
+    position:relative;z-index:1;
+    display:inline-flex;align-items:center;gap:8px;
+  }
+  .hero .kicker::before{
+    content:"";width:8px;height:8px;border-radius:50%;background:var(--paper);
+    animation:blink 1s ease-in-out infinite;
+  }
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+  .hero h2{
+    font-family:'Archivo Black',sans-serif;font-size:clamp(48px,6vw,72px);
+    letter-spacing:-.04em;line-height:.9;color:var(--paper);
+    position:relative;z-index:1;max-width:11ch;
+  }
+  .hero h2 em{color:var(--ink);font-style:normal}
+  .hero .copy{
+    margin-top:22px;font-family:'Archivo',sans-serif;font-size:16px;line-height:1.55;
+    color:var(--paper);max-width:36ch;position:relative;z-index:1;opacity:.95;
+  }
+
+  /* Progress block */
+  .progress{
+    margin-top:28px;position:relative;z-index:1;
+    background:var(--paper);color:var(--ink);
+    border:2.5px solid var(--ink);padding:18px 20px;
+  }
+  .progress .label{
+    display:flex;justify-content:space-between;align-items:baseline;
+    font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;
+    margin-bottom:10px;
+  }
+  .progress .label .pct{
+    font-family:'Archivo Black',sans-serif;font-size:24px;letter-spacing:-.02em;
+    color:var(--pink);
+  }
+  .progress .bar{
+    height:24px;border:2px solid var(--ink);position:relative;background:var(--paper-2);
+    overflow:hidden;
+  }
+  .progress .bar::before{
+    content:"";position:absolute;inset:0;
+    background:repeating-linear-gradient(90deg, var(--ink) 0 2px, transparent 2px 14px);
+    background-position:0 50%;background-size:100% 2px;background-repeat:repeat-x;
+    pointer-events:none;
+  }
+  .progress .fill{
+    position:absolute;left:0;top:0;bottom:0;width:38%;
+    background:var(--pink);
+    box-shadow:inset 0 0 0 2px var(--ink);
+    background-image:
+      repeating-linear-gradient(45deg,
+        rgba(255,255,255,.18) 0 6px,
+        transparent 6px 12px);
+    animation:stripe 2s linear infinite;
+  }
+  @keyframes stripe{to{background-position:24px 0}}
+  .progress .stats{
+    margin-top:12px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;
+    font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink);
+  }
+  .progress .stats b{color:var(--pink);font-weight:700}
+
+  .hero .footer-note{
+    margin-top:18px;font-family:'Archivo',sans-serif;font-style:italic;font-size:13px;
+    color:var(--paper);opacity:.85;position:relative;z-index:1;
+  }
+
+  /* Right side: preview + tip card */
+  .preview-stack{display:flex;flex-direction:column;gap:20px}
+  .preview-shell{
+    border:3px solid var(--ink);background:var(--paper-2);
+    box-shadow:8px 8px 0 var(--blue);position:relative;opacity:.7;
+  }
+  .preview-shell::before{
+    content:"";position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(circle, rgba(45,41,53,.1) 1px, transparent 1.3px);
+    background-size:5px 5px;opacity:.5;mix-blend-mode:multiply;
+  }
+  .preview-shell .head{
+    padding:13px 18px;border-bottom:2px solid var(--ink);
+    font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.2em;text-transform:uppercase;
+    display:flex;justify-content:space-between;
+  }
+  .preview-shell .body{
+    padding:24px 22px;min-height:120px;
+    font-family:'Archivo',sans-serif;font-size:15px;font-style:italic;
+    color:var(--ink);opacity:.5;line-height:1.55;
+  }
+  .preview-shell .foot{
+    padding:12px 18px;border-top:2px dashed var(--ink);
+    display:flex;justify-content:space-between;align-items:center;
+    font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.18em;text-transform:uppercase;
+  }
+  .preview-shell .foot .btn-disabled{
+    background:var(--paper);border:2px solid var(--ink);padding:9px 14px;
+    font-family:'Archivo Black',sans-serif;font-size:11px;letter-spacing:.04em;text-transform:uppercase;
+    color:var(--ink);opacity:.55;box-shadow:3px 3px 0 var(--ink);
+  }
+
+  .tip{
+    background:var(--paper);border:3px solid var(--ink);box-shadow:6px 6px 0 var(--ink);
+    padding:20px 22px;position:relative;
+  }
+  .tip h4{
+    font-family:'Archivo Black',sans-serif;font-size:13px;letter-spacing:.04em;
+    text-transform:uppercase;margin-bottom:10px;color:var(--ink);
+    display:flex;align-items:center;gap:10px;
+  }
+  .tip h4::before{
+    content:"!";width:22px;height:22px;border-radius:50%;background:var(--pink);color:var(--paper);
+    display:grid;place-items:center;font-family:'Archivo Black',sans-serif;font-size:14px;line-height:1;
+    border:2px solid var(--ink);
+  }
+  .tip p{
+    font-family:'Archivo',sans-serif;font-size:14px;line-height:1.55;color:var(--ink);
+    margin-bottom:8px;
+  }
+  .tip ul{
+    list-style:none;font-family:'Space Mono',monospace;font-size:11px;line-height:1.9;letter-spacing:.06em;color:var(--ink);
+  }
+  .tip ul li::before{content:"·  ";color:var(--pink);font-weight:700}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="masthead">
+    <div class="vol">Vol. <b>01</b> Issue 07 · MMXXVI</div>
+    <div class="brand"><h1 class="wordmark">catm.</h1><div class="tagline">come and talk to me</div></div>
+    <div class="price">Cover <b>$0.00</b> Free · MIT</div>
+  </header>
+  <div class="strapline">
+    <span>★ ★ ★ <b>READ ANYTHING.</b> OUT LOUD. ★ ★ ★</span>
+    <span><b>Status</b> · downloading kokoro · 38%</span>
+  </div>
+
+  <nav class="screen-nav">
+    <span class="lbl">screens →</span>
+    <a href="01-first-launch.html">01 first launch</a>
+    <a href="02-downloading.html" class="on">02 downloading</a>
+    <a href="03-ready-empty.html">03 ready</a>
+    <a href="04-editor-pasted.html">04 editor</a>
+    <a href="05-library-empty.html">05 library</a>
+    <a href="06-settings.html">06 settings</a>
+    <a href="07-edge-cases.html">07 edge cases</a>
+  </nav>
+
+  <div class="stage">
+
+    <section class="hero">
+      <div class="num">02</div>
+      <div class="kicker">setting up · keep tab open</div>
+      <h2>Downloading<br>the <em>model…</em></h2>
+      <p class="copy">Kokoro · Low tier. This happens once. After it finishes, catm works fully offline — no network, no waiting.</p>
+
+      <div class="progress">
+        <div class="label">
+          <span>Kokoro · Low tier</span>
+          <span class="pct">38%</span>
+        </div>
+        <div class="bar"><div class="fill"></div></div>
+        <div class="stats">
+          <span><b>30.4</b> of 80 mb</span>
+          <span><b>~22</b> seconds remaining</span>
+        </div>
+        <div class="stats" style="margin-top:6px;border-top:1px dashed var(--ink);padding-top:8px">
+          <span>ram during synthesis · <b>~600 mb</b></span>
+          <span><b>Prepares faster than playback</b></span>
+        </div>
+      </div>
+
+      <div class="footer-note">★ You can browse other tabs — we'll keep going in the background.</div>
+    </section>
+
+    <aside class="preview-stack">
+      <div class="tip">
+        <h4>While you wait</h4>
+        <p>Find an article, an essay, or a chapter you want to listen to. Copy the text. Once the voice is loaded, you'll paste it below and press <b>Read</b>.</p>
+        <ul>
+          <li>Anything in English works</li>
+          <li>Long-form is the point — chapters welcome</li>
+          <li>Nothing is uploaded · everything stays on your device</li>
+        </ul>
+      </div>
+      <div class="preview-shell">
+        <div class="head">
+          <span><b style="color:var(--pink)">Editor</b> · enabled when model is ready</span>
+          <span>—</span>
+        </div>
+        <div class="body">Paste an article, an essay, a chapter — anything you want to listen to.</div>
+        <div class="foot">
+          <span>0 words · — min</span>
+          <span class="btn-disabled">▶ Read</span>
+        </div>
+      </div>
+    </aside>
+
+  </div>
+
+  <footer class="colophon">
+    <a href="https://github.com/catm-app"><span class="arrow">↗</span>source · github.com/catm-app</a>
+    <span class="meta">printed in your browser · mmxxvi</span>
+  </footer>
+
+</div>
+</body>
+</html>

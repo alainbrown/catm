@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>catm — first launch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Mono:wght@400;700&family=Archivo:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shell.css">
+<style>
+  .stage{
+    margin-top:32px;display:grid;grid-template-columns:1.1fr 1fr;gap:28px;align-items:stretch;
+  }
+  @media (max-width:880px){.stage{grid-template-columns:1fr}}
+
+  .hero{
+    background:var(--pink);color:var(--paper);
+    border:3px solid var(--ink);box-shadow:8px 8px 0 var(--ink);
+    padding:32px 30px 28px;position:relative;overflow:hidden;
+  }
+  .hero::before{
+    content:"";position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(circle, rgba(45,41,53,.28) 1.2px, transparent 1.4px);
+    background-size:6px 6px;opacity:.35;mix-blend-mode:multiply;
+  }
+  .hero .num{
+    position:absolute;right:-12px;top:-30px;font-family:'Archivo Black',sans-serif;
+    font-size:200px;line-height:.85;letter-spacing:-.05em;color:var(--paper);opacity:.13;
+    pointer-events:none;
+  }
+  .hero .kicker{
+    font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.28em;text-transform:uppercase;
+    color:var(--paper);border:2px solid var(--paper);padding:5px 11px;display:inline-block;margin-bottom:18px;
+    position:relative;z-index:1;
+  }
+  .hero h2{
+    font-family:'Archivo Black',sans-serif;font-size:clamp(48px,6vw,72px);
+    letter-spacing:-.04em;line-height:.9;color:var(--paper);
+    position:relative;z-index:1;max-width:8ch;
+  }
+  .hero h2 em{color:var(--ink);font-style:normal}
+  .hero .copy{
+    margin-top:22px;font-family:'Archivo',sans-serif;font-size:16px;line-height:1.55;
+    color:var(--paper);max-width:34ch;position:relative;z-index:1;opacity:.95;
+  }
+  .hero .cta-row{margin-top:30px;display:flex;flex-wrap:wrap;gap:10px;position:relative;z-index:1}
+  .hero .meta{
+    margin-top:24px;padding-top:18px;border-top:1.5px dashed var(--paper);
+    font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--paper);position:relative;z-index:1;opacity:.85;
+    display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;
+  }
+
+  /* Right side — disabled editor preview */
+  .preview-stack{display:flex;flex-direction:column;gap:20px}
+  .preview-shell{
+    border:3px solid var(--ink);background:var(--paper-2);
+    box-shadow:8px 8px 0 var(--blue);
+    position:relative;opacity:.7;
+  }
+  .preview-shell::before{
+    content:"";position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(circle, rgba(45,41,53,.1) 1px, transparent 1.3px);
+    background-size:5px 5px;opacity:.5;mix-blend-mode:multiply;
+  }
+  .preview-shell .head{
+    padding:13px 18px;border-bottom:2px solid var(--ink);
+    font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.2em;text-transform:uppercase;
+    display:flex;justify-content:space-between;
+  }
+  .preview-shell .body{
+    padding:24px 22px;min-height:180px;
+    font-family:'Archivo',sans-serif;font-size:15px;font-style:italic;
+    color:var(--ink);opacity:.5;line-height:1.55;
+  }
+  .preview-shell .foot{
+    padding:12px 18px;border-top:2px dashed var(--ink);
+    display:flex;justify-content:space-between;align-items:center;
+    font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.18em;text-transform:uppercase;
+  }
+  .preview-shell .foot .btn-disabled{
+    background:var(--paper);border:2px solid var(--ink);padding:9px 14px;
+    font-family:'Archivo Black',sans-serif;font-size:11px;letter-spacing:.04em;text-transform:uppercase;
+    color:var(--ink);opacity:.55;box-shadow:3px 3px 0 var(--ink);
+  }
+  .locked-strip{
+    background:var(--paper);border:3px solid var(--ink);box-shadow:6px 6px 0 var(--ink);
+    padding:18px 22px;position:relative;
+  }
+  .locked-strip h4{
+    font-family:'Archivo Black',sans-serif;font-size:12px;letter-spacing:.04em;
+    text-transform:uppercase;margin-bottom:14px;
+  }
+  .tier-mini{display:flex;flex-direction:column;gap:8px}
+  .t-mini{
+    border:2px solid var(--ink);padding:10px 12px;background:var(--paper-2);
+  }
+  .t-mini.on{background:var(--pink);color:var(--paper)}
+  .t-mini.locked{opacity:.55}
+  .t-name{
+    font-family:'Archivo Black',sans-serif;font-size:16px;letter-spacing:-.01em;
+    text-transform:uppercase;display:flex;justify-content:space-between;align-items:center;
+    margin-bottom:6px;
+  }
+  .t-stamp{
+    font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.22em;
+    background:var(--ink);color:var(--paper);padding:2px 7px;
+  }
+  .t-stamp.soon{background:transparent;border:1.5px solid currentColor;color:var(--ink)}
+  .t-mini.locked .t-stamp.soon{color:var(--ink)}
+  .t-stats{
+    display:flex;flex-wrap:wrap;gap:4px 14px;
+    font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.12em;
+    text-transform:uppercase;margin-bottom:6px;
+  }
+  .t-stats b{font-family:'Archivo Black',sans-serif;font-size:11px;letter-spacing:0}
+  .t-feel{
+    font-family:'Archivo',sans-serif;font-style:italic;font-size:12px;line-height:1.4;
+    opacity:.85;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="masthead">
+    <div class="vol">Vol. <b>01</b> Issue 07 · MMXXVI</div>
+    <div class="brand"><h1 class="wordmark">catm.</h1><div class="tagline">come and talk to me</div></div>
+    <div class="price">Cover <b>$0.00</b> Free · MIT</div>
+  </header>
+  <div class="strapline">
+    <span>★ ★ ★ <b>READ ANYTHING.</b> OUT LOUD. ★ ★ ★</span>
+    <span><b>Status</b> · no model loaded · setup required</span>
+  </div>
+
+  <nav class="screen-nav">
+    <span class="lbl">screens →</span>
+    <a href="01-first-launch.html" class="on">01 first launch</a>
+    <a href="02-downloading.html">02 downloading</a>
+    <a href="03-ready-empty.html">03 ready</a>
+    <a href="04-editor-pasted.html">04 editor</a>
+    <a href="05-library-empty.html">05 library</a>
+    <a href="06-settings.html">06 settings</a>
+    <a href="07-edge-cases.html">07 edge cases</a>
+  </nav>
+
+  <div class="stage">
+
+    <section class="hero">
+      <div class="num">01</div>
+      <div class="kicker">▸ first time</div>
+      <h2>Welcome.<br>Pick a <em>tier.</em></h2>
+      <p class="copy">catm — <i>come and talk to me</i>. Download a model to start. The model, your text, and the audio it generates all stay on your device. Nothing leaves it.</p>
+      <div class="cta-row">
+        <button class="btn primary">↓ Download · Kokoro (Low)</button>
+        <button class="btn">Learn more</button>
+      </div>
+      <div class="meta">
+        <span>★ Low tier · English · voice af_heart</span>
+        <span>One-time · ~45 sec</span>
+      </div>
+    </section>
+
+    <aside class="preview-stack">
+      <div class="preview-shell">
+        <div class="head">
+          <span><b style="color:var(--pink)">Editor</b> · disabled until model loads</span>
+          <span>—</span>
+        </div>
+        <div class="body">Paste an article, an essay, a chapter — anything you want to listen to. Once the voice is downloaded, this is where you'll paste your text.</div>
+        <div class="foot">
+          <span>0 words · — min</span>
+          <span class="btn-disabled">▶ Read</span>
+        </div>
+      </div>
+      <div class="locked-strip">
+        <h4>Choose tier — bigger model = better voice, more resources</h4>
+        <div class="tier-mini">
+          <div class="t-mini on">
+            <div class="t-name">Low <span class="t-stamp">SELECTED</span></div>
+            <div class="t-stats">
+              <span><b>80</b> mb · disk</span>
+              <span><b>~600</b> mb · ram</span>
+            </div>
+            <div class="t-feel">Prepares faster than playback. Forward seek is instant.</div>
+          </div>
+          <div class="t-mini locked">
+            <div class="t-name">Medium <span class="t-stamp soon">SOON</span></div>
+            <div class="t-stats">
+              <span><b>~500</b> mb · disk</span>
+              <span><b>~2</b> gb · ram</span>
+            </div>
+            <div class="t-feel">Prepares slightly slower than playback. Long forward seeks may briefly pause.</div>
+          </div>
+          <div class="t-mini locked">
+            <div class="t-name">High <span class="t-stamp soon">SOON</span></div>
+            <div class="t-stats">
+              <span><b>~700</b> mb · disk</span>
+              <span><b>~3</b> gb · ram</span>
+            </div>
+            <div class="t-feel">Prepares slower than playback. Expect short pauses on forward seek.</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+  </div>
+
+  <footer class="colophon">
+    <a href="https://github.com/catm-app"><span class="arrow">↗</span>source · github.com/catm-app</a>
+    <span class="meta">printed in your browser · mmxxvi</span>
+  </footer>
+
+</div>
+</body>
+</html>

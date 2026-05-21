@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>catm(1) — manual page</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0e0a;
+    --bg-2:#0f140f;
+    --fg:#c8f7c5;
+    --fg-dim:#5a8a5a;
+    --fg-dimmer:#345834;
+    --phos:#7fff7f;
+    --phos-bright:#a8ffa8;
+    --warn:#ffb454;
+    --err:#ff6464;
+    --rule:#1f2a1f;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:var(--bg);
+    color:var(--fg);
+    font-family:'JetBrains Mono',ui-monospace,monospace;
+    font-size:13px;
+    line-height:1.55;
+    padding:24px;
+    position:relative;
+    overflow-x:hidden;
+  }
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;
+    background:
+      repeating-linear-gradient(0deg, rgba(127,255,127,.025) 0 1px, transparent 1px 3px);
+    z-index:1;
+  }
+  body::after{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:1;
+    background:radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,.7) 100%);
+  }
+  .wrap{max-width:920px;margin:0 auto;position:relative;z-index:2}
+
+  /* ASCII banner */
+  pre.banner{
+    color:var(--phos);
+    text-shadow:0 0 8px rgba(127,255,127,.4);
+    font-size:11px;line-height:1.1;font-weight:700;
+    letter-spacing:0;white-space:pre;
+    margin-bottom:6px;
+  }
+  .tagline{color:var(--fg-dim);font-size:11px;margin-bottom:22px}
+  .tagline b{color:var(--phos)}
+
+  /* Prompt rows */
+  .row{display:flex;gap:10px;margin:6px 0;align-items:baseline;flex-wrap:wrap}
+  .prompt{color:var(--phos);font-weight:700}
+  .prompt::before{content:"▌ ";color:var(--phos-bright)}
+  .cmd{color:var(--fg)}
+  .arg{color:var(--warn)}
+  .comment{color:var(--fg-dimmer)}
+
+  /* Section header */
+  h2.sec{
+    color:var(--phos);font-weight:800;font-size:11px;
+    letter-spacing:.18em;text-transform:uppercase;
+    margin:28px 0 10px;
+    border-bottom:1px dashed var(--rule);
+    padding-bottom:6px;
+  }
+  h2.sec::before{content:"## "}
+
+  /* Box */
+  .box{
+    border:1px solid var(--rule);
+    padding:14px 18px;
+    margin:10px 0;
+    background:linear-gradient(180deg, rgba(127,255,127,.015), transparent);
+  }
+  .box.title{
+    display:flex;justify-content:space-between;align-items:baseline;
+    color:var(--fg-dim);
+  }
+  .box.title h3{
+    color:var(--phos-bright);font-size:14px;font-weight:700;
+    text-shadow:0 0 6px rgba(127,255,127,.3);
+  }
+
+  /* ASCII waveform / scrubber */
+  .wave{
+    color:var(--phos);font-size:13px;line-height:1.05;
+    white-space:pre;letter-spacing:0;font-weight:500;
+    text-shadow:0 0 6px rgba(127,255,127,.3);
+    margin:10px 0;
+  }
+  .wave .played{color:var(--phos-bright);text-shadow:0 0 10px rgba(127,255,127,.6)}
+  .wave .prepared{color:var(--fg-dim)}
+  .wave .unprepared{color:var(--fg-dimmer)}
+  .scrub-ascii{
+    color:var(--fg-dim);font-size:14px;letter-spacing:0;
+    margin:6px 0;
+  }
+  .scrub-ascii .head{color:var(--warn);font-weight:700;animation:blink 1s step-end infinite}
+  @keyframes blink{50%{opacity:.3}}
+  .scrub-ascii .played{color:var(--phos);text-shadow:0 0 8px rgba(127,255,127,.5)}
+  .scrub-ascii .prepared{color:var(--fg-dim)}
+  .scrub-ascii .unprepared{color:var(--fg-dimmer)}
+
+  /* Stat grid */
+  .stats{
+    display:grid;grid-template-columns:repeat(4,1fr);
+    gap:1px;background:var(--rule);
+    border:1px solid var(--rule);margin:14px 0;
+  }
+  .stat{
+    background:var(--bg);padding:12px 14px;
+  }
+  .stat label{
+    display:block;color:var(--fg-dimmer);font-size:10px;
+    letter-spacing:.18em;text-transform:uppercase;margin-bottom:6px;
+  }
+  .stat .v{color:var(--phos-bright);font-size:18px;font-weight:700;text-shadow:0 0 6px rgba(127,255,127,.3)}
+  .stat .u{color:var(--fg-dim);font-size:11px;margin-left:4px}
+
+  /* Key hints */
+  .keys{display:flex;flex-wrap:wrap;gap:6px 18px;margin:14px 0;color:var(--fg-dim);font-size:11px}
+  .keys kbd{
+    display:inline-block;background:var(--bg-2);
+    border:1px solid var(--rule);border-bottom-width:2px;
+    padding:1px 6px;color:var(--phos);font-family:inherit;font-size:11px;
+    margin-right:6px;
+  }
+
+  /* Log lines */
+  .log{
+    background:var(--bg-2);border:1px solid var(--rule);
+    padding:12px 14px;font-size:11.5px;line-height:1.7;
+    max-height:170px;overflow-y:auto;
+  }
+  .log .ts{color:var(--fg-dimmer)}
+  .log .ok{color:var(--phos)}
+  .log .warn{color:var(--warn)}
+  .log .info{color:var(--fg-dim)}
+
+  /* Cursor */
+  .cursor{
+    display:inline-block;width:8px;height:14px;
+    background:var(--phos);vertical-align:-2px;
+    box-shadow:0 0 8px rgba(127,255,127,.6);
+    animation:blink 1.1s step-end infinite;
+    margin-left:4px;
+  }
+
+  /* Tier table */
+  table.tier{
+    width:100%;border-collapse:collapse;margin:10px 0;font-size:12px;
+  }
+  table.tier th, table.tier td{
+    border:1px solid var(--rule);padding:8px 12px;text-align:left;
+  }
+  table.tier th{color:var(--fg-dim);font-weight:400;font-size:10px;letter-spacing:.18em;text-transform:uppercase}
+  table.tier td.ok{color:var(--phos)}
+  table.tier td.q{color:var(--warn)}
+  table.tier td.no{color:var(--err)}
+  table.tier tr.on td:first-child::before{content:"▶ ";color:var(--phos-bright)}
+  table.tier tr.on td{background:rgba(127,255,127,.04)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<pre class="banner">  ┌─────────────────────────────────────────────────────────────┐
+  │   ░█▀▀░█▀█░▀█▀░█▄█      catm(1)  ·  the browser tts deck    │
+  │   ░█░░░█▀█░░█░░█░█      offline · local · open source       │
+  │   ░▀▀▀░▀░▀░░▀░░▀░▀      v0.1.0-dev · MIT                    │
+  └─────────────────────────────────────────────────────────────┘</pre>
+
+<div class="tagline">SYS: WebGPU <b>enabled</b> · OPFS <b>487 mb</b> · IDB sessions <b>14</b> · network <b>OFFLINE</b></div>
+
+<div class="row"><span class="prompt">user@catm:~$</span><span class="cmd">read</span> <span class="arg">--voice af_heart --speed 1.25</span> <span class="comment"># streaming from selection</span></div>
+
+<h2 class="sec">now_playing</h2>
+
+<div class="box title">
+  <h3>On the Pleasure of Reading Aloud</h3>
+  <span>Manguel, A. · 4,218w · chunked 32 ▏</span>
+</div>
+
+<div class="scrub-ascii"><span class="played">━━━━━━━━━━</span><span class="head">●</span><span class="prepared">━━━━━━━━━━━━━━━━━</span><span class="unprepared">┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄</span></div>
+
+<pre class="wave"><span class="played">  ▁▂▃▅▆▇▆▅▃▂▂▄▆▇█▇▆▅▃▂▃▅▇▆▅▄▃▂▂▃▅▆▇▆▄▃</span><span class="prepared">▂▁▂▃▄▅▆▅▄▃▂▃▄▅▆▆▅▄▃▂▂▃▄▅▆▆▅▄</span><span class="unprepared">·  ·  ·  ·  ·  ·  ·  ·  ·</span>
+<span class="played">  ▁▂▄▅▆▇▇▆▄▃▂▃▅▇█▇▆▄▂▃▅▇▆▄▃▂▂▃▅▆▇▇▅▃▂</span><span class="prepared">▁▂▃▄▆▅▄▃▂▂▃▄▅▆▆▅▃▂▂▃▄▅▆▆▅▃</span><span class="unprepared">·  ·  ·  ·  ·  ·  ·  ·  ·</span></pre>
+
+<div class="stats">
+  <div class="stat"><label>elapsed</label><span class="v">14:32</span></div>
+  <div class="stat"><label>remaining</label><span class="v">31:46</span></div>
+  <div class="stat"><label>chunks</label><span class="v">18<span class="u">/ 32</span></span></div>
+  <div class="stat"><label>realtime</label><span class="v">1.7×<span class="u">webgpu</span></span></div>
+</div>
+
+<div class="keys">
+  <span><kbd>SPACE</kbd>play/pause</span>
+  <span><kbd>←</kbd><kbd>→</kbd>±30s</span>
+  <span><kbd>J</kbd><kbd>L</kbd>±5s</span>
+  <span><kbd>[</kbd><kbd>]</kbd>speed</span>
+  <span><kbd>S</kbd>stop</span>
+  <span><kbd>L</kbd>library</span>
+  <span><kbd>?</kbd>help</span>
+</div>
+
+<h2 class="sec">model_tier</h2>
+<table class="tier">
+  <thead><tr><th>tier</th><th>model</th><th>size</th><th>rt</th><th>status</th></tr></thead>
+  <tbody>
+    <tr class="on"><td class="ok">low</td><td>kokoro 82M</td><td>80 mb</td><td>1.7×</td><td class="ok">ready · selected</td></tr>
+    <tr><td>med</td><td>cosyvoice3 0.5B</td><td>~500 mb</td><td>?</td><td class="q">verification pending</td></tr>
+    <tr><td>high</td><td>qwen3-tts 0.6B</td><td>~700 mb</td><td>?</td><td class="no">unlikely in browser</td></tr>
+  </tbody>
+</table>
+
+<h2 class="sec">tail -f synthesis.log</h2>
+<div class="log">
+<div><span class="ts">14:31:58</span> <span class="ok">[ok]</span> chunk 17 synthesised · 4.21s audio · 1.8× rt</div>
+<div><span class="ts">14:32:02</span> <span class="info">[..]</span> chunk 18 in progress · webgpu queue depth 2</div>
+<div><span class="ts">14:32:02</span> <span class="info">[..]</span> chunk 19 queued · sentence boundary at offset 12480</div>
+<div><span class="ts">14:32:03</span> <span class="warn">[!!]</span> pronunciation override: "Manguel" → /mæŋˈɡɛl/</div>
+<div><span class="ts">14:32:04</span> <span class="ok">[ok]</span> audiobuffer cache: 18 chunks · 142mb</div>
+<div><span class="ts">14:32:05</span> <span class="info">[..]</span> idb persist: session abc · 14 chunks committed</div>
+</div>
+
+<div class="row" style="margin-top:18px">
+  <span class="prompt">user@catm:~$</span><span class="cursor"></span>
+</div>
+
+<div class="comment" style="margin-top:24px;font-size:11px">
+  press <kbd style="display:inline-block;background:var(--bg-2);border:1px solid var(--rule);padding:1px 6px;color:var(--phos)">?</kbd> for keybindings · everything local · nothing leaves the device
+</div>
+</div>
+</body>
+</html>

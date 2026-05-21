@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>catm — mocks v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:'Bricolage Grotesque',ui-sans-serif,sans-serif;
+    background:#0e0a1a;color:#fce8d9;min-height:100vh;
+    padding:60px 40px;position:relative;overflow-x:hidden;
+  }
+  body::before{
+    content:"";position:fixed;inset:-10%;z-index:0;
+    background:
+      radial-gradient(50% 50% at 20% 20%, #ff6fa0 0%, transparent 60%),
+      radial-gradient(50% 50% at 80% 30%, #ffc36b 0%, transparent 60%),
+      radial-gradient(50% 50% at 80% 80%, #7ec8ff 0%, transparent 60%),
+      radial-gradient(50% 50% at 20% 80%, #9be6c4 0%, transparent 60%);
+    opacity:.5;filter:blur(40px);
+  }
+  .wrap{max-width:1080px;margin:0 auto;position:relative;z-index:1}
+  h1{font-size:64px;font-weight:800;letter-spacing:-.03em;margin-bottom:8px;font-variation-settings:"opsz" 96}
+  h1 em{font-style:italic;font-weight:400;color:#ffc36b}
+  .sub{font-family:'Geist Mono',monospace;font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:#9a8aa8;margin-bottom:48px}
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:22px}
+  @media (max-width:740px){.grid{grid-template-columns:1fr}}
+  a.card{
+    display:block;text-decoration:none;color:inherit;
+    border:1px solid rgba(255,255,255,.12);border-radius:16px;overflow:hidden;
+    background:rgba(20,15,35,.7);backdrop-filter:blur(20px);
+    transition:transform .25s, border-color .25s, box-shadow .25s;
+  }
+  a.card:hover{transform:translateY(-4px);border-color:rgba(255,195,107,.5);box-shadow:0 24px 48px -20px rgba(255,111,160,.4)}
+  .swatch{height:160px;display:flex;align-items:flex-end;padding:18px;position:relative}
+  .swatch span{font-family:'Geist Mono',monospace;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:rgba(0,0,0,.7);background:rgba(255,255,255,.7);padding:5px 9px;border-radius:4px;backdrop-filter:blur(4px)}
+  .s1{background:linear-gradient(135deg,#ff6fa0,#ffc36b 40%,#9be6c4 70%,#7ec8ff)}
+  .s2{background:radial-gradient(ellipse at top, #ffc36b 0%, transparent 60%),#0e1424;display:flex;align-items:center;justify-content:center;color:#ffc36b;font-family:'Bricolage Grotesque';font-size:32px;font-style:italic;font-weight:500}
+  .s2::after{content:""}
+  .s2 .echo{display:block;text-align:center}
+  .s3{background:#f3ede0;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40'><g fill='none' stroke='%230e2a26' stroke-width='.8' opacity='.4'><path d='M5 10 q2 -4 4 0 t4 0 t4 0'/><circle cx='30' cy='25' r='1.4' fill='%230e2a26' stroke='none'/><path d='M22 32 l3 0 M23.5 30.5 l0 3'/></g></svg>");background-size:40px 40px}
+  .s4{background:#ede2c7;position:relative;overflow:hidden}
+  .s4::before,.s4::after{content:"catm.";position:absolute;font-family:'Archivo Black','Arial Black',sans-serif;font-size:90px;font-weight:900;letter-spacing:-.05em;line-height:.85;top:50%;left:50%;transform:translate(-50%,-50%)}
+  .s4::before{color:#bf7488;transform:translate(calc(-50% - 3px),calc(-50% + 2px));mix-blend-mode:multiply}
+  .s4::after{color:#6580ad;transform:translate(calc(-50% + 3px),calc(-50% - 2px));mix-blend-mode:multiply}
+  .body{padding:22px}
+  h2{font-size:24px;font-weight:700;letter-spacing:-.01em;margin-bottom:8px}
+  h2 em{font-style:italic;font-weight:400;color:#ffc36b}
+  p{font-size:14px;line-height:1.55;color:#b8b0c8}
+  .tag{display:inline-block;font-family:'Geist Mono',monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:#9a8aa8;margin-top:14px}
+  .back{
+    display:inline-block;font-family:'Geist Mono',monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;
+    color:#9a8aa8;text-decoration:none;margin-bottom:18px;
+  }
+  .back:hover{color:#ffc36b}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a href="../mocks/" class="back">← round 1</a>
+  <h1>round <em>two.</em></h1>
+  <div class="sub">four new directions · pick a flavor</div>
+
+  <div class="grid">
+    <a class="card" href="1-gradient-deck.html">
+      <div class="swatch s1"><span>iridescent · cassette × ambient</span></div>
+      <div class="body">
+        <h2>Dream <em>Deck.</em></h2>
+        <p>The cassette deck in candy palette. Iridescent reels, frosted glass body, holographic edge glow, gradient-tinted LCDs. Tactile but soft.</p>
+        <div class="tag">Bricolage Grotesque + Geist Mono</div>
+      </div>
+    </a>
+
+    <a class="card" href="2-karaoke.html">
+      <div class="swatch s2"><span class="echo">word-by-word highlight</span></div>
+      <div class="body">
+        <h2>Read <em>along.</em></h2>
+        <p>The text scrolls and lights up word-by-word as the voice reads. Past words dim, future words ghosted, current word glows. Chunk progress in the gutter.</p>
+        <div class="tag">Spectral + Geist Mono</div>
+      </div>
+    </a>
+
+    <a class="card" href="3-pattern.html">
+      <div class="swatch s3"><span>custom svg pattern · herbarium</span></div>
+      <div class="body">
+        <h2>Apothecary of <em>voices.</em></h2>
+        <p>A custom SVG pattern of tiny waveform glyphs tiled across the page. Voices are vials. The player is a pocket watch. Refined, scientific, hushed.</p>
+        <div class="tag">EB Garamond + IBM Plex Sans</div>
+      </div>
+    </a>
+
+    <a class="card" href="4-riso.html">
+      <div class="swatch s4"><span>two-color riso zine</span></div>
+      <div class="body">
+        <h2>Vol. <em>01.</em></h2>
+        <p>Risograph zine. Fluo pink + cobalt blue on kraft paper. Registration offset on the wordmark, halftone dots, hard drop shadows, marquee ticker.</p>
+        <div class="tag">Archivo Black + Space Mono</div>
+      </div>
+    </a>
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,382 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>catm — edge cases</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Mono:wght@400;700&family=Archivo:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shell.css">
+<style>
+  .cases-intro{
+    margin-top:32px;
+    background:var(--ink);color:var(--paper);
+    border:3px solid var(--ink);box-shadow:6px 6px 0 var(--pink);
+    padding:18px 24px;
+    display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;
+  }
+  .cases-intro h2{
+    font-family:'Archivo Black',sans-serif;font-size:22px;letter-spacing:-.01em;color:var(--paper);
+  }
+  .cases-intro h2 em{color:var(--pink);font-style:normal}
+  .cases-intro p{
+    font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--paper);opacity:.7;
+  }
+
+  .cases{
+    margin-top:28px;display:flex;flex-direction:column;gap:28px;
+  }
+  .case{
+    background:var(--paper);border:3px solid var(--ink);box-shadow:8px 8px 0 var(--ink);
+    padding:24px 26px;position:relative;
+  }
+  .case-num{
+    position:absolute;top:-18px;left:24px;
+    background:var(--pink);color:var(--paper);border:2.5px solid var(--ink);
+    font-family:'Archivo Black',sans-serif;font-size:13px;letter-spacing:.06em;text-transform:uppercase;
+    padding:6px 12px;
+  }
+  .case-head{
+    margin-top:6px;padding-bottom:14px;margin-bottom:18px;
+    border-bottom:2px dashed var(--ink);
+    display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:10px;
+  }
+  .case-head h3{
+    font-family:'Archivo Black',sans-serif;font-size:22px;letter-spacing:-.02em;
+  }
+  .case-head h3 em{color:var(--pink);font-style:normal}
+  .case-head .note{
+    font-family:'Archivo',sans-serif;font-style:italic;font-size:13px;color:var(--ink);opacity:.7;max-width:50ch;
+  }
+
+  /* CASE A — storage banner */
+  .storage-banner{
+    background:var(--ink);color:var(--paper);
+    border:2.5px solid var(--ink);padding:14px 18px;
+    display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;
+    margin-bottom:14px;
+    position:relative;
+  }
+  .storage-banner::before{
+    content:"!";flex:none;
+    width:30px;height:30px;border-radius:50%;background:var(--pink);color:var(--paper);
+    display:grid;place-items:center;
+    font-family:'Archivo Black',sans-serif;font-size:18px;line-height:1;
+    border:2px solid var(--paper);
+  }
+  .storage-banner .text{
+    flex:1;font-family:'Archivo',sans-serif;font-size:14px;line-height:1.45;color:var(--paper);
+  }
+  .storage-banner .text b{color:var(--pink);font-weight:700}
+  .storage-banner .btn-bw{
+    background:var(--paper);color:var(--ink);border:2px solid var(--paper);
+    padding:9px 12px;font-family:'Archivo Black',sans-serif;font-size:10px;letter-spacing:.06em;
+    text-transform:uppercase;cursor:pointer;
+  }
+
+  .mini-editor{
+    border:2.5px solid var(--ink);background:var(--paper-2);position:relative;
+  }
+  .mini-editor::before{
+    content:"";position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(circle, rgba(45,41,53,.1) 1px, transparent 1.3px);
+    background-size:5px 5px;opacity:.4;mix-blend-mode:multiply;
+  }
+  .mini-head{
+    padding:11px 16px;border-bottom:2px solid var(--ink);
+    font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.2em;text-transform:uppercase;
+    display:flex;justify-content:space-between;
+  }
+  .mini-head b{color:var(--pink)}
+  .mini-body{
+    padding:18px 20px;font-family:'Archivo',sans-serif;font-size:14.5px;line-height:1.6;color:var(--ink);
+    min-height:80px;position:relative;
+  }
+  .mini-foot{
+    padding:10px 16px;border-top:2px dashed var(--ink);
+    display:flex;justify-content:space-between;align-items:center;
+    font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink);
+  }
+  .mini-foot b{color:var(--pink)}
+  .mini-foot .read{
+    background:var(--pink);color:var(--paper);
+    padding:8px 12px;border:2px solid var(--ink);
+    font-family:'Archivo Black',sans-serif;font-size:11px;letter-spacing:.04em;
+    box-shadow:3px 3px 0 var(--ink);text-transform:uppercase;
+  }
+
+  /* CASE B — unreadable input notice */
+  .unreadable-toast{
+    background:var(--pink);color:var(--paper);
+    border:2.5px solid var(--ink);box-shadow:4px 4px 0 var(--ink);
+    padding:14px 18px;
+    display:flex;align-items:center;gap:14px;
+    position:relative;
+    margin-bottom:14px;
+  }
+  .unreadable-toast::before{
+    content:"";width:28px;height:28px;background:var(--ink);color:var(--paper);
+    display:grid;place-items:center;flex:none;border:2px solid var(--paper);
+    font-family:'Archivo Black',sans-serif;font-size:16px;line-height:1;
+    background-image:linear-gradient(45deg,
+      transparent 0 47%,
+      var(--paper) 47% 53%,
+      transparent 53% 100%),
+      linear-gradient(-45deg,
+      transparent 0 47%,
+      var(--paper) 47% 53%,
+      transparent 53% 100%);
+  }
+  .unreadable-toast .text{
+    flex:1;font-family:'Archivo',sans-serif;font-size:14px;line-height:1.45;
+  }
+  .unreadable-toast .text b{font-family:'Archivo Black',sans-serif;font-size:13px;display:block;margin-bottom:2px;text-transform:uppercase;letter-spacing:.04em}
+  .unreadable-toast .dismiss{
+    font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.18em;
+    background:transparent;color:var(--paper);border:1.5px solid var(--paper);
+    padding:7px 10px;cursor:pointer;text-transform:uppercase;
+  }
+  .non-readable{
+    font-family:'PingFang SC','Noto Serif SC',serif;font-size:17px;line-height:1.7;color:var(--ink);opacity:.85;
+  }
+
+  /* CASE C — forward-seek preparing */
+  .player{
+    background:var(--paper);border:3px solid var(--ink);box-shadow:6px 6px 0 var(--blue);
+    padding:22px 24px;position:relative;
+  }
+  .player::before{
+    content:"";position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(circle, rgba(101,128,173,.32) 1px, transparent 1.3px);
+    background-size:5px 5px;mix-blend-mode:multiply;opacity:.5;
+  }
+  .player-head{
+    display:flex;justify-content:space-between;align-items:baseline;
+    border-bottom:2px dashed var(--ink);padding-bottom:10px;margin-bottom:16px;position:relative;
+  }
+  .player-head h4{
+    font-family:'Archivo Black',sans-serif;font-size:14px;letter-spacing:.04em;text-transform:uppercase;
+  }
+  .player-head .badge{
+    font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;
+    background:var(--pink);color:var(--paper);padding:5px 9px;
+    display:inline-flex;align-items:center;gap:8px;
+  }
+  .player-head .badge::before{
+    content:"";width:8px;height:8px;border-radius:50%;background:var(--paper);
+    animation:blink 1s ease-in-out infinite;
+  }
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+  .counter{
+    display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px;position:relative;
+  }
+  .counter .big{
+    font-family:'Archivo Black',sans-serif;font-size:42px;line-height:1;letter-spacing:-.04em;
+    color:var(--ink);opacity:.5;
+  }
+  .counter .target{
+    font-family:'Archivo Black',sans-serif;font-size:32px;letter-spacing:-.03em;color:var(--pink);
+    display:flex;align-items:baseline;gap:6px;
+  }
+  .counter .target small{
+    font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink);opacity:.6;
+  }
+
+  .scrub-box{border:2px solid var(--ink);padding:7px;background:var(--paper-2);position:relative}
+  .scrub{
+    position:relative;height:22px;
+    background:repeating-linear-gradient(90deg, var(--ink) 0 2px, transparent 2px 12px);
+    background-size:100% 2px;background-position:0 50%;background-repeat:repeat-x;
+  }
+  .scrub .prepared{position:absolute;left:0;top:0;bottom:0;width:54%;background:var(--blue-soft);opacity:.55}
+  .scrub .played{position:absolute;left:0;top:0;bottom:0;width:31%;background:var(--pink);opacity:.5;box-shadow:inset 0 0 0 2px var(--ink)}
+  .scrub .head-from{position:absolute;top:-4px;bottom:-4px;left:31%;width:3px;background:var(--ink);opacity:.4}
+  .scrub .arrow{
+    position:absolute;top:50%;left:33%;right:32%;height:3px;background:var(--pink);transform:translateY(-50%);
+  }
+  .scrub .arrow::after{
+    content:"";position:absolute;right:-2px;top:50%;width:0;height:0;
+    border-top:9px solid transparent;border-bottom:9px solid transparent;
+    border-left:14px solid var(--pink);transform:translateY(-50%);
+  }
+  .scrub .head-to{
+    position:absolute;top:-6px;bottom:-6px;left:68%;width:4px;background:var(--ink);
+  }
+  .scrub .head-to::after{
+    content:"";position:absolute;top:-6px;left:-9px;width:22px;height:22px;
+    border:3px solid var(--ink);background:var(--paper);border-radius:50%;
+  }
+  .scrub .head-to::before{
+    content:"⋯";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+    font-family:'Archivo Black',sans-serif;font-size:24px;letter-spacing:-.2em;color:var(--ink);
+    animation:dots 1.4s ease-in-out infinite;z-index:1;
+  }
+  @keyframes dots{0%,100%{opacity:1}50%{opacity:.3}}
+
+  .prep-status{
+    margin-top:14px;background:var(--pink);color:var(--paper);
+    border:2px solid var(--ink);padding:10px 14px;
+    display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;
+    font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.2em;text-transform:uppercase;
+    position:relative;
+  }
+  .prep-status .left{display:flex;align-items:center;gap:10px}
+  .prep-status .spinner{
+    width:14px;height:14px;border:2.5px solid var(--paper);border-top-color:transparent;
+    border-radius:50%;animation:spin .9s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .prep-status b{font-weight:700}
+
+  .transport-row{
+    margin-top:16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;
+  }
+  .tbtn{
+    font-family:'Archivo Black',sans-serif;font-size:11px;letter-spacing:.04em;
+    background:var(--paper);color:var(--ink);border:2px solid var(--ink);
+    padding:10px 12px;box-shadow:3px 3px 0 var(--ink);text-transform:uppercase;cursor:pointer;
+  }
+  .tbtn.play{background:var(--ink);color:var(--paper);box-shadow:3px 3px 0 var(--pink);padding:12px 16px;font-size:12px}
+  .tbtn.play.disabled{opacity:.55;cursor:wait}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="masthead">
+    <div class="vol">Vol. <b>01</b> Issue 07 · MMXXVI</div>
+    <div class="brand"><h1 class="wordmark">catm.</h1><div class="tagline">come and talk to me</div></div>
+    <div class="price">Cover <b>$0.00</b> Free · MIT</div>
+  </header>
+  <div class="strapline">
+    <span>★ ★ ★ <b>EDGE CASES.</b> ★ ★ ★</span>
+    <span><b>Specimens</b> · A · storage · B · unreadable · C · seek</span>
+  </div>
+
+  <nav class="screen-nav">
+    <span class="lbl">screens →</span>
+    <a href="01-first-launch.html">01 first launch</a>
+    <a href="02-downloading.html">02 downloading</a>
+    <a href="03-ready-empty.html">03 ready</a>
+    <a href="04-editor-pasted.html">04 editor</a>
+    <a href="05-library-empty.html">05 library</a>
+    <a href="06-settings.html">06 settings</a>
+    <a href="07-edge-cases.html" class="on">07 edge cases</a>
+  </nav>
+
+  <div class="cases-intro">
+    <h2>Three <em>edge cases.</em></h2>
+    <p>moments where the product has to fail well</p>
+  </div>
+
+  <div class="cases">
+
+    <!-- CASE A -->
+    <section class="case">
+      <span class="case-num">Case A · Storage</span>
+      <div class="case-head">
+        <h3>Storage is <em>filling up.</em></h3>
+        <span class="note">Triggered when local storage is within ~50 mb of the browser's quota. catm never auto-evicts — the user is always in control.</span>
+      </div>
+
+      <div class="storage-banner">
+        <div class="text"><b>Storage is filling up</b> — only <b>42 mb</b> left. Delete a few old sessions in Library to keep saving new reads.</div>
+        <button class="btn-bw">Open Library</button>
+        <button class="btn-bw" style="background:transparent;color:var(--paper);border-color:var(--paper)">Dismiss</button>
+      </div>
+      <div class="mini-editor">
+        <div class="mini-head"><span><b>Editor</b> · on solitude — montaigne</span><span>english · af_heart</span></div>
+        <div class="mini-body">Let us reserve a back-shop, wholly our own and entirely free, wherein to establish our true liberty, our principal solitude and retreat…</div>
+        <div class="mini-foot">
+          <span><b>2,140 words</b> · ~15 min at 1.25×</span>
+          <span class="read">▶ Read</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- CASE B -->
+    <section class="case">
+      <span class="case-num">Case B · Unreadable</span>
+      <div class="case-head">
+        <h3>Nothing to <em>read aloud.</em></h3>
+        <span class="note">The current model speaks English. When the input is non-Latin script, runs of punctuation, or empty, catm surfaces a friendly notice instead of failing silently.</span>
+      </div>
+
+      <div class="unreadable-toast">
+        <div class="text">
+          <b>Nothing to read aloud here</b>
+          The current model speaks English only. Try selecting English text — or wait for the Medium / High tiers, which will ship multi-language models.
+        </div>
+        <button class="dismiss">Dismiss</button>
+      </div>
+      <div class="mini-editor">
+        <div class="mini-head"><span><b>Editor</b> · pasted</span><span>english · af_heart</span></div>
+        <div class="mini-body">
+          <p class="non-readable">这是一段中文文章。机器朗读还不能朗读这段文字，因为目前的语音模型只支持英文。等等中文语音上线之后，再来试试看吧。</p>
+        </div>
+        <div class="mini-foot">
+          <span><b>0 readable words</b> · 64 characters · cjk</span>
+          <span class="read" style="opacity:.45;background:var(--paper-2);color:var(--ink)">▶ Read</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- CASE C -->
+    <section class="case">
+      <span class="case-num">Case C · Seek</span>
+      <div class="case-head">
+        <h3>Preparing the <em>next stretch.</em></h3>
+        <span class="note">The user dragged the scrub forward into the un-prepared region. Audio pauses briefly while preparation catches up to the new position.</span>
+      </div>
+
+      <div class="player">
+        <div class="player-head">
+          <h4>Transport · On the Pleasure of Reading Aloud</h4>
+          <span class="badge">Preparing</span>
+        </div>
+
+        <div class="counter">
+          <span class="big">14:32</span>
+          <span class="target">31:08<small>seeking →</small></span>
+        </div>
+
+        <div class="scrub-box">
+          <div class="scrub">
+            <div class="prepared"></div>
+            <div class="played"></div>
+            <div class="head-from"></div>
+            <div class="arrow"></div>
+            <div class="head-to"></div>
+          </div>
+        </div>
+
+        <div class="prep-status">
+          <div class="left">
+            <span class="spinner"></span>
+            <span><b>Preparing chunks 19–22</b> · resuming in ~3 sec</span>
+          </div>
+          <span>position: 31:08 · 67% in</span>
+        </div>
+
+        <div class="transport-row">
+          <button class="tbtn">−30</button>
+          <button class="tbtn play disabled">▶❚❚ preparing…</button>
+          <button class="tbtn">+30</button>
+          <button class="tbtn">Cancel seek</button>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <footer class="colophon">
+    <a href="https://github.com/catm-app"><span class="arrow">↗</span>source · github.com/catm-app</a>
+    <span class="meta">printed in your browser · mmxxvi</span>
+  </footer>
+
+</div>
+</body>
+</html>

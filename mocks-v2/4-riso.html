@@ -1,0 +1,626 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>catm — vol. 01 — risograph</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Mono:wght@400;700&family=Archivo:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#ede2c7;       /* warm cream kraft */
+    --paper-2:#e0d3b5;
+    --ink:#2a2530;         /* soft dark plum */
+    --pink:#bf7488;        /* dusty mauve rose */
+    --pink-soft:#d8a4b2;
+    --blue:#6580ad;        /* denim periwinkle */
+    --blue-soft:#9aaccc;
+    --teal:#5fa39a;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:'Archivo',ui-sans-serif,system-ui,sans-serif;
+    color:var(--ink);
+    background:var(--paper);
+    min-height:100vh;
+    overflow-x:hidden;
+    background-image:
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='400' height='400'><filter id='n'><feTurbulence baseFrequency='.7' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .18 0 0 0 0 .16 0 0 0 0 .2 0 0 0 .07 0'/></filter><rect width='400' height='400' filter='url(%23n)' opacity='.55'/></svg>"),
+      radial-gradient(circle at 30% 20%, rgba(191,116,136,.16), transparent 50%),
+      radial-gradient(circle at 80% 70%, rgba(101,128,173,.16), transparent 50%);
+  }
+  /* halftone overlay for atmosphere — softened for pastel */
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+    background-image:radial-gradient(circle, rgba(45,41,53,.14) 1px, transparent 1.4px);
+    background-size:4px 4px;
+    opacity:.4;
+    mix-blend-mode:multiply;
+  }
+
+  .page{
+    position:relative;z-index:1;
+    max-width:1080px;margin:0 auto;
+    padding:36px clamp(20px,4vw,48px) 80px;
+  }
+
+  /* ZINE HEADER */
+  .masthead{
+    display:grid;grid-template-columns:auto 1fr auto;align-items:end;
+    gap:24px;padding-bottom:22px;
+    border-bottom:3px solid var(--ink);
+    position:relative;
+  }
+  .masthead::after{
+    content:"";position:absolute;left:0;right:0;bottom:-9px;height:2px;background:var(--ink);
+  }
+  .vol{
+    font-family:'Space Mono',monospace;font-weight:700;font-size:12px;
+    letter-spacing:.18em;text-transform:uppercase;line-height:1.4;
+    color:var(--ink);
+  }
+  .vol b{display:block;color:var(--pink);font-size:14px}
+  .wordmark{
+    font-family:'Archivo Black',sans-serif;
+    font-size:clamp(72px,11vw,138px);
+    letter-spacing:-.05em;line-height:.82;color:var(--ink);
+    text-align:center;position:relative;
+  }
+  .wordmark::before{
+    content:"catm.";position:absolute;inset:0;
+    color:var(--pink);transform:translate(-3px,2px);
+    mix-blend-mode:multiply;opacity:.85;z-index:-1;
+  }
+  .wordmark::after{
+    content:"catm.";position:absolute;inset:0;
+    color:var(--blue);transform:translate(3px,-2px);
+    mix-blend-mode:multiply;opacity:.75;z-index:-1;
+  }
+  .price{
+    font-family:'Space Mono',monospace;font-weight:700;font-size:12px;
+    letter-spacing:.18em;text-transform:uppercase;line-height:1.4;
+    text-align:right;color:var(--ink);
+  }
+  .price b{display:block;color:var(--blue);font-size:14px}
+
+  .strapline{
+    margin-top:14px;
+    font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--ink);
+    display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;
+  }
+  .strapline b{color:var(--pink);font-weight:700}
+
+  /* STAGE — main 2-col layout */
+  .stage{
+    margin-top:32px;display:grid;
+    grid-template-columns:1.55fr 1fr;gap:28px;
+    align-items:stretch;
+  }
+  @media (max-width:920px){.stage{grid-template-columns:1fr}}
+
+  /* READING PANEL — karaoke text */
+  .reading{
+    background:var(--paper);
+    border:3px solid var(--ink);
+    box-shadow:8px 8px 0 var(--ink);
+    padding:30px 32px 28px;
+    position:relative;
+  }
+  .reading::before{
+    /* faint halftone */
+    content:"";position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(circle, rgba(45,41,53,.1) 1px, transparent 1.3px);
+    background-size:5px 5px;opacity:.45;mix-blend-mode:multiply;
+  }
+  .read-head{
+    border-bottom:2px dashed var(--ink);
+    padding-bottom:16px;margin-bottom:20px;position:relative;
+  }
+  .read-kicker{
+    font-family:'Space Mono',monospace;font-size:10px;
+    letter-spacing:.28em;text-transform:uppercase;
+    color:var(--pink);font-weight:700;
+    display:flex;justify-content:space-between;align-items:center;gap:12px;
+  }
+  .read-kicker .live{
+    display:inline-flex;align-items:center;gap:6px;color:var(--ink);
+  }
+  .read-kicker .live::before{
+    content:"";width:8px;height:8px;border-radius:50%;background:var(--pink);
+    border:1.5px solid var(--ink);
+  }
+  .read-title{
+    font-family:'Archivo Black',sans-serif;
+    font-size:clamp(34px,4.2vw,48px);letter-spacing:-.03em;line-height:.95;
+    color:var(--ink);margin-top:14px;
+    position:relative;
+  }
+  .read-title em{color:var(--pink);font-style:italic}
+  .read-byline{
+    margin-top:10px;font-family:'Archivo',sans-serif;font-style:italic;
+    font-size:14px;color:var(--ink);opacity:.75;
+  }
+
+  /* KARAOKE BODY */
+  .body-text{
+    font-family:'Archivo',sans-serif;font-weight:400;
+    font-size:17px;line-height:1.85;letter-spacing:.005em;
+    color:var(--ink);position:relative;
+  }
+  .body-text p{margin-bottom:1em}
+  .body-text .w{
+    color:var(--ink);opacity:.28;
+    transition:opacity .25s ease;
+  }
+  .body-text .w.spoken{opacity:.5}
+  .body-text .w.current{
+    opacity:1;color:var(--paper);
+    background:var(--pink);
+    padding:1px 5px;border-radius:1px;
+    margin:0 1px;
+    position:relative;
+    box-shadow:2px 2px 0 var(--blue);
+    font-weight:500;
+  }
+  .body-text .s.current{
+    border-bottom:2px dashed var(--pink);
+    padding-bottom:2px;
+  }
+  /* read-footer */
+  .read-foot{
+    margin-top:20px;padding-top:14px;
+    border-top:2px solid var(--ink);
+    display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;
+    font-family:'Space Mono',monospace;font-size:10px;
+    letter-spacing:.22em;text-transform:uppercase;color:var(--ink);
+  }
+  .read-foot b{color:var(--pink);font-weight:700}
+
+  /* RIGHT COLUMN — fills its grid cell so its bottom aligns with the reading panel */
+  .right-col{
+    display:flex;flex-direction:column;gap:22px;
+    min-height:0;
+  }
+  .right-col > .player{flex:none}
+
+  /* PLAYER */
+  .player{
+    border:3px solid var(--ink);
+    background:var(--paper);
+    box-shadow:8px 8px 0 var(--blue);
+    padding:24px;
+    position:relative;
+  }
+  .player::before{
+    content:"";position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(circle, rgba(101,128,173,.34) 1px, transparent 1.3px);
+    background-size:5px 5px;mix-blend-mode:multiply;opacity:.5;
+  }
+  .player h3{
+    font-family:'Archivo Black',sans-serif;font-size:14px;letter-spacing:.04em;
+    color:var(--ink);text-transform:uppercase;
+    border-bottom:2px dashed var(--ink);padding-bottom:10px;margin-bottom:14px;
+    display:flex;justify-content:space-between;align-items:center;
+  }
+  .player h3 .badge{
+    font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.18em;
+    background:var(--ink);color:var(--paper);padding:3px 7px;
+  }
+  .counter{
+    display:flex;justify-content:space-between;align-items:baseline;
+    font-family:'Archivo Black',sans-serif;
+    margin-bottom:14px;
+  }
+  .counter .big{
+    font-size:46px;line-height:1;letter-spacing:-.04em;
+    color:var(--blue);position:relative;
+  }
+  .counter .big::after{
+    content:attr(data-shadow);position:absolute;inset:0;color:var(--pink);
+    transform:translate(2px,-2px);z-index:-1;mix-blend-mode:multiply;
+  }
+  .counter .of{
+    font-family:'Space Mono',monospace;font-size:11px;font-weight:700;
+    letter-spacing:.18em;text-transform:uppercase;color:var(--ink);
+    text-align:right;
+  }
+  .scrub-box{
+    border:2px solid var(--ink);padding:7px;background:var(--paper-2);
+  }
+  .scrub{
+    position:relative;height:20px;
+    background:repeating-linear-gradient(90deg, var(--ink) 0 2px, transparent 2px 12px);
+    background-size:100% 2px;background-position:0 50%;background-repeat:repeat-x;
+  }
+  .scrub .prepared{position:absolute;left:0;top:0;bottom:0;width:54%;background:var(--blue-soft);opacity:.55}
+  .scrub .played{position:absolute;left:0;top:0;bottom:0;width:31%;background:var(--pink);box-shadow:inset 0 0 0 2px var(--ink)}
+  .scrub .head{position:absolute;top:-4px;bottom:-4px;left:31%;width:4px;background:var(--ink)}
+  .scrub .head::after{content:"";position:absolute;top:-6px;left:-8px;width:20px;height:20px;background:var(--pink);border:3px solid var(--ink);border-radius:50%}
+  .scrub-meta{
+    display:flex;justify-content:space-between;
+    margin-top:7px;font-family:'Space Mono',monospace;font-size:9px;
+    letter-spacing:.16em;text-transform:uppercase;color:var(--ink);
+  }
+  .transport{
+    margin-top:14px;display:flex;gap:8px;flex-wrap:wrap;
+  }
+  .tbtn{
+    font-family:'Archivo Black',sans-serif;font-size:11px;letter-spacing:.04em;
+    background:var(--paper);color:var(--ink);
+    border:2px solid var(--ink);
+    padding:10px 12px;cursor:pointer;
+    box-shadow:3px 3px 0 var(--ink);
+    transition:transform .08s, box-shadow .08s;
+    text-transform:uppercase;
+  }
+  .tbtn:hover{background:var(--blue);color:var(--paper)}
+  .tbtn:active{transform:translate(3px,3px);box-shadow:0 0 0 var(--ink)}
+  .tbtn.play{
+    background:var(--ink);color:var(--paper);
+    box-shadow:3px 3px 0 var(--pink);
+    flex:1;padding:13px 16px;font-size:13px;
+  }
+  .tbtn.play:hover{background:var(--pink);color:var(--ink)}
+  .speed-row{
+    display:flex;justify-content:space-between;align-items:center;margin-top:14px;
+    font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink);
+  }
+  .speed-row .pills{display:flex;gap:4px}
+  .speed-row .pills span{padding:4px 8px;border:2px solid var(--ink);font-size:10px}
+  .speed-row .pills span.on{background:var(--ink);color:var(--paper)}
+
+  /* TIER PANEL */
+  .panel{
+    background:var(--paper);border:3px solid var(--ink);
+    padding:20px;position:relative;
+    box-shadow:6px 6px 0 var(--ink);
+  }
+  .panel h4{
+    font-family:'Archivo Black',sans-serif;font-size:13px;letter-spacing:.04em;
+    text-transform:uppercase;margin-bottom:12px;
+    display:flex;justify-content:space-between;align-items:baseline;
+  }
+  .panel h4 .sub{
+    font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.18em;
+    color:var(--ink);opacity:.6;font-weight:400;
+  }
+  .panel.pink{background:var(--pink);color:var(--paper);box-shadow:6px 6px 0 var(--blue)}
+  .panel.pink h4{color:var(--paper)}
+  .panel.pink h4 .sub{color:var(--paper);opacity:.8}
+  .tier-row{display:flex;flex-direction:column;gap:6px}
+  .tier-row .t{
+    display:flex;justify-content:space-between;align-items:center;
+    font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.06em;
+    padding:8px 10px;border:2px solid var(--paper);
+  }
+  .tier-row .t.on{background:var(--paper);color:var(--ink)}
+  .tier-row .t b{font-family:'Archivo Black',sans-serif;font-size:13px;letter-spacing:0;text-transform:uppercase}
+  .tier-row .t .sz{opacity:.7}
+
+  /* LIBRARY — right column, vertical scrollable list */
+  .library{
+    background:var(--paper);border:3px solid var(--ink);
+    box-shadow:6px 6px 0 var(--ink);
+    padding:18px 18px 6px;
+    display:flex;flex-direction:column;
+    flex:1;min-height:240px;max-height:420px;
+  }
+  .library h4{
+    font-family:'Archivo Black',sans-serif;font-size:13px;letter-spacing:.04em;
+    text-transform:uppercase;margin-bottom:12px;
+    display:flex;justify-content:space-between;align-items:baseline;
+    border-bottom:2px dashed var(--ink);padding-bottom:10px;flex:none;
+  }
+  .library h4 .sub{
+    font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.18em;
+    color:var(--ink);opacity:.7;font-weight:400;
+  }
+  .library h4 .sub b{color:var(--pink);font-weight:700}
+  .lib-list{
+    flex:1;overflow-y:auto;padding-right:6px;
+    /* riso-styled scrollbar */
+    scrollbar-width:thin;scrollbar-color:var(--ink) var(--paper-2);
+  }
+  .lib-list::-webkit-scrollbar{width:8px}
+  .lib-list::-webkit-scrollbar-track{background:var(--paper-2);border:1px solid var(--ink)}
+  .lib-list::-webkit-scrollbar-thumb{background:var(--ink);border:2px solid var(--paper-2)}
+  .lib-item{
+    border-bottom:1px dashed var(--ink);
+    padding:11px 4px 11px 0;position:relative;
+    cursor:pointer;
+  }
+  .lib-item:first-child{padding-top:4px}
+  .lib-item:last-child{border-bottom:none}
+  .lib-item:hover{background:var(--paper-2)}
+  .lib-item.live{
+    background:var(--pink);color:var(--paper);
+    margin:0 -18px;padding-left:18px;padding-right:18px;
+    border:none;
+  }
+  .lib-item.live + .lib-item{border-top:1px dashed var(--ink)}
+  .lib-item.live::after{
+    content:"NOW";position:absolute;top:10px;right:14px;
+    background:var(--ink);color:var(--paper);
+    font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.18em;
+    padding:2px 7px;
+  }
+  .lib-item .t{
+    font-family:'Archivo Black',sans-serif;font-size:13px;letter-spacing:-.01em;
+    line-height:1.15;padding-right:48px;
+  }
+  .lib-item.live .t{padding-right:50px}
+  .lib-item .preview{
+    font-family:'Archivo',sans-serif;font-style:italic;font-size:11.5px;
+    margin-top:4px;opacity:.65;line-height:1.4;
+    display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;
+  }
+  .lib-item.live .preview{opacity:.85}
+  .lib-item .m{
+    font-family:'Space Mono',monospace;font-size:9px;
+    letter-spacing:.16em;text-transform:uppercase;
+    display:flex;justify-content:space-between;margin-top:6px;
+    opacity:.7;
+  }
+  .lib-item.live .m{opacity:.9}
+  .lib-item .m .dot{
+    display:inline-block;width:5px;height:5px;border-radius:50%;
+    background:var(--pink);margin-right:6px;vertical-align:1px;
+  }
+  .lib-item.live .m .dot{background:var(--paper)}
+
+  /* TIER — full-width 3-card row */
+  .tier-strip{
+    margin-top:28px;
+    background:var(--paper);border:3px solid var(--ink);
+    box-shadow:6px 6px 0 var(--blue);
+    padding:22px 24px;
+  }
+  .tier-strip h4{
+    font-family:'Archivo Black',sans-serif;font-size:14px;letter-spacing:.04em;
+    text-transform:uppercase;margin-bottom:14px;
+    display:flex;justify-content:space-between;align-items:baseline;
+    border-bottom:2px dashed var(--ink);padding-bottom:10px;
+  }
+  .tier-strip h4 .sub{
+    font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.2em;
+    color:var(--ink);opacity:.7;font-weight:400;
+  }
+  .tier-cards{
+    display:grid;grid-template-columns:repeat(3,1fr);gap:16px;
+  }
+  @media (max-width:680px){.tier-cards{grid-template-columns:1fr}}
+  .tier-card{
+    border:2px solid var(--ink);padding:18px 18px 16px;
+    background:var(--paper-2);position:relative;
+    display:flex;flex-direction:column;gap:8px;
+    min-height:140px;
+  }
+  .tier-card.on{
+    background:var(--pink);color:var(--paper);
+  }
+  .tier-card.on::after{
+    content:"READY";position:absolute;top:-9px;right:12px;
+    background:var(--ink);color:var(--paper);
+    font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.2em;
+    padding:3px 9px;
+  }
+  .tier-card .name{
+    font-family:'Archivo Black',sans-serif;font-size:30px;letter-spacing:-.03em;
+    line-height:.9;
+  }
+  .tier-card .desc{
+    font-family:'Archivo',sans-serif;font-style:italic;font-size:13px;
+    line-height:1.4;opacity:.85;
+  }
+  .tier-card .m{
+    margin-top:auto;
+    font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.18em;
+    text-transform:uppercase;
+    display:flex;justify-content:space-between;align-items:baseline;
+    border-top:1.5px solid currentColor;padding-top:8px;opacity:.85;
+  }
+  .tier-card.disabled{opacity:.55}
+  .tier-card.disabled .stat{color:var(--blue);font-weight:700}
+  .tier-card.on .stat{font-weight:700}
+
+  /* MARQUEE */
+  .ad-strip{
+    margin-top:28px;padding:14px 20px;
+    background:var(--ink);color:var(--paper);
+    font-family:'Space Mono',monospace;font-size:11px;
+    letter-spacing:.28em;text-transform:uppercase;
+    display:flex;justify-content:space-between;align-items:center;gap:12px;
+    border:3px solid var(--ink);box-shadow:6px 6px 0 var(--pink);
+    overflow:hidden;
+  }
+  .ad-strip .marquee{flex:1;overflow:hidden;white-space:nowrap}
+  .ad-strip .marquee div{
+    display:inline-block;padding-left:100%;
+    animation:scroll 28s linear infinite;
+  }
+  @keyframes scroll{to{transform:translateX(-100%)}}
+  .ad-strip b{color:var(--pink)}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="masthead">
+    <div class="vol">Vol. <b>01</b> Issue 07 · MMXXVI</div>
+    <h1 class="wordmark">catm.</h1>
+    <div class="price">Cover <b>$0.00</b> Free · MIT</div>
+  </header>
+  <div class="strapline">
+    <span>★ ★ ★ <b>READ ANYTHING.</b> OUT LOUD. ★ ★ ★</span>
+    <span><b>Side A</b> · Ch. VII · <b>14:32</b> / 46:18 · 1.25×</span>
+  </div>
+
+  <div class="stage">
+
+    <!-- READING PANEL — karaoke -->
+    <section class="reading">
+      <div class="read-head">
+        <div class="read-kicker">
+          <span>▸ Now Reading · Chapter VII</span>
+          <span class="live">Playing</span>
+        </div>
+        <h2 class="read-title">On the Pleasure of <em>Reading Aloud.</em></h2>
+        <div class="read-byline">— an essay by alberto manguel · 4,218 words —</div>
+      </div>
+
+      <div class="body-text">
+        <p class="s">
+          <span class="w spoken">The</span> <span class="w spoken">voice</span> <span class="w spoken">that</span> <span class="w spoken">reads</span> <span class="w spoken">aloud</span> <span class="w spoken">to</span> <span class="w spoken">itself</span> <span class="w spoken">is</span> <span class="w spoken">the</span> <span class="w spoken">most</span> <span class="w spoken">ancient</span> <span class="w spoken">of</span> <span class="w spoken">literary</span> <span class="w spoken">instruments.</span>
+        </p>
+        <p class="s current">
+          <span class="w spoken">Long</span> <span class="w spoken">before</span> <span class="w spoken">the</span> <span class="w spoken">printed</span> <span class="w spoken">page,</span> <span class="w spoken">long</span> <span class="w spoken">before</span> <span class="w spoken">the</span> <span class="w spoken">silent</span> <span class="w spoken">eye</span> <span class="w spoken">learned</span> <span class="w spoken">its</span> <span class="w spoken">trick</span> <span class="w spoken">of</span> <span class="w current">swallowing</span> <span class="w">meaning</span> <span class="w">in</span> <span class="w">a</span> <span class="w">glance,</span> <span class="w">there</span> <span class="w">was</span> <span class="w">the</span> <span class="w">mouth,</span> <span class="w">the</span> <span class="w">breath,</span> <span class="w">the</span> <span class="w">unhurried</span> <span class="w">turning</span> <span class="w">of</span> <span class="w">one</span> <span class="w">syllable</span> <span class="w">into</span> <span class="w">the</span> <span class="w">next.</span>
+        </p>
+        <p class="s">
+          <span class="w">To</span> <span class="w">listen</span> <span class="w">is</span> <span class="w">to</span> <span class="w">be</span> <span class="w">carried</span> <span class="w">—</span> <span class="w">to</span> <span class="w">surrender</span> <span class="w">the</span> <span class="w">self</span> <span class="w">briefly,</span> <span class="w">the</span> <span class="w">way</span> <span class="w">a</span> <span class="w">small</span> <span class="w">boat</span> <span class="w">surrenders</span> <span class="w">to</span> <span class="w">a</span> <span class="w">current</span> <span class="w">it</span> <span class="w">cannot</span> <span class="w">see</span> <span class="w">beneath</span> <span class="w">it.</span>
+        </p>
+      </div>
+
+      <div class="read-foot">
+        <span><b>played</b> · 31%</span>
+        <span><b>prepared</b> · chunks 18 / 32</span>
+        <span><b>remaining</b> · 31:46</span>
+      </div>
+    </section>
+
+    <!-- RIGHT COLUMN -->
+    <aside class="right-col">
+
+      <section class="player">
+        <h3>Transport <span class="badge">Side A</span></h3>
+        <div class="counter">
+          <span class="big" data-shadow="14:32">14:32</span>
+          <span class="of">of<br><b>46:18</b></span>
+        </div>
+        <div class="scrub-box">
+          <div class="scrub">
+            <div class="prepared"></div>
+            <div class="played"></div>
+            <div class="head"></div>
+          </div>
+          <div class="scrub-meta">
+            <span>played 31%</span>
+            <span>prep 54%</span>
+            <span>rem 31:46</span>
+          </div>
+        </div>
+        <div class="transport">
+          <button class="tbtn">−30</button>
+          <button class="tbtn play">▶❚❚ pause</button>
+          <button class="tbtn">+30</button>
+        </div>
+        <div class="speed-row">
+          <span>Speed</span>
+          <div class="pills">
+            <span>0.75</span>
+            <span>1.0</span>
+            <span class="on">1.25</span>
+            <span>1.5</span>
+            <span>2.0</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="library">
+        <h4>Library <span class="sub">142 · <b>207 mb</b></span></h4>
+        <div class="lib-list">
+          <div class="lib-item live">
+            <div class="t">On the Pleasure of Reading Aloud</div>
+            <div class="preview">The voice that reads aloud to itself is the most ancient of literary instruments…</div>
+            <div class="m"><span>20 May · 14:18</span><span>46:18</span></div>
+          </div>
+          <div class="lib-item">
+            <div class="t">Letters to a Young Poet, II</div>
+            <div class="preview">You ask whether your verses are good. You ask me…</div>
+            <div class="m"><span><span class="dot"></span>19 May · 21:04</span><span>21:04 · 6m left</span></div>
+          </div>
+          <div class="lib-item">
+            <div class="t">The Library at Night, ch. III</div>
+            <div class="preview">Outside the dark window the night was beginning to change…</div>
+            <div class="m"><span>17 May · 09:41</span><span>38:42</span></div>
+          </div>
+          <div class="lib-item">
+            <div class="t">On Solitude — Montaigne</div>
+            <div class="preview">Let us reserve a back-shop, wholly our own and entirely free…</div>
+            <div class="m"><span>15 May · 17:22</span><span>19:18</span></div>
+          </div>
+          <div class="lib-item">
+            <div class="t">Notes on Cinema, vol. 4</div>
+            <div class="preview">A film begins, properly, in the moment before the first frame…</div>
+            <div class="m"><span>14 May · 11:02</span><span>27:11</span></div>
+          </div>
+          <div class="lib-item">
+            <div class="t">The Death of the Author</div>
+            <div class="preview">In his story Sarrasine, Balzac, describing a castrato disguised as a woman…</div>
+            <div class="m"><span><span class="dot"></span>13 May · 20:14</span><span>14:30 · 4m left</span></div>
+          </div>
+          <div class="lib-item">
+            <div class="t">A Room of One's Own, ch. I</div>
+            <div class="preview">But, you may say, we asked you to speak about women and fiction — what has that…</div>
+            <div class="m"><span>12 May · 08:38</span><span>32:50</span></div>
+          </div>
+          <div class="lib-item">
+            <div class="t">Bartleby, the Scrivener</div>
+            <div class="preview">I am a rather elderly man. The nature of my avocations for the last thirty years…</div>
+            <div class="m"><span>10 May · 22:11</span><span>1:08:42</span></div>
+          </div>
+          <div class="lib-item">
+            <div class="t">The Crack-Up — Fitzgerald</div>
+            <div class="preview">Of course all life is a process of breaking down…</div>
+            <div class="m"><span>09 May · 16:40</span><span>24:06</span></div>
+          </div>
+          <div class="lib-item">
+            <div class="t">On Keeping a Notebook</div>
+            <div class="preview">"That woman Estelle," the note reads, "is partly the reason why George Sharp and I…</div>
+            <div class="m"><span>07 May · 12:30</span><span>17:42</span></div>
+          </div>
+          <div class="lib-item">
+            <div class="t">Why I Write — Orwell</div>
+            <div class="preview">From a very early age, perhaps the age of five or six, I knew that when I grew up…</div>
+            <div class="m"><span>05 May · 19:00</span><span>22:18</span></div>
+          </div>
+        </div>
+      </section>
+
+    </aside>
+  </div>
+
+  <!-- TIER ROW — full width -->
+  <section class="tier-strip">
+    <h4>Choose your tier <span class="sub">3 specimens · 1 ready</span></h4>
+    <div class="tier-cards">
+      <div class="tier-card on">
+        <div class="name">Low</div>
+        <div class="desc">Good — clearly synthetic but pleasant. Suitable for long listens.</div>
+        <div class="m"><span>80 mb</span><span class="stat">selected</span></div>
+      </div>
+      <div class="tier-card disabled">
+        <div class="name">Medium</div>
+        <div class="desc">Better — closer to a human narrator.</div>
+        <div class="m"><span>~500 mb</span><span class="stat">soon</span></div>
+      </div>
+      <div class="tier-card disabled">
+        <div class="name">High</div>
+        <div class="desc">Best — near-human, expressive.</div>
+        <div class="m"><span>~700 mb</span><span class="stat">soon</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MARQUEE — cable-news ticker style -->
+  <div class="ad-strip">
+    <span>★</span>
+    <div class="marquee"><div>now reading · <b>on the pleasure of reading aloud</b> · alberto manguel · chapter vii · 4,218 words · 31% played · prepared through chunk 18 of 32 · 14:32 / 46:18 · speed 1.25× · <b>af_heart</b> · ★ side a · </div></div>
+    <span>★</span>
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>catm — editor · text pasted</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Mono:wght@400;700&family=Archivo:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shell.css">
+<style>
+  .stage{
+    margin-top:32px;display:grid;grid-template-columns:1.55fr 1fr;gap:28px;align-items:start;
+  }
+  @media (max-width:920px){.stage{grid-template-columns:1fr}}
+
+  /* Editor with content */
+  .editor-shell{position:relative}
+  .editor-body{
+    padding:28px 32px 16px;min-height:380px;max-height:520px;
+    font-family:'Archivo',sans-serif;font-size:16.5px;line-height:1.7;color:var(--ink);
+    overflow-y:auto;
+  }
+  .editor-body p{margin-bottom:1em}
+  .editor-body p:last-child{margin-bottom:0}
+  .editor-body::-webkit-scrollbar{width:8px}
+  .editor-body::-webkit-scrollbar-track{background:var(--paper-2);border:1px solid var(--ink)}
+  .editor-body::-webkit-scrollbar-thumb{background:var(--ink);border:2px solid var(--paper-2)}
+
+  /* The big READ button — hero treatment */
+  .btn.read-primary{
+    background:var(--pink);color:var(--paper);
+    border:2.5px solid var(--ink);
+    box-shadow:5px 5px 0 var(--ink);
+    font-family:'Archivo Black',sans-serif;font-size:18px;letter-spacing:.04em;
+    padding:18px 28px;
+  }
+  .btn.read-primary:hover{background:var(--ink);color:var(--pink)}
+  .btn.read-primary svg{flex:none}
+
+  /* Estimated time chip */
+  .est-chip{
+    display:inline-flex;align-items:center;gap:8px;
+    font-family:'Archivo Black',sans-serif;font-size:14px;
+    background:var(--ink);color:var(--paper);
+    padding:9px 14px;border:2px solid var(--ink);
+    box-shadow:3px 3px 0 var(--pink);text-transform:uppercase;
+    letter-spacing:.04em;
+  }
+  .est-chip .lbl{
+    font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.22em;opacity:.7;font-weight:400;
+  }
+
+  /* RIGHT COL */
+  .right-col{display:flex;flex-direction:column;gap:20px}
+
+  .card{
+    background:var(--paper);border:3px solid var(--ink);
+    padding:18px 22px;position:relative;box-shadow:6px 6px 0 var(--ink);
+  }
+  .card::before{
+    content:"";position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(circle, rgba(45,41,53,.08) 1px, transparent 1.3px);
+    background-size:5px 5px;opacity:.45;mix-blend-mode:multiply;
+  }
+  .card h4{
+    font-family:'Archivo Black',sans-serif;font-size:13px;letter-spacing:.04em;
+    text-transform:uppercase;
+    border-bottom:2px dashed var(--ink);padding-bottom:10px;margin-bottom:12px;
+    display:flex;justify-content:space-between;align-items:baseline;
+  }
+  .card h4 .sub{
+    font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.18em;opacity:.7;font-weight:400;
+  }
+
+  /* Summary card */
+  .summary-card{
+    background:var(--pink);color:var(--paper);box-shadow:6px 6px 0 var(--blue);
+  }
+  .summary-card::before{
+    background:radial-gradient(circle, rgba(45,41,53,.3) 1.2px, transparent 1.4px);
+    background-size:6px 6px;opacity:.35;
+  }
+  .summary-card h4{color:var(--paper);border-bottom-color:var(--paper);opacity:.95}
+  .summary-card .big{
+    font-family:'Archivo Black',sans-serif;font-size:54px;letter-spacing:-.04em;line-height:.95;
+    color:var(--paper);
+  }
+  .summary-card .meta{
+    margin-top:10px;font-family:'Space Mono',monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;
+    display:flex;flex-direction:column;gap:6px;color:var(--paper);opacity:.95;
+  }
+  .summary-card .meta b{color:var(--paper);font-weight:700}
+
+  /* Recent library card */
+  .lib-card ul{list-style:none}
+  .lib-card li{
+    padding:10px 0;border-bottom:1px dashed var(--ink);
+  }
+  .lib-card li:last-child{border-bottom:none}
+  .lib-card li .t{
+    font-family:'Archivo Black',sans-serif;font-size:13px;letter-spacing:-.01em;line-height:1.15;
+  }
+  .lib-card li .m{
+    font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.18em;text-transform:uppercase;
+    display:flex;justify-content:space-between;margin-top:4px;opacity:.7;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="masthead">
+    <div class="vol">Vol. <b>01</b> Issue 07 · MMXXVI</div>
+    <div class="brand"><h1 class="wordmark">catm.</h1><div class="tagline">come and talk to me</div></div>
+    <div class="price">Cover <b>$0.00</b> Free · MIT</div>
+  </header>
+  <div class="strapline">
+    <span>★ ★ ★ <b>READ ANYTHING.</b> OUT LOUD. ★ ★ ★</span>
+    <span><b>4,218</b> words · ready · ~28 min at 1.25×</span>
+  </div>
+
+  <nav class="screen-nav">
+    <span class="lbl">screens →</span>
+    <a href="01-first-launch.html">01 first launch</a>
+    <a href="02-downloading.html">02 downloading</a>
+    <a href="03-ready-empty.html">03 ready</a>
+    <a href="04-editor-pasted.html" class="on">04 editor</a>
+    <a href="05-library-empty.html">05 library</a>
+    <a href="06-settings.html">06 settings</a>
+    <a href="07-edge-cases.html">07 edge cases</a>
+  </nav>
+
+  <div class="stage">
+
+    <div class="editor-shell">
+      <div class="editor-head">
+        <span><b>Editor</b> · on the pleasure of reading aloud — manguel</span>
+        <span>english · af_heart</span>
+      </div>
+      <div class="editor-body">
+        <p>The voice that reads aloud to itself is the most ancient of literary instruments. Long before the printed page, long before the silent eye learned its trick of swallowing meaning in a glance, there was the mouth, the breath, the unhurried turning of one syllable into the next.</p>
+        <p>To listen is to be carried — to surrender the self briefly, the way a small boat surrenders to a current it cannot see beneath it. The voice that reads is not a recitation but an offering; it gives the text a body, a tempo, a place to live.</p>
+        <p>What we lose in silent reading is not understanding but tempo. The page on the desk is consumed; the page read aloud is unfolded. Each word is given the time it deserves, and the listener — even when the listener is also the reader — is made to wait, and in waiting, to attend.</p>
+        <p>The ancients understood this. Augustine, finding Ambrose reading silently in his study, was astonished — not because silent reading was impossible, but because it was strange. To read was, by default, to read aloud, even when alone…</p>
+      </div>
+      <div class="editor-foot">
+        <span class="stats"><b>4,218 words</b> · approx. <b>28 min</b> at 1.25× · ready to read</span>
+        <div class="btn-row">
+          <div class="speed-pills">
+            <span>0.75</span><span>1.0</span><span class="on">1.25</span><span>1.5</span><span>2.0</span>
+          </div>
+          <button class="btn">Clear</button>
+          <button class="btn read-primary">
+            <svg width="14" height="16" viewBox="0 0 14 16" fill="currentColor"><polygon points="2,1 13,8 2,15"/></svg>
+            Read
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <aside class="right-col">
+      <div class="card summary-card">
+        <h4>Ready <span class="sub">queued · 0 prepared</span></h4>
+        <div class="big">28<span style="font-size:24px;letter-spacing:0;margin-left:8px">min</span></div>
+        <div class="meta">
+          <span><b>4,218</b> words · 32 chunks</span>
+          <span><b>~3 sec</b> to first audio</span>
+        </div>
+      </div>
+
+      <div class="card lib-card">
+        <h4>Library <span class="sub"><b>14</b> sessions · 207 mb</span></h4>
+        <ul>
+          <li>
+            <div class="t">Letters to a Young Poet, II</div>
+            <div class="m"><span>19 May</span><span>21:04 · 6m left</span></div>
+          </li>
+          <li>
+            <div class="t">The Library at Night, ch. III</div>
+            <div class="m"><span>17 May</span><span>38:42</span></div>
+          </li>
+          <li>
+            <div class="t">On Solitude — Montaigne</div>
+            <div class="m"><span>15 May</span><span>19:18</span></div>
+          </li>
+          <li>
+            <div class="t">Notes on Cinema, vol. 4</div>
+            <div class="m"><span>14 May</span><span>27:11</span></div>
+          </li>
+        </ul>
+      </div>
+    </aside>
+  </div>
+
+  <footer class="colophon">
+    <a href="https://github.com/catm-app"><span class="arrow">↗</span>source · github.com/catm-app</a>
+    <span class="meta">printed in your browser · mmxxvi</span>
+  </footer>
+
+</div>
+</body>
+</html>

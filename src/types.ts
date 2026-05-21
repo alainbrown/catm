@@ -14,6 +14,6 @@ export interface DocState {
   id: string | null; // null = unsaved new document
   sourceText: string;
   savedText: string;
-  audioUrl: string | null;
+  hasAudio: boolean; // when true, ReaderView attaches hls.js to this session's id
   audioVoice: VoiceId | null; // voice the saved audio was recorded with
 }

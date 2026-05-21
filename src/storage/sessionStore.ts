@@ -13,7 +13,6 @@ export interface SessionMeta {
   modelId: string;
 }
 
-const DEFAULT_VOICE: VoiceId = "af_heart";
 const DEFAULT_MODEL = "kokoro-82m-low";
 
 interface CatmDB extends DBSchema {
@@ -25,36 +24,38 @@ interface CatmDB extends DBSchema {
 }
 
 const DB_NAME = "catm";
-const DB_VERSION = 2;
+// v3: layout changed from single audio.mp4 to HLS init.mp4 + seg-N.m4s +
+// playlist.m3u8. Old sessions are wiped on upgrade — no migration.
+const DB_VERSION = 3;
 
 let dbPromise: Promise<IDBPDatabase<CatmDB>> | null = null;
 
 function db(): Promise<IDBPDatabase<CatmDB>> {
   if (!dbPromise) {
     dbPromise = openDB<CatmDB>(DB_NAME, DB_VERSION, {
-      upgrade(database, oldVersion, _newVersion, tx) {
-        if (oldVersion < 1) {
-          const store = database.createObjectStore("sessions", { keyPath: "id" });
-          store.createIndex("by-createdAt", "createdAt");
+      upgrade(database, oldVersion) {
+        if (database.objectStoreNames.contains("sessions")) {
+          database.deleteObjectStore("sessions");
         }
-        if (oldVersion < 2) {
-          // Backfill voice/modelId on existing rows.
-          const store = tx.objectStore("sessions");
-          void (async () => {
-            let cursor = await store.openCursor();
-            while (cursor) {
-              const row = cursor.value as Partial<SessionMeta>;
-              if (!row.voice) row.voice = DEFAULT_VOICE;
-              if (!row.modelId) row.modelId = DEFAULT_MODEL;
-              await cursor.update(row as SessionMeta);
-              cursor = await cursor.continue();
-            }
-          })();
+        const store = database.createObjectStore("sessions", { keyPath: "id" });
+        store.createIndex("by-createdAt", "createdAt");
+        if (oldVersion > 0) {
+          // Best-effort wipe of OPFS contents from the previous layout.
+          void wipeOpfsSessions();
         }
       },
     });
   }
   return dbPromise;
+}
+
+async function wipeOpfsSessions(): Promise<void> {
+  try {
+    const root = await navigator.storage.getDirectory();
+    await root.removeEntry("sessions", { recursive: true });
+  } catch {
+    /* directory may not exist */
+  }
 }
 
 async function sessionsRoot(): Promise<FileSystemDirectoryHandle> {
@@ -73,27 +74,37 @@ function deriveTitle(sourceText: string): string {
   return `${collapsed.slice(0, 57)}…`;
 }
 
-export interface CreateInput {
+async function writeFile(
+  dir: FileSystemDirectoryHandle,
+  name: string,
+  data: Uint8Array | string,
+): Promise<void> {
+  const file = await dir.getFileHandle(name, { create: true });
+  const writable = await file.createWritable();
+  const blob =
+    typeof data === "string"
+      ? new Blob([data], { type: "application/vnd.apple.mpegurl" })
+      : new Blob([data as BlobPart]);
+  await writable.write(blob);
+  await writable.close();
+}
+
+export interface CreateSessionInput {
   sourceText: string;
-  audio: Blob;
-  durationSec: number;
   voice: VoiceId;
 }
 
-export async function createSession(input: CreateInput): Promise<SessionMeta> {
+export async function createSession(input: CreateSessionInput): Promise<SessionMeta> {
   const id = crypto.randomUUID();
-  const dir = await sessionDir(id);
-  const file = await dir.getFileHandle("audio.wav", { create: true });
-  const writable = await file.createWritable();
-  await writable.write(input.audio);
-  await writable.close();
-
+  // Pre-create the directory; init/segments/playlist will be written by
+  // writeInit / writeSegment / finalizePlaylist as encoding proceeds.
+  await sessionDir(id);
   const meta: SessionMeta = {
     id,
     title: deriveTitle(input.sourceText) || "Untitled",
     sourceText: input.sourceText,
     createdAt: Date.now(),
-    durationSec: input.durationSec,
+    durationSec: 0,
     lastPositionSec: 0,
     finishedAt: null,
     voice: input.voice,
@@ -104,47 +115,93 @@ export async function createSession(input: CreateInput): Promise<SessionMeta> {
   return meta;
 }
 
-export interface UpdateInput {
-  sourceText: string;
-  audio: Blob;
-  durationSec: number;
-  voice: VoiceId;
-}
-
-export async function updateSession(id: string, input: UpdateInput): Promise<SessionMeta> {
+export async function resetSession(id: string, sourceText: string, voice: VoiceId): Promise<void> {
+  // Wipe any prior segment files for this session so re-synthesis starts clean.
+  const root = await sessionsRoot();
+  try {
+    await root.removeEntry(id, { recursive: true });
+  } catch {
+    /* fresh session has no entry */
+  }
+  await sessionDir(id);
   const database = await db();
   const existing = await database.get("sessions", id);
-  if (!existing) throw new Error(`session ${id} not found`);
-
-  const dir = await sessionDir(id);
-  const file = await dir.getFileHandle("audio.wav", { create: true });
-  const writable = await file.createWritable();
-  await writable.write(input.audio);
-  await writable.close();
-
-  const next: SessionMeta = {
+  if (!existing) return;
+  await database.put("sessions", {
     ...existing,
-    title: deriveTitle(input.sourceText) || existing.title,
-    sourceText: input.sourceText,
-    durationSec: input.durationSec,
+    title: deriveTitle(sourceText) || existing.title,
+    sourceText,
+    durationSec: 0,
     lastPositionSec: 0,
     finishedAt: null,
-    voice: input.voice,
-  };
-  await database.put("sessions", next);
-  return next;
+    voice,
+  });
+}
+
+export async function writeInit(id: string, bytes: Uint8Array): Promise<void> {
+  const dir = await sessionDir(id);
+  await writeFile(dir, "init.mp4", bytes);
+}
+
+export async function writeSegment(id: string, index: number, bytes: Uint8Array): Promise<void> {
+  const dir = await sessionDir(id);
+  await writeFile(dir, `seg-${index}.m4s`, bytes);
+}
+
+export interface SegmentEntry {
+  index: number;
+  durationSec: number;
+}
+
+export async function writePlaylist(
+  id: string,
+  segments: SegmentEntry[],
+  ended: boolean,
+): Promise<void> {
+  const dir = await sessionDir(id);
+  const targetDuration = Math.max(
+    1,
+    Math.ceil(segments.reduce((m, s) => Math.max(m, s.durationSec), 1)),
+  );
+  const lines: string[] = [
+    "#EXTM3U",
+    "#EXT-X-VERSION:7",
+    `#EXT-X-TARGETDURATION:${targetDuration}`,
+    "#EXT-X-PLAYLIST-TYPE:EVENT",
+    "#EXT-X-MEDIA-SEQUENCE:0",
+    '#EXT-X-MAP:URI="init.mp4"',
+  ];
+  for (const seg of segments) {
+    lines.push(`#EXTINF:${seg.durationSec.toFixed(3)},`);
+    lines.push(`seg-${seg.index}.m4s`);
+  }
+  if (ended) lines.push("#EXT-X-ENDLIST");
+  lines.push("");
+  await writeFile(dir, "playlist.m3u8", lines.join("\n"));
+}
+
+export async function finalizeDuration(id: string, durationSec: number): Promise<void> {
+  const database = await db();
+  const existing = await database.get("sessions", id);
+  if (!existing) return;
+  await database.put("sessions", { ...existing, durationSec });
+}
+
+export async function readSessionFile(id: string, name: string): Promise<Uint8Array | null> {
+  try {
+    const dir = await sessionDir(id);
+    const file = await dir.getFileHandle(name);
+    const blob = await file.getFile();
+    return new Uint8Array(await blob.arrayBuffer());
+  } catch {
+    return null;
+  }
 }
 
 export async function listSessions(): Promise<SessionMeta[]> {
   const database = await db();
   const rows = await database.getAllFromIndex("sessions", "by-createdAt");
   return rows.reverse();
-}
-
-export async function getAudioBlob(id: string): Promise<Blob> {
-  const dir = await sessionDir(id);
-  const file = await dir.getFileHandle("audio.wav");
-  return file.getFile();
 }
 
 export async function deleteSession(id: string): Promise<void> {

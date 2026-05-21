@@ -2,23 +2,29 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ConfirmDialog } from "./components/ConfirmDialog";
 import { DiscardDialog } from "./components/DiscardDialog";
 import { Colophon, Masthead } from "./components/Masthead";
+import { encodePcmToCompleteMp4 } from "./hls/encode";
+import { chunkText } from "./textChunk";
 import {
+  type SegmentEntry,
   type SessionMeta,
   createSession,
   deleteSession,
-  getAudioBlob,
+  finalizeDuration,
   listSessions,
-  updateSession,
+  resetSession,
+  writeInit,
+  writePlaylist,
+  writeSegment,
 } from "./storage/sessionStore";
 import type { AppStatus, DocState, View } from "./types";
 import { OnboardingView } from "./views/OnboardingView";
 import { ReaderView } from "./views/ReaderView";
 import { SettingsView } from "./views/SettingsView";
-import { pcmToWavBlob } from "./wav";
 import type { InMsg, OutMsg, VoiceId } from "./worker/kokoro.worker";
 
 const VOICE_KEY = "catm:voice";
 const DEFAULT_VOICE: VoiceId = "af_heart";
+const CHUNK_CHARS = 300;
 
 function readVoice(): VoiceId {
   try {
@@ -42,7 +48,7 @@ const EMPTY_DOC: DocState = {
   id: null,
   sourceText: "",
   savedText: "",
-  audioUrl: null,
+  hasAudio: false,
   audioVoice: null,
 };
 
@@ -62,6 +68,15 @@ function writeOnboarded(): void {
   } catch {
     /* ignore */
   }
+}
+
+interface ActiveSynth {
+  sessionId: string;
+  segments: SegmentEntry[];
+  totalDuration: number;
+  firstFragmentSeen: boolean;
+  resolve: () => void;
+  reject: (err: Error) => void;
 }
 
 export function App(): React.JSX.Element {
@@ -85,10 +100,11 @@ export function App(): React.JSX.Element {
 
   const deviceRef = useRef<"webgpu" | "wasm">("wasm");
   const workerRef = useRef<Worker | null>(null);
-  const nextSynthIdRef = useRef(1);
-  const pendingSynthRef = useRef(
+  const nextTxnIdRef = useRef(1);
+  const pendingPreviewRef = useRef(
     new Map<number, (r: { pcm: Float32Array; sampleRate: number }) => void>(),
   );
+  const activeSynthsRef = useRef(new Map<number, ActiveSynth>());
   // Aggregated download progress across all files reported by kokoro-js.
   const progressMapRef = useRef<Map<string, { loaded: number; total: number }>>(new Map());
 
@@ -149,22 +165,64 @@ export function App(): React.JSX.Element {
         return;
       }
       if (msg.type === "synth-result") {
-        const resolve = pendingSynthRef.current.get(msg.id);
+        const resolve = pendingPreviewRef.current.get(msg.id);
         if (resolve) {
-          pendingSynthRef.current.delete(msg.id);
+          pendingPreviewRef.current.delete(msg.id);
           resolve({ pcm: msg.pcm, sampleRate: msg.sampleRate });
         }
         return;
       }
+      if (msg.type === "fragment-init") {
+        const active = activeSynthsRef.current.get(msg.txnId);
+        if (active) void writeInit(active.sessionId, msg.bytes);
+        return;
+      }
+      if (msg.type === "fragment-media") {
+        const active = activeSynthsRef.current.get(msg.txnId);
+        if (!active) return;
+        void (async () => {
+          await writeSegment(active.sessionId, msg.index, msg.bytes);
+          active.segments.push({ index: msg.index, durationSec: msg.durationSec });
+          active.totalDuration += msg.durationSec;
+          await writePlaylist(active.sessionId, active.segments, false);
+          if (!active.firstFragmentSeen) {
+            active.firstFragmentSeen = true;
+            setDoc((d) =>
+              d.id === active.sessionId ? { ...d, hasAudio: true, audioVoice: voice } : d,
+            );
+            setPlayToken((t) => t + 1);
+          }
+        })();
+        return;
+      }
+      if (msg.type === "synth-end-ok") {
+        const active = activeSynthsRef.current.get(msg.txnId);
+        if (!active) return;
+        activeSynthsRef.current.delete(msg.txnId);
+        void (async () => {
+          await writePlaylist(active.sessionId, active.segments, true);
+          await finalizeDuration(active.sessionId, active.totalDuration);
+          await refreshLibrary();
+          active.resolve();
+        })();
+        return;
+      }
       if (msg.type === "error") {
-        if (msg.id !== undefined) pendingSynthRef.current.delete(msg.id);
+        if (msg.id !== undefined) pendingPreviewRef.current.delete(msg.id);
+        if (msg.txnId !== undefined) {
+          const active = activeSynthsRef.current.get(msg.txnId);
+          if (active) {
+            activeSynthsRef.current.delete(msg.txnId);
+            active.reject(new Error(msg.message));
+          }
+        }
         setStatus({ kind: "error", message: msg.message });
       }
     });
 
     const warmup: InMsg = { type: "warmup" };
     w.postMessage(warmup);
-  }, []);
+  }, [refreshLibrary, voice]);
 
   // If the user is already onboarded, the worker boots on mount.
   // Otherwise we defer worker start until they click "Download voice".
@@ -177,13 +235,6 @@ export function App(): React.JSX.Element {
     };
   }, [onboarded, startWorker]);
 
-  useEffect(() => {
-    const url = doc.audioUrl;
-    return () => {
-      if (url) URL.revokeObjectURL(url);
-    };
-  }, [doc.audioUrl]);
-
   function dismissReadyStamp(): void {
     if (showReadyStamp) setShowReadyStamp(false);
   }
@@ -194,16 +245,16 @@ export function App(): React.JSX.Element {
     startWorker();
   }
 
-  async function performSynth(
+  async function performPreviewSynth(
     text: string,
-    voiceOverride?: VoiceId,
+    voiceOverride: VoiceId,
   ): Promise<{ pcm: Float32Array; sampleRate: number }> {
     const w = workerRef.current;
     if (!w) throw new Error("worker not ready");
-    const id = nextSynthIdRef.current++;
+    const id = nextTxnIdRef.current++;
     return new Promise((resolve) => {
-      pendingSynthRef.current.set(id, resolve);
-      const msg: InMsg = { type: "synth", id, text, voice: voiceOverride ?? voice };
+      pendingPreviewRef.current.set(id, resolve);
+      const msg: InMsg = { type: "synth", id, text, voice: voiceOverride };
       w.postMessage(msg);
     });
   }
@@ -212,9 +263,9 @@ export function App(): React.JSX.Element {
     if (status.kind !== "ready" || previewVoice) return;
     setPreviewVoice(v);
     try {
-      const result = await performSynth("Hello, this is the catm voice.", v);
-      const blob = pcmToWavBlob(result.pcm, result.sampleRate);
-      const url = URL.createObjectURL(blob);
+      const result = await performPreviewSynth("Hello, this is the catm voice.", v);
+      const encoded = await encodePcmToCompleteMp4(result.pcm, result.sampleRate);
+      const url = URL.createObjectURL(new Blob([encoded.bytes as BlobPart], { type: "audio/mp4" }));
       const audio = new Audio(url);
       previewAudioRef.current = audio;
       audio.addEventListener("ended", () => {
@@ -236,54 +287,67 @@ export function App(): React.JSX.Element {
   async function onRead(): Promise<void> {
     const trimmed = doc.sourceText.trim();
     if (!trimmed || status.kind !== "ready") return;
+    const w = workerRef.current;
+    if (!w) return;
     dismissReadyStamp();
     setStatus({ kind: "synthesising" });
-    const result = await performSynth(trimmed);
-    const blob = pcmToWavBlob(result.pcm, result.sampleRate);
-    const durationSec = result.pcm.length / result.sampleRate;
-    const meta = doc.id
-      ? await updateSession(doc.id, { sourceText: trimmed, audio: blob, durationSec, voice })
-      : await createSession({ sourceText: trimmed, audio: blob, durationSec, voice });
-    const url = URL.createObjectURL(blob);
-    setDoc((prev) => {
-      if (prev.audioUrl) URL.revokeObjectURL(prev.audioUrl);
-      return {
-        id: meta.id,
-        sourceText: trimmed,
-        savedText: trimmed,
-        audioUrl: url,
-        audioVoice: voice,
-      };
+
+    let sessionId: string;
+    if (doc.id) {
+      sessionId = doc.id;
+      await resetSession(sessionId, trimmed, voice);
+    } else {
+      const meta = await createSession({ sourceText: trimmed, voice });
+      sessionId = meta.id;
+    }
+    setDoc({
+      id: sessionId,
+      sourceText: trimmed,
+      savedText: trimmed,
+      hasAudio: false,
+      audioVoice: voice,
     });
-    setPlayToken((t) => t + 1);
-    await refreshLibrary();
-    setStatus({ kind: "ready", device: deviceRef.current });
+
+    const txnId = nextTxnIdRef.current++;
+    const chunks = chunkText(trimmed, CHUNK_CHARS);
+    const completion = new Promise<void>((resolve, reject) => {
+      activeSynthsRef.current.set(txnId, {
+        sessionId,
+        segments: [],
+        totalDuration: 0,
+        firstFragmentSeen: false,
+        resolve,
+        reject,
+      });
+    });
+    w.postMessage({ type: "synth-start", txnId, voice } as InMsg);
+    for (const c of chunks) w.postMessage({ type: "synth-chunk", txnId, text: c } as InMsg);
+    w.postMessage({ type: "synth-end", txnId } as InMsg);
+    try {
+      await completion;
+      setStatus({ kind: "ready", device: deviceRef.current });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setStatus({ kind: "error", message });
+    }
   }
 
   async function loadSession(id: string): Promise<void> {
     dismissReadyStamp();
-    const blob = await getAudioBlob(id);
-    const url = URL.createObjectURL(blob);
     const session = (await listSessions()).find((s) => s.id === id);
-    setDoc((prev) => {
-      if (prev.audioUrl) URL.revokeObjectURL(prev.audioUrl);
-      const sourceText = session?.sourceText ?? "";
-      return {
-        id,
-        sourceText,
-        savedText: sourceText,
-        audioUrl: url,
-        audioVoice: session?.voice ?? null,
-      };
+    const sourceText = session?.sourceText ?? "";
+    setDoc({
+      id,
+      sourceText,
+      savedText: sourceText,
+      hasAudio: true,
+      audioVoice: session?.voice ?? null,
     });
     setView("reader");
   }
 
   function startNewDocument(): void {
-    setDoc((prev) => {
-      if (prev.audioUrl) URL.revokeObjectURL(prev.audioUrl);
-      return EMPTY_DOC;
-    });
+    setDoc(EMPTY_DOC);
   }
 
   function onOpenSession(id: string): void {
@@ -311,22 +375,17 @@ export function App(): React.JSX.Element {
   async function onDeleteSession(id: string): Promise<void> {
     await deleteSession(id);
     if (id === doc.id) {
-      setDoc((prev) => {
-        if (prev.audioUrl) URL.revokeObjectURL(prev.audioUrl);
-        return EMPTY_DOC;
-      });
+      setDoc(EMPTY_DOC);
     }
     await refreshLibrary();
   }
 
   async function onDeleteModel(): Promise<void> {
-    // Tear down the worker and clear cached voice files. The browser HTTP cache
-    // still holds the ONNX bytes — redownload will be fast — but the onboarding
-    // flow re-runs because we drop the onboarded flag.
     workerRef.current?.terminate();
     workerRef.current = null;
     progressMapRef.current.clear();
-    pendingSynthRef.current.clear();
+    pendingPreviewRef.current.clear();
+    activeSynthsRef.current.clear();
     try {
       const keys = await caches.keys();
       await Promise.all(
@@ -344,10 +403,7 @@ export function App(): React.JSX.Element {
     }
     setOnboarded(false);
     setStatus({ kind: "first-launch" });
-    setDoc((prev) => {
-      if (prev.audioUrl) URL.revokeObjectURL(prev.audioUrl);
-      return EMPTY_DOC;
-    });
+    setDoc(EMPTY_DOC);
     setView("reader");
     setConfirmDelete(false);
   }
@@ -356,10 +412,7 @@ export function App(): React.JSX.Element {
     for (const s of sessions) {
       await deleteSession(s.id);
     }
-    setDoc((prev) => {
-      if (prev.audioUrl) URL.revokeObjectURL(prev.audioUrl);
-      return EMPTY_DOC;
-    });
+    setDoc(EMPTY_DOC);
     await refreshLibrary();
   }
 

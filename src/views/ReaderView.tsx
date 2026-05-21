@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { LibrarySidebar } from "../components/LibrarySidebar";
+import { attachHlsToAudio } from "../hls/playback";
 import type { SessionMeta } from "../storage/sessionStore";
 import type { AppStatus, DocState } from "../types";
 
@@ -56,7 +57,8 @@ export function ReaderView(props: ReaderViewProps): React.JSX.Element {
   const isReady = status.kind === "ready";
   const canRead = isReady && words > 0;
   const hasDoc = doc.id !== null || doc.sourceText.length > 0;
-  const isStale = doc.audioUrl !== null && modified;
+  const isStale = doc.hasAudio && modified;
+  const sessionId = doc.hasAudio ? doc.id : null;
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   // Initialise to the current token so a remount (e.g. coming back from
@@ -64,14 +66,21 @@ export function ReaderView(props: ReaderViewProps): React.JSX.Element {
   const lastPlayTokenRef = useRef(shouldPlayToken);
 
   useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio || !sessionId) return;
+    const handle = attachHlsToAudio(audio, sessionId);
+    return () => handle.destroy();
+  }, [sessionId]);
+
+  useEffect(() => {
     if (shouldPlayToken === lastPlayTokenRef.current) return;
     lastPlayTokenRef.current = shouldPlayToken;
-    if (audioRef.current && doc.audioUrl) {
+    if (audioRef.current && sessionId) {
       void audioRef.current.play().catch(() => {
         /* user-gesture restrictions are fine; player still appears */
       });
     }
-  }, [shouldPlayToken, doc.audioUrl]);
+  }, [shouldPlayToken, sessionId]);
 
   return (
     <section className="slab">
@@ -214,7 +223,7 @@ export function ReaderView(props: ReaderViewProps): React.JSX.Element {
             </div>
           </div>
 
-          {doc.audioUrl ? (
+          {doc.hasAudio ? (
             <div className={isStale ? "audio-shell stale" : "audio-shell"}>
               <span className={isStale ? "stamp warn" : "stamp"}>
                 {isStale ? "audio · stale" : "audio"}
@@ -222,7 +231,6 @@ export function ReaderView(props: ReaderViewProps): React.JSX.Element {
               {/* biome-ignore lint/a11y/useMediaCaption: synthesised speech has no separate transcript */}
               <audio
                 ref={audioRef}
-                src={doc.audioUrl}
                 controls
                 data-testid="audio"
                 style={{ flex: 1, width: "100%", minWidth: 0 }}

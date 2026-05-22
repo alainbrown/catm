@@ -79,7 +79,8 @@ type InMsg =
   | { type: "synth"; id: number; text: string; voice?: VoiceId }
   | { type: "synth-start"; txnId: number; voice?: VoiceId }
   | { type: "synth-chunk"; txnId: number; text: string }
-  | { type: "synth-end"; txnId: number };
+  | { type: "synth-end"; txnId: number }
+  | { type: "synth-cancel"; txnId: number };
 
 type OutMsg =
   | { type: "ready"; device: LoadedDevice }
@@ -94,6 +95,8 @@ type OutMsg =
       durationSec: number;
     }
   | { type: "synth-end-ok"; txnId: number }
+  | { type: "synth-cancelled"; txnId: number }
+  | { type: "chunk-encoded"; txnId: number; durationSec: number }
   | {
       type: "progress";
       status: string;
@@ -109,6 +112,9 @@ interface ActiveStream {
 }
 
 let stream: ActiveStream | null = null;
+// txnIds that have been cancelled. Subsequent chunk/end messages for these
+// are dropped silently (the user-facing teardown already happened).
+const cancelledTxnIds = new Set<number>();
 
 // Serialise message handling. Chrome dispatches the next message while a
 // previous handler is awaiting, which would let a chunk's `await` resume
@@ -117,8 +123,27 @@ let stream: ActiveStream | null = null;
 let workQueue: Promise<unknown> = Promise.resolve();
 
 self.addEventListener("message", (ev: MessageEvent<InMsg>) => {
+  // Cancel must be processed out-of-band: if we queued it, it would sit
+  // behind every already-posted synth-chunk and only run after the entire
+  // synthesis finished — which defeats the point of a cancel button.
+  if (ev.data.type === "synth-cancel") {
+    handleCancel(ev.data.txnId);
+    return;
+  }
   workQueue = workQueue.then(() => handle(ev.data));
 });
+
+function handleCancel(txnId: number): void {
+  cancelledTxnIds.add(txnId);
+  if (stream && stream.txnId === txnId) {
+    // Drop the encoder reference synchronously so any queued chunk handler
+    // that wakes up sees no active stream for this txn. The encoder itself
+    // will be garbage-collected; we don't await finish() because that would
+    // emit a final fragment we'd have to discard anyway.
+    stream = null;
+  }
+  post({ type: "synth-cancelled", txnId });
+}
 
 async function handle(msg: InMsg): Promise<void> {
   try {
@@ -139,6 +164,7 @@ async function handle(msg: InMsg): Promise<void> {
     if (msg.type === "synth-start") {
       const { sampleRate } = await load();
       const txnId = msg.txnId;
+      cancelledTxnIds.delete(txnId);
       const voice = msg.voice ?? DEFAULT_VOICE;
       const encoder = new ProgressiveEncoder(
         sampleRate,
@@ -151,16 +177,30 @@ async function handle(msg: InMsg): Promise<void> {
       return;
     }
     if (msg.type === "synth-chunk") {
+      if (cancelledTxnIds.has(msg.txnId)) return;
       if (!stream || stream.txnId !== msg.txnId) {
         throw new Error("no active synth stream");
       }
       const { tts } = await load();
       const audio = await tts.generate(msg.text, { voice: stream.voice });
+      // The user may have cancelled while tts.generate was running. Drop the
+      // result rather than pushing it into a torn-down encoder.
+      if (cancelledTxnIds.has(msg.txnId)) return;
       const pcm = audio.audio as Float32Array;
+      const sourceSampleRate = (await load()).sampleRate;
       await stream.encoder.pushChunk(pcm);
+      post({
+        type: "chunk-encoded",
+        txnId: msg.txnId,
+        durationSec: pcm.length / sourceSampleRate,
+      });
       return;
     }
     if (msg.type === "synth-end") {
+      if (cancelledTxnIds.has(msg.txnId)) {
+        cancelledTxnIds.delete(msg.txnId);
+        return;
+      }
       if (!stream || stream.txnId !== msg.txnId) {
         throw new Error("no active synth stream");
       }
@@ -169,6 +209,8 @@ async function handle(msg: InMsg): Promise<void> {
       stream = null;
       return;
     }
+    // synth-cancel is handled synchronously in the top-level listener and
+    // never reaches this queue.
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     const errMsg: OutMsg = { type: "error", message };

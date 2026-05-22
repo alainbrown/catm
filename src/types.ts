@@ -1,4 +1,4 @@
-export type View = "reader" | "settings";
+export type View = "reader";
 
 export type AppStatus =
   | { kind: "first-launch" } // user hasn't onboarded yet; waiting for them to start the download

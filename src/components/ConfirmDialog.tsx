@@ -30,10 +30,9 @@ export function ConfirmDialog({
           </button>
           <button
             type="button"
-            className={tone === "danger" ? "btn primary" : "btn primary"}
+            className={tone === "danger" ? "btn danger" : "btn primary"}
             onClick={onConfirm}
             data-testid="confirm-confirm"
-            style={tone === "danger" ? { boxShadow: "4px 4px 0 var(--pink)" } : undefined}
           >
             {confirmLabel}
           </button>

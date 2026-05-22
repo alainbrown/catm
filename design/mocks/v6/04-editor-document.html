@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>catm — document open (v6)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Mono:wght@400;700&family=Archivo:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../v5/shell.css">
+<style>
+  /* ─── v6 overrides ─────────────────────────────────────────────
+     intent: the editor should feel as composed as onboarding.
+     - the doc itself becomes the hero (big title, numeral, kicker)
+     - tier strip demoted to a single chip in the masthead row
+     - storage strip slimmed + de-emphasised at the bottom
+     - one decisive primary action (▶ Record again)
+     ───────────────────────────────────────────────────────────── */
+
+  /* Tier chip in the strapline (replaces the heavy tier-strip) */
+  .strapline { align-items: center; }
+  .strapline .meta-chips {
+    display: inline-flex; gap: 10px; align-items: center;
+    font-family: "Space Mono", monospace;
+    font-size: 10px; letter-spacing: .2em; text-transform: uppercase;
+  }
+  .meta-chips .mchip {
+    display: inline-flex; align-items: center; gap: 6px;
+    border: 1.5px solid var(--ink); padding: 4px 9px;
+    background: var(--paper);
+    cursor: pointer; color: var(--ink);
+    text-decoration: none;
+  }
+  .meta-chips .mchip b { color: var(--pink); font-weight: 700; }
+  .meta-chips .mchip:hover { background: var(--ink); color: var(--paper); }
+  .meta-chips .mchip:hover b { color: var(--pink-soft); }
+  .meta-chips .mchip.lib { box-shadow: 2px 2px 0 var(--blue); }
+  .meta-chips .mchip.model { box-shadow: 2px 2px 0 var(--pink); }
+
+  /* Hide v5 tier-strip on this layout (model is now a chip above) */
+  .slab + .tier-strip, .tier-strip.legacy-hide { display: none; }
+
+  /* Slab gets a touch more breathing room */
+  .slab { padding: 32px; box-shadow: 10px 10px 0 var(--blue); margin-top: 28px; }
+
+  /* ── editor-shell: editorial head ───────────────────────────── */
+  .editor-shell { box-shadow: 8px 8px 0 var(--pink); overflow: hidden; }
+
+  .editor-head {
+    display: block;
+    padding: 32px 36px 22px;
+    background: var(--paper);
+    border-bottom: 2px dashed var(--ink);
+    position: relative;
+  }
+  .editor-head::after {
+    content: "02";
+    position: absolute;
+    right: -22px; bottom: -88px;
+    font-family: "Archivo Black", sans-serif;
+    font-size: 240px; line-height: .8;
+    letter-spacing: -.05em;
+    color: var(--blue);
+    opacity: .14;
+    pointer-events: none;
+  }
+  .ed-kicker {
+    font-family: "Space Mono", monospace;
+    font-size: 11px; letter-spacing: .32em; text-transform: uppercase;
+    color: var(--pink); font-weight: 700; margin-bottom: 12px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .ed-kicker .stamp.saved {
+    background: var(--ink); color: var(--paper);
+    padding: 3px 8px;
+    font-size: 9px; letter-spacing: .24em;
+  }
+  .ed-kicker .stamp.modified {
+    background: var(--pink); color: var(--paper);
+  }
+  .ed-title {
+    font-family: "Archivo Black", sans-serif;
+    font-size: clamp(34px, 4.6vw, 54px);
+    letter-spacing: -.035em;
+    line-height: .98;
+    color: var(--ink);
+    text-transform: none;
+    position: relative; z-index: 1;
+    margin-bottom: 14px;
+    max-width: 22ch;
+  }
+  .ed-title em { color: var(--pink); font-style: normal; }
+  .ed-title .rename {
+    background: transparent; border: none; cursor: pointer;
+    font-size: 18px; color: var(--ink); opacity: .35;
+    margin-left: 8px; vertical-align: middle;
+    transition: opacity .12s;
+  }
+  .ed-title:hover .rename { opacity: .9; }
+  .ed-subhead {
+    font-family: "Archivo", sans-serif;
+    font-style: italic;
+    font-size: 14.5px;
+    color: var(--ink);
+    opacity: .78;
+    line-height: 1.5;
+    position: relative; z-index: 1;
+    max-width: 52ch;
+  }
+  .ed-subhead b { font-style: normal; color: var(--pink-bright); font-weight: 700; }
+
+  .ed-head-controls {
+    position: absolute; top: 22px; right: 24px;
+    display: flex; gap: 8px; z-index: 2;
+  }
+  .ed-head-controls .icon-btn {
+    background: var(--paper); border: 2px solid var(--ink);
+    width: 34px; height: 34px;
+    display: inline-flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 16px;
+    box-shadow: 2px 2px 0 var(--ink);
+  }
+  .ed-head-controls .icon-btn:hover { background: var(--ink); color: var(--paper); }
+
+  /* ── editor body: printed column ────────────────────────────── */
+  .editor-body { padding: 34px 36px 12px; min-height: 280px; position: relative; }
+  .editor-body .text {
+    font-family: "Archivo", sans-serif;
+    font-size: 17px; line-height: 1.78;
+    color: var(--ink);
+    white-space: pre-wrap;
+    max-width: 62ch;
+    column-rule: 1.5px dashed var(--ink);
+  }
+  .editor-body .text::first-letter {
+    font-family: "Archivo Black", sans-serif;
+    font-size: 3.4em;
+    float: left;
+    line-height: .85;
+    padding: 4px 8px 0 0;
+    color: var(--pink);
+  }
+  .editor-body .text.placeholder { opacity: .42; font-style: italic; }
+  .editor-body .text.placeholder::first-letter { float: none; font-size: inherit; padding: 0; color: inherit; font-family: inherit; }
+
+  /* margin rule echoing the dashed border */
+  .editor-body::before {
+    content: ""; position: absolute;
+    left: 18px; top: 30px; bottom: 30px;
+    border-left: 1.5px dashed var(--ink); opacity: .35;
+  }
+
+  /* ── control bar (replaces tools-row + editor-foot) ─────────── */
+  .control-bar {
+    margin: 6px 0 0;
+    padding: 16px 36px;
+    background: var(--paper-2);
+    border-top: 2px solid var(--ink);
+    display: flex; align-items: center; gap: 14px;
+    flex-wrap: wrap;
+  }
+  .control-bar .chip.voice { box-shadow: 2px 2px 0 var(--blue); }
+  .control-bar .speed-pills {
+    border: 2px solid var(--ink); box-shadow: 2px 2px 0 var(--ink);
+  }
+  .control-bar .speed-pills button { padding: 8px 12px; font-size: 10px; }
+  .control-bar .spacer { flex: 1; }
+  .control-bar .btn.read {
+    font-size: 14px; padding: 13px 22px;
+    box-shadow: 5px 5px 0 var(--ink);
+  }
+  .control-bar .btn.read:hover { background: var(--ink); color: var(--pink); }
+
+  /* ── now-playing card (audio shell, redesigned) ─────────────── */
+  .now-playing {
+    margin: 0; border: none; border-top: 2px dashed var(--ink);
+    padding: 18px 36px 22px;
+    background: var(--paper);
+    display: flex; align-items: center; gap: 18px;
+    box-shadow: none;
+  }
+  .now-playing .np-stamp {
+    background: var(--pink); color: var(--paper);
+    font-family: "Space Mono", monospace;
+    font-size: 9.5px; letter-spacing: .24em; text-transform: uppercase;
+    font-weight: 700; padding: 5px 10px;
+    flex: none;
+    box-shadow: 2px 2px 0 var(--ink);
+  }
+  .now-playing .play-btn {
+    width: 44px; height: 44px;
+    border: 2.5px solid var(--ink); background: var(--ink); color: var(--paper);
+    display: inline-flex; align-items: center; justify-content: center;
+    cursor: pointer; box-shadow: 3px 3px 0 var(--pink);
+    flex: none;
+  }
+  .now-playing .play-btn:hover { background: var(--pink); color: var(--paper); }
+  .now-playing .scrub {
+    flex: 1; height: 10px; border: 2px solid var(--ink); background: var(--paper-2);
+    position: relative;
+  }
+  .now-playing .scrub .played { position: absolute; left: 0; top: 0; bottom: 0; background: var(--ink); width: 22%; }
+  .now-playing .time {
+    font-family: "Space Mono", monospace; font-weight: 700;
+    font-size: 11px; letter-spacing: .18em; text-transform: uppercase;
+    flex: none; min-width: 96px; text-align: right;
+  }
+
+  /* ── right column ───────────────────────────────────────────── */
+  .right-col .now-card {
+    background: var(--ink); color: var(--paper);
+    padding: 18px 20px;
+    border: 3px solid var(--ink);
+    box-shadow: 5px 5px 0 var(--pink);
+    position: relative;
+  }
+  .now-card .k {
+    font-family: "Space Mono", monospace;
+    font-size: 10px; letter-spacing: .26em; text-transform: uppercase;
+    color: var(--pink-soft); margin-bottom: 8px;
+  }
+  .now-card .big {
+    font-family: "Archivo Black", sans-serif;
+    font-size: 46px; letter-spacing: -.03em; line-height: .95;
+    color: var(--paper);
+  }
+  .now-card .big .u { font-size: 18px; opacity: .7; margin-left: 6px; letter-spacing: 0; }
+  .now-card .meta {
+    margin-top: 10px;
+    display: flex; flex-direction: column; gap: 4px;
+    font-family: "Space Mono", monospace;
+    font-size: 10.5px; letter-spacing: .16em; text-transform: uppercase;
+    opacity: .9;
+  }
+  .now-card .meta b { color: var(--pink-soft); font-weight: 700; }
+
+  /* Library — kept, with v6 spacing */
+  .sidebar-card.library { box-shadow: 5px 5px 0 var(--blue); }
+  .sidebar-card.library h4 .sub b { color: var(--blue-deep); }
+
+  /* ── storage strip: slim, muted, no pink shadow ─────────────── */
+  .storage-shell {
+    background: var(--paper-2);
+    border: 2px solid var(--ink); box-shadow: none;
+    margin-top: 22px;
+    padding: 10px 16px;
+    font-size: 11px;
+  }
+  .storage-shell .stamp { background: var(--ink); color: var(--paper); }
+  .storage-shell .note { opacity: .55; font-size: 10.5px; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="masthead">
+    <div class="vol">Vol. <b>01</b> Issue 09 · MMXXVI</div>
+    <div class="brand"><h1 class="wordmark">catm.</h1><div class="tagline">come and talk to me</div></div>
+    <div class="price">Cover <b>$0.00</b> Free · MIT</div>
+  </header>
+  <div class="strapline">
+    <span>★ ★ ★ <b>READ ANYTHING.</b> OUT LOUD. ★ ★ ★</span>
+    <span class="meta-chips">
+      <a class="mchip model" title="Voice model — Low (Kokoro 82M). Click to manage.">model · <b>low</b> · kokoro</a>
+      <a class="mchip lib" title="Open library"><b>14</b> recordings</a>
+    </span>
+  </div>
+
+  <nav class="screen-nav">
+    <span class="lbl">screens →</span>
+    <a href="04-editor-document.html" class="on">04 document</a>
+  </nav>
+
+  <section class="slab">
+    <div class="stage">
+
+      <section class="editor-shell" aria-label="Editor">
+        <div class="editor-head">
+          <div class="ed-head-controls">
+            <button class="icon-btn" title="New document" aria-label="New document">+</button>
+          </div>
+          <div class="ed-kicker">
+            <span>▸ now reading</span>
+            <span class="stamp saved">saved</span>
+          </div>
+          <h2 class="ed-title">
+            On the pleasure of <em>reading aloud</em><button class="rename" title="Rename" aria-label="Rename">✎</button>
+          </h2>
+          <p class="ed-subhead">
+            <b>4,218 words</b> — about <b>28 minutes</b> at 1.25×, in <b>af_heart</b>.
+            Last recorded 19 May.
+          </p>
+        </div>
+
+        <div class="editor-body">
+          <div class="text">The voice that reads aloud to itself is the most ancient of literary instruments. Long before the printed page, long before the silent eye learned its trick of swallowing meaning in a glance, there was the mouth, the breath, the unhurried turning of one syllable into the next.
+
+To listen is to be carried — to surrender the self briefly, the way a small boat surrenders to a current it cannot see beneath it. The voice that reads is not a recitation but an offering; it gives the text a body, a tempo, a place to live.
+
+What we lose in silent reading is not understanding but tempo. The page on the desk is consumed; the page read aloud is unfolded. Each word is given the time it deserves, and the listener — even when the listener is also the reader — is made to wait, and in waiting, to attend.</div>
+        </div>
+
+        <div class="control-bar">
+          <button class="chip voice" type="button">
+            <span class="k">voice</span><span class="v">af_heart</span><span class="caret">▾</span>
+          </button>
+          <div class="speed-pills" aria-label="Playback speed">
+            <button type="button">.75</button>
+            <button type="button">1.0</button>
+            <button type="button" class="on">1.25</button>
+            <button type="button">1.5</button>
+            <button type="button">2.0</button>
+          </div>
+          <span class="spacer"></span>
+          <button class="btn read" type="button">
+            <svg width="13" height="14" viewBox="0 0 14 16" fill="currentColor" aria-hidden="true"><polygon points="2,1 13,8 2,15"/></svg>
+            Record again
+          </button>
+        </div>
+
+        <div class="now-playing">
+          <span class="np-stamp">ready ★</span>
+          <button class="play-btn" aria-label="Play">▶</button>
+          <div class="scrub"><div class="played"></div></div>
+          <span class="time">6:12 / 28:14</span>
+        </div>
+      </section>
+
+      <aside class="right-col">
+
+        <section class="now-card" aria-label="Reading meta">
+          <div class="k">▸ this reading</div>
+          <div class="big">28<span class="u">min</span></div>
+          <div class="meta">
+            <span><b>4,218</b> words at 1.25×</span>
+            <span>voice · <b>af_heart</b></span>
+            <span>tier · <b>low</b> · kokoro</span>
+          </div>
+        </section>
+
+        <section class="sidebar-card library" aria-label="Library">
+          <h4>Library <span class="sub"><b>14</b> recordings · 207 mb</span></h4>
+          <ul class="lib-list">
+            <li class="lib-row active">
+              <button class="export" aria-label="Export"><svg width="12" height="13" viewBox="0 0 12 13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="square"><line x1="6" y1="1" x2="6" y2="9"/><polyline points="2,5 6,9 10,5"/><line x1="1" y1="12" x2="11" y2="12"/></svg></button>
+              <button class="body"><div class="t">On the pleasure of reading aloud — Manguel</div><div class="m"><span>19 May</span><span>28:14</span><span>open</span></div></button>
+              <button class="del" aria-label="Delete">✕</button>
+            </li>
+            <li class="lib-row">
+              <button class="export" aria-label="Export"><svg width="12" height="13" viewBox="0 0 12 13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="square"><line x1="6" y1="1" x2="6" y2="9"/><polyline points="2,5 6,9 10,5"/><line x1="1" y1="12" x2="11" y2="12"/></svg></button>
+              <button class="body"><div class="t">Letters to a Young Poet, II</div><div class="m"><span>19 May</span><span>21:04</span></div></button>
+              <button class="del" aria-label="Delete">✕</button>
+            </li>
+            <li class="lib-row">
+              <button class="export" aria-label="Export"><svg width="12" height="13" viewBox="0 0 12 13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="square"><line x1="6" y1="1" x2="6" y2="9"/><polyline points="2,5 6,9 10,5"/><line x1="1" y1="12" x2="11" y2="12"/></svg></button>
+              <button class="body"><div class="t">The Library at Night, ch. III</div><div class="m"><span>17 May</span><span>38:42</span></div></button>
+              <button class="del" aria-label="Delete">✕</button>
+            </li>
+            <li class="lib-row">
+              <button class="export" aria-label="Export"><svg width="12" height="13" viewBox="0 0 12 13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="square"><line x1="6" y1="1" x2="6" y2="9"/><polyline points="2,5 6,9 10,5"/><line x1="1" y1="12" x2="11" y2="12"/></svg></button>
+              <button class="body"><div class="t">On Solitude — Montaigne</div><div class="m"><span>15 May</span><span>19:18</span></div></button>
+              <button class="del" aria-label="Delete">✕</button>
+            </li>
+            <li class="lib-row">
+              <button class="export" aria-label="Export"><svg width="12" height="13" viewBox="0 0 12 13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="square"><line x1="6" y1="1" x2="6" y2="9"/><polyline points="2,5 6,9 10,5"/><line x1="1" y1="12" x2="11" y2="12"/></svg></button>
+              <button class="body"><div class="t">Notes on Cinema, vol. 4</div><div class="m"><span>14 May</span><span>27:11</span></div></button>
+              <button class="del" aria-label="Delete">✕</button>
+            </li>
+          </ul>
+          <div class="lib-foot">
+            <button class="danger" type="button">✕ Clear library</button>
+          </div>
+        </section>
+      </aside>
+
+    </div>
+
+    <div class="storage-shell">
+      <span class="stamp">device</span>
+      <div class="meter">
+        <div class="bar">
+          <div class="seg voice" style="width:14%"></div>
+          <div class="seg sessions" style="width:36%"></div>
+        </div>
+        <div class="legend">
+          <span><i class="i-voice"></i>voice 80mb</span>
+          <span><i class="i-sessions"></i>14 recordings 207mb</span>
+          <span><i class="i-free"></i>14.7gb headroom</span>
+        </div>
+      </div>
+      <span class="persist" title="Storage is marked persistent">✓ persistent</span>
+      <div class="note">Stored in this browser.</div>
+    </div>
+  </section>
+
+  <footer class="colophon">
+    <a href="https://github.com/catm-app"><span class="arrow">↗</span>source · github.com/catm-app</a>
+    <span class="meta">printed in your browser · mmxxvi</span>
+  </footer>
+
+</div>
+</body>
+</html>

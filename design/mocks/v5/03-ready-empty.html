@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>catm — voice ready (v5)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Mono:wght@400;700&family=Archivo:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="shell.css">
+</head>
+<body>
+<div class="page">
+
+  <header class="masthead">
+    <div class="vol">Vol. <b>01</b> Issue 09 · MMXXVI</div>
+    <div class="brand"><h1 class="wordmark">catm.</h1><div class="tagline">come and talk to me</div></div>
+    <div class="price">Cover <b>$0.00</b> Free · MIT</div>
+  </header>
+  <div class="strapline">
+    <span>★ ★ ★ <b>READ ANYTHING.</b> OUT LOUD. ★ ★ ★</span>
+    <span><b>Ready</b> · paste something to read</span>
+  </div>
+
+  <nav class="screen-nav">
+    <span class="lbl">screens →</span>
+    <a href="01-first-launch.html">01 first launch</a>
+    <a href="02-downloading.html">02 downloading</a>
+    <a href="03-ready-empty.html" class="on">03 ready</a>
+    <a href="04-editor-document.html">04 document</a>
+    <a href="05-voice-popover.html">05 voice</a>
+    <a href="06-editor-modified.html">06 modified</a>
+    <a href="07-editor-synthesising.html">07 recording</a>
+    <a href="08-clear-library.html">08 clear</a>
+    <a href="09-discard-dialog.html">09 discard</a>
+  </nav>
+
+  <section class="tier-strip" aria-label="Voice model tiers">
+    <span class="lbl">model</span>
+    <div class="tier-card on">
+      <div class="row1">
+        <span class="name">Low</span>
+        <span class="model">Kokoro · 82M</span>
+        <button class="x" aria-label="Remove Low tier" title="Remove from device">✕</button>
+      </div>
+      <div class="row2">
+        <span class="desc">Good — clearly synthetic but pleasant.</span>
+        <span class="res">80 mb · ~600 mb ram</span>
+      </div>
+    </div>
+    <div class="tier-card">
+      <div class="row1">
+        <span class="name">Medium</span>
+        <span class="model">Kokoro · 300M</span>
+        <button class="dl" type="button">↓ Download</button>
+      </div>
+      <div class="row2">
+        <span class="desc">Better — closer to a human narrator.</span>
+        <span class="res">~500 mb · ~2 gb ram</span>
+      </div>
+    </div>
+    <div class="tier-card soon">
+      <div class="row1">
+        <span class="name">High</span>
+        <span class="model">Coming soon</span>
+        <span class="tag-soon">soon</span>
+      </div>
+      <div class="row2">
+        <span class="desc">Best — near-human, expressive.</span>
+        <span class="res">~700 mb · ~3 gb ram</span>
+      </div>
+    </div>
+
+  </section>
+
+  <section class="slab">
+    <div class="stage">
+
+      <section class="editor-shell" aria-label="Editor" style="position:relative">
+        <span class="ready-stamp">Ready ★</span>
+        <div class="editor-head">
+          <div class="doc-title">
+            <span class="untitled">Untitled — start typing</span>
+          </div>
+          <div class="head-controls">
+            <button class="icon-btn" title="New (already empty)" disabled>+</button>
+          </div>
+        </div>
+        <div class="tools-row">
+          <span class="lbl">read with</span>
+          <button class="chip voice" type="button">
+            <span class="k">voice</span><span class="v">af_heart</span><span class="caret">▾</span>
+          </button>
+        </div>
+        <div class="editor-body">
+          <div class="text placeholder">
+            Paste a chapter, an article, a long email — anything you'd rather hear than skim. catm
+            will read it back in your voice of choice.
+          </div>
+        </div>
+        <div class="editor-foot">
+          <span class="stats">waiting for something to read</span>
+          <div class="btn-row">
+            <div class="speed-pills" aria-label="Playback speed">
+              <button type="button">0.75</button>
+              <button type="button">1.0</button>
+              <button type="button" class="on">1.25</button>
+              <button type="button">1.5</button>
+              <button type="button">2.0</button>
+            </div>
+            <button type="button" class="btn" disabled>Clear</button>
+            <button type="button" class="btn read" disabled>
+              <svg width="13" height="14" viewBox="0 0 14 16" fill="currentColor" aria-hidden="true"><polygon points="2,1 13,8 2,15"/></svg>
+              Record
+            </button>
+          </div>
+        </div>
+
+      </section>
+
+      <aside class="right-col">
+        <section class="tip-card">
+          <div class="kicker">▸ pro tip</div>
+          <div class="body">
+            Drop in a few thousand words. The voice starts within about three seconds — you don't
+            have to wait for the whole thing to be ready.
+          </div>
+        </section>
+
+        <section class="sidebar-card" aria-label="Library">
+          <h4>Library <span class="sub"><b>0</b> recordings</span></h4>
+          <div class="lib-empty">
+            <svg class="illu" width="72" height="72" viewBox="0 0 120 120" fill="none" aria-hidden="true">
+              <rect x="22" y="32" width="60" height="74" fill="none" stroke="#6580ad" stroke-width="2.5"/>
+              <rect x="28" y="26" width="60" height="74" fill="#ede2c7" stroke="#2a2530" stroke-width="3"/>
+              <line x1="36" y1="40" x2="78" y2="40" stroke="#2a2530" stroke-width="1.5" opacity=".5"/>
+              <line x1="36" y1="48" x2="80" y2="48" stroke="#2a2530" stroke-width="1.5" opacity=".5"/>
+              <line x1="36" y1="56" x2="70" y2="56" stroke="#2a2530" stroke-width="1.5" opacity=".5"/>
+              <line x1="36" y1="64" x2="78" y2="64" stroke="#2a2530" stroke-width="1.5" opacity=".5"/>
+              <path d="M95 36 q6 6 0 14" fill="none" stroke="#bf7488" stroke-width="2.5" stroke-linecap="round"/>
+              <path d="M101 30 q9 10 0 24" fill="none" stroke="#bf7488" stroke-width="2.5" stroke-linecap="round" opacity=".6"/>
+            </svg>
+            <div class="kicker">▸ nothing here yet</div>
+            <div class="copy">Past recordings will live here.</div>
+          </div>
+          <div class="lib-foot">
+            <button class="danger" type="button" disabled style="opacity:.4;cursor:not-allowed">✕ Clear library</button>
+          </div>
+        </section>
+      </aside>
+
+    </div>
+
+    <div class="storage-shell">
+          <span class="stamp">device</span>
+          <div class="meter">
+            <div class="bar">
+              <div class="seg voice" style="width:14%"></div>
+            </div>
+            <div class="legend">
+              <span><i class="i-voice"></i>voice 80mb</span>
+              <span><i class="i-sessions"></i>no recordings yet</span>
+              <span><i class="i-free"></i>14.7gb headroom</span>
+            </div>
+          </div>
+          <span class="persist warn" title="Storage may be evicted if the browser runs low on space">⚠ may be cleared</span>
+          <div class="note">Stored in this browser. Headroom is a browser quota, not your full disk.</div>
+    </div>
+  </section>
+
+  <footer class="colophon">
+    <a href="https://github.com/catm-app"><span class="arrow">↗</span>source · github.com/catm-app</a>
+    <span class="meta">printed in your browser · mmxxvi</span>
+  </footer>
+
+</div>
+</body>
+</html>

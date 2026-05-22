@@ -25,8 +25,8 @@ export function DiscardDialog({
           Discard <em>unsaved</em> edits?
         </h3>
         <p>
-          You have edits on <b>"{currentTitle}"</b> that don't match the saved audio yet. Opening{" "}
-          <b>"{targetTitle}"</b> will throw them away.
+          You have edits on <b>"{currentTitle}"</b> that don't match the saved recording yet.
+          Opening <b>"{targetTitle}"</b> will throw them away.
         </p>
         <div className="row">
           <button type="button" className="btn" onClick={onCancel} data-testid="discard-cancel">

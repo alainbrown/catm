@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>catm — A · broadsheet stack</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Mono:wght@400;700&family=Archivo:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../v5/shell.css">
+<style>
+  /* Direction A — "broadsheet stack"
+     Library moves BELOW the editor as a horizontal "back issues" rail.
+     Editor takes the full content width. Still firmly in the riso /
+     newspaper world; closest to v5 + v6/04 in spirit. */
+
+  .strapline .meta-chips {
+    display: inline-flex; gap: 10px; align-items: center;
+    font-family: "Space Mono", monospace;
+    font-size: 10px; letter-spacing: .2em; text-transform: uppercase;
+  }
+  .meta-chips .mchip {
+    display: inline-flex; align-items: center; gap: 6px;
+    border: 1.5px solid var(--ink); padding: 4px 9px;
+    background: var(--paper); color: var(--ink); cursor: pointer;
+  }
+  .meta-chips .mchip b { color: var(--pink); }
+  .meta-chips .mchip:hover { background: var(--ink); color: var(--paper); }
+
+  .page { max-width: 1180px; }
+  .slab { padding: 36px; box-shadow: 10px 10px 0 var(--blue); margin-top: 28px; }
+  .stage { grid-template-columns: 1fr; }   /* full-width editor */
+
+  .editor-shell { box-shadow: 8px 8px 0 var(--pink); overflow: hidden; }
+  .editor-head {
+    display: block; padding: 30px 40px 22px;
+    background: var(--paper); border-bottom: 2px dashed var(--ink);
+    position: relative;
+  }
+  .editor-head::after {
+    content: "02"; position: absolute; right: -16px; bottom: -84px;
+    font-family: "Archivo Black"; font-size: 240px; line-height: .8;
+    letter-spacing: -.05em; color: var(--blue); opacity: .14; pointer-events: none;
+  }
+  .ed-kicker {
+    font-family: "Space Mono"; font-size: 11px; letter-spacing: .32em;
+    text-transform: uppercase; color: var(--pink); font-weight: 700;
+    margin-bottom: 10px; display: flex; gap: 10px; align-items: center;
+  }
+  .ed-kicker .stamp { background: var(--ink); color: var(--paper); padding: 3px 8px; font-size: 9px; letter-spacing: .24em; }
+  .ed-title {
+    font-family: "Archivo Black"; font-size: clamp(38px, 5.4vw, 64px);
+    letter-spacing: -.04em; line-height: .96; color: var(--ink);
+    text-transform: none; margin-bottom: 12px; max-width: 22ch; position: relative; z-index: 1;
+  }
+  .ed-title em { color: var(--pink); font-style: normal; }
+  .ed-subhead { font-family: "Archivo"; font-style: italic; font-size: 15px; opacity: .8; max-width: 60ch; }
+  .ed-subhead b { font-style: normal; color: var(--pink-bright); }
+
+  /* Two-column body to use the extra width — gives true broadsheet feel */
+  .editor-body { padding: 32px 40px 12px; column-count: 2; column-gap: 40px; column-rule: 1.5px dashed var(--ink); }
+  .editor-body .text { font-family: "Archivo"; font-size: 16.5px; line-height: 1.75; color: var(--ink); }
+  .editor-body .text::first-letter {
+    font-family: "Archivo Black"; font-size: 3.4em; float: left;
+    line-height: .85; padding: 4px 8px 0 0; color: var(--pink);
+  }
+
+  .control-bar {
+    padding: 16px 40px; background: var(--paper-2); border-top: 2px solid var(--ink);
+    display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  }
+  .control-bar .spacer { flex: 1; }
+  .control-bar .btn.read { font-size: 14px; padding: 13px 22px; box-shadow: 5px 5px 0 var(--ink); }
+  .control-bar .speed-pills { box-shadow: 2px 2px 0 var(--ink); }
+
+  .now-playing {
+    padding: 18px 40px; border-top: 2px dashed var(--ink);
+    display: flex; gap: 16px; align-items: center; background: var(--paper);
+  }
+  .now-playing .np-stamp { background: var(--pink); color: var(--paper); padding: 5px 10px; font-family: "Space Mono"; font-size: 9.5px; letter-spacing: .24em; text-transform: uppercase; font-weight: 700; box-shadow: 2px 2px 0 var(--ink); }
+  .now-playing .play-btn { width: 44px; height: 44px; border: 2.5px solid var(--ink); background: var(--ink); color: var(--paper); cursor: pointer; box-shadow: 3px 3px 0 var(--pink); }
+  .now-playing .scrub { flex: 1; height: 10px; border: 2px solid var(--ink); background: var(--paper-2); position: relative; }
+  .now-playing .scrub .played { position: absolute; left: 0; top: 0; bottom: 0; width: 24%; background: var(--ink); }
+  .now-playing .time { font-family: "Space Mono"; font-weight: 700; font-size: 11px; letter-spacing: .18em; min-width: 100px; text-align: right; }
+
+  /* ── back-issues rail (library, horizontal) ───────────────── */
+  .back-issues {
+    margin-top: 28px; background: var(--paper); border: 3px solid var(--ink);
+    box-shadow: 8px 8px 0 var(--pink); padding: 22px 24px;
+  }
+  .back-issues .head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    border-bottom: 2px dashed var(--ink); padding-bottom: 10px; margin-bottom: 16px;
+  }
+  .back-issues .head h3 { font-family: "Archivo Black"; font-size: 22px; letter-spacing: -.02em; text-transform: uppercase; }
+  .back-issues .head .sub { font-family: "Space Mono"; font-size: 10px; letter-spacing: .2em; opacity: .65; text-transform: uppercase; }
+  .back-issues .head .sub b { color: var(--pink); }
+  .rail {
+    display: grid; grid-auto-flow: column; grid-auto-columns: 220px;
+    gap: 12px; overflow-x: auto; padding-bottom: 8px;
+  }
+  .issue {
+    border: 2px solid var(--ink); background: var(--paper);
+    box-shadow: 3px 3px 0 var(--ink); padding: 14px 14px 12px;
+    cursor: pointer; display: flex; flex-direction: column; gap: 8px;
+    position: relative; min-height: 130px;
+  }
+  .issue.on { background: var(--pink); color: var(--paper); box-shadow: 3px 3px 0 var(--ink); }
+  .issue .num {
+    font-family: "Space Mono"; font-size: 9px; letter-spacing: .24em; text-transform: uppercase;
+    opacity: .55;
+  }
+  .issue.on .num { opacity: .85; color: var(--paper); }
+  .issue .t {
+    font-family: "Archivo Black"; font-size: 14px; letter-spacing: -.01em; line-height: 1.2;
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .issue .m {
+    margin-top: auto; font-family: "Space Mono"; font-size: 9.5px; letter-spacing: .16em;
+    text-transform: uppercase; opacity: .7; display: flex; gap: 8px;
+  }
+  .issue.on .m { opacity: .9; }
+  .issue .actions { position: absolute; top: 6px; right: 6px; display: flex; gap: 4px; opacity: 0; transition: opacity .12s; }
+  .issue:hover .actions { opacity: 1; }
+  .issue.on .actions { opacity: .9; }
+  .issue .actions button {
+    width: 22px; height: 22px; border: 1.5px solid currentColor; background: transparent;
+    color: inherit; cursor: pointer; font-size: 10px;
+  }
+
+  .storage-shell { background: var(--paper-2); box-shadow: none; margin-top: 22px; padding: 10px 16px; }
+  .storage-shell .stamp { background: var(--ink); color: var(--paper); }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header class="masthead">
+    <div class="vol">Vol. <b>01</b> Issue 09 · MMXXVI</div>
+    <div class="brand"><h1 class="wordmark">catm.</h1><div class="tagline">come and talk to me</div></div>
+    <div class="price">Cover <b>$0.00</b> Free · MIT</div>
+  </header>
+  <div class="strapline">
+    <span>★ ★ ★ <b>READ ANYTHING.</b> OUT LOUD. ★ ★ ★</span>
+    <span class="meta-chips">
+      <a class="mchip"><b>model</b> · low · kokoro</a>
+      <a class="mchip"><b>14</b> in library</a>
+    </span>
+  </div>
+
+  <nav class="screen-nav">
+    <span class="lbl">v6 directions →</span>
+    <a href="04-editor-document.html">00 baseline</a>
+    <a href="a-broadsheet-stack.html" class="on">A broadsheet</a>
+    <a href="b-app-shell.html">B app-shell</a>
+    <a href="c-manuscript-focus.html">C manuscript</a>
+    <a href="d-studio-console.html">D studio</a>
+  </nav>
+
+  <section class="slab">
+    <div class="stage">
+      <section class="editor-shell" aria-label="Editor">
+        <div class="editor-head">
+          <div class="ed-kicker"><span>▸ now reading</span><span class="stamp">saved</span></div>
+          <h2 class="ed-title">On the pleasure of <em>reading aloud</em></h2>
+          <p class="ed-subhead"><b>4,218 words</b> — about <b>28 minutes</b> at 1.25×, in <b>af_heart</b>. Last recorded 19 May.</p>
+        </div>
+        <div class="editor-body">
+          <div class="text">The voice that reads aloud to itself is the most ancient of literary instruments. Long before the printed page, long before the silent eye learned its trick of swallowing meaning in a glance, there was the mouth, the breath, the unhurried turning of one syllable into the next. To listen is to be carried — to surrender the self briefly, the way a small boat surrenders to a current it cannot see beneath it. The voice that reads is not a recitation but an offering; it gives the text a body, a tempo, a place to live. What we lose in silent reading is not understanding but tempo. The page on the desk is consumed; the page read aloud is unfolded. Each word is given the time it deserves, and the listener — even when the listener is also the reader — is made to wait, and in waiting, to attend.</div>
+        </div>
+        <div class="control-bar">
+          <button class="chip voice"><span class="k">voice</span><span class="v">af_heart</span><span class="caret">▾</span></button>
+          <div class="speed-pills">
+            <button>.75</button><button>1.0</button><button class="on">1.25</button><button>1.5</button><button>2.0</button>
+          </div>
+          <span class="spacer"></span>
+          <button class="btn read"><svg width="13" height="14" viewBox="0 0 14 16" fill="currentColor"><polygon points="2,1 13,8 2,15"/></svg> Record again</button>
+        </div>
+        <div class="now-playing">
+          <span class="np-stamp">ready ★</span>
+          <button class="play-btn">▶</button>
+          <div class="scrub"><div class="played"></div></div>
+          <span class="time">6:48 / 28:14</span>
+        </div>
+      </section>
+    </div>
+
+    <section class="back-issues">
+      <div class="head">
+        <h3>Back issues</h3>
+        <span class="sub"><b>14</b> recordings · 207 mb · ↔ scroll for more</span>
+      </div>
+      <div class="rail">
+        <div class="issue on">
+          <div class="num">№ 14 · 19 May</div>
+          <div class="t">On the pleasure of reading aloud — Manguel</div>
+          <div class="m"><span>28:14</span><span>af_heart</span></div>
+          <div class="actions"><button>↓</button><button>✕</button></div>
+        </div>
+        <div class="issue">
+          <div class="num">№ 13 · 19 May</div>
+          <div class="t">Letters to a Young Poet, II</div>
+          <div class="m"><span>21:04</span><span>af_heart</span></div>
+          <div class="actions"><button>↓</button><button>✕</button></div>
+        </div>
+        <div class="issue">
+          <div class="num">№ 12 · 17 May</div>
+          <div class="t">The Library at Night, ch. III</div>
+          <div class="m"><span>38:42</span><span>am_michael</span></div>
+          <div class="actions"><button>↓</button><button>✕</button></div>
+        </div>
+        <div class="issue">
+          <div class="num">№ 11 · 15 May</div>
+          <div class="t">On Solitude — Montaigne</div>
+          <div class="m"><span>19:18</span><span>af_bella</span></div>
+          <div class="actions"><button>↓</button><button>✕</button></div>
+        </div>
+        <div class="issue">
+          <div class="num">№ 10 · 14 May</div>
+          <div class="t">Notes on Cinema, vol. 4</div>
+          <div class="m"><span>27:11</span><span>am_eric</span></div>
+          <div class="actions"><button>↓</button><button>✕</button></div>
+        </div>
+        <div class="issue">
+          <div class="num">№ 09 · 12 May</div>
+          <div class="t">A short history of the long sentence</div>
+          <div class="m"><span>14:02</span><span>af_heart</span></div>
+          <div class="actions"><button>↓</button><button>✕</button></div>
+        </div>
+        <div class="issue">
+          <div class="num">№ 08 · 10 May</div>
+          <div class="t">Borges, "On Exactitude in Science"</div>
+          <div class="m"><span>3:48</span><span>am_michael</span></div>
+          <div class="actions"><button>↓</button><button>✕</button></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="storage-shell">
+      <span class="stamp">device</span>
+      <div class="meter">
+        <div class="bar"><div class="seg voice" style="width:14%"></div><div class="seg sessions" style="width:36%"></div></div>
+        <div class="legend">
+          <span><i class="i-voice"></i>voice 80mb</span>
+          <span><i class="i-sessions"></i>14 recordings 207mb</span>
+          <span><i class="i-free"></i>14.7gb headroom</span>
+        </div>
+      </div>
+      <span class="persist">✓ persistent</span>
+    </div>
+  </section>
+
+  <footer class="colophon">
+    <a href="#"><span class="arrow">↗</span>source · github.com/catm-app</a>
+    <span class="meta">printed in your browser · mmxxvi</span>
+  </footer>
+</div>
+</body>
+</html>

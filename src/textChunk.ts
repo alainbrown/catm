@@ -1,3 +1,5 @@
+export const CHUNK_CHARS = 300;
+
 /**
  * Split text into chunks for progressive synthesis. Paragraphs (blank-line
  * separated) force a chunk boundary. Within a paragraph, sentences are
@@ -34,6 +36,52 @@ export function chunkText(text: string, maxChars: number): string[] {
     if (buffer) chunks.push(buffer);
   }
   return chunks;
+}
+
+export interface ChunkRange {
+  start: number;
+  end: number;
+}
+
+/**
+ * Locate where each trimmed chunk lives within the original source text.
+ * Walks both strings in parallel, treating any run of whitespace as a single
+ * separator. Tolerant of mismatches: if a character can't be aligned, the
+ * source cursor advances until it finds the next match.
+ *
+ * Returns one range per chunk, in input order. Whitespace between chunks
+ * belongs to neither the preceding nor the following chunk's range.
+ */
+export function locateChunks(source: string, chunks: string[]): ChunkRange[] {
+  const out: ChunkRange[] = [];
+  let i = 0;
+  for (const chunk of chunks) {
+    while (i < source.length && /\s/.test(source[i] as string)) i++;
+    const start = i;
+    let j = 0;
+    let lastMatch = i;
+    while (i < source.length && j < chunk.length) {
+      const sc = source[i] as string;
+      const cc = chunk[j] as string;
+      if (sc === cc) {
+        i++;
+        j++;
+        lastMatch = i;
+      } else if (/\s/.test(sc) && /\s/.test(cc)) {
+        i++;
+        j++;
+        lastMatch = i;
+      } else if (/\s/.test(sc)) {
+        i++;
+      } else if (/\s/.test(cc)) {
+        j++;
+      } else {
+        i++;
+      }
+    }
+    out.push({ start, end: Math.max(start, lastMatch) });
+  }
+  return out;
 }
 
 function hardSplit(text: string, maxChars: number): string[] {

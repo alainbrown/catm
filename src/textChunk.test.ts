@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { chunkText } from "./textChunk";
+import { chunkText, locateChunks } from "./textChunk";
 
 describe("chunkText", () => {
   it("returns no chunks for empty or whitespace input", () => {
@@ -35,5 +35,27 @@ describe("chunkText", () => {
     // Intl.Segmenter handles "Dr." and "etc." without breaking after them.
     const out = chunkText("Dr. Smith arrived. He said hello.", 100);
     expect(out).toEqual(["Dr. Smith arrived. He said hello."]);
+  });
+});
+
+describe("locateChunks", () => {
+  it("locates chunks separated by paragraph breaks", () => {
+    const source = "First sentence.\n\nSecond sentence.";
+    const chunks = ["First sentence.", "Second sentence."];
+    const ranges = locateChunks(source, chunks);
+    expect(ranges).toHaveLength(2);
+    expect(source.slice(ranges[0]!.start, ranges[0]!.end)).toBe("First sentence.");
+    expect(source.slice(ranges[1]!.start, ranges[1]!.end)).toBe("Second sentence.");
+  });
+
+  it("locates packed chunks within a paragraph", () => {
+    const source = "Aaaaa. Bbbbb. Ccccc.";
+    const chunks = ["Aaaaa.", "Bbbbb.", "Ccccc."];
+    const ranges = locateChunks(source, chunks);
+    expect(ranges.map((r) => source.slice(r.start, r.end))).toEqual([
+      "Aaaaa.",
+      "Bbbbb.",
+      "Ccccc.",
+    ]);
   });
 });

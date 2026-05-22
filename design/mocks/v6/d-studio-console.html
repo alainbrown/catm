@@ -1,0 +1,467 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>catm — D · studio console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Mono:wght@400;700&family=Archivo:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  /* Direction D — "studio console"
+     The most opinionated take. Frames catm as a tape-deck / podcast
+     studio. A dark console at the top with the "now playing" reel,
+     VU meter, big transport buttons; the document sits beneath in a
+     lit "script holder"; library is a tape-rack on the right. Heavy
+     personality, audio-first metaphor. */
+
+  :root {
+    --paper: #ede2c7; --paper-2: #e0d3b5;
+    --ink: #1f1b25; --ink-2: #2a2530;
+    --pink: #bf7488; --pink-soft: #d8a4b2; --pink-bright: #d98da3;
+    --blue: #6580ad; --blue-soft: #9aaccc;
+    --amber: #d9a13b; --amber-soft: #f0c870;
+    --red: #c45a4a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Archivo", sans-serif; color: var(--ink); background: #14111a;
+    background-image: radial-gradient(circle at 20% 0%, rgba(191,116,136,.18), transparent 50%),
+                      radial-gradient(circle at 80% 100%, rgba(101,128,173,.16), transparent 55%);
+    min-height: 100vh; padding: 28px 24px 60px;
+  }
+
+  .page { max-width: 1200px; margin: 0 auto; }
+
+  /* ── header strip / brand ──────────────────────────────────── */
+  .top {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 18px;
+    color: var(--paper);
+  }
+  .brand {
+    font-family: "Archivo Black"; font-size: 30px; letter-spacing: -.04em;
+    display: inline-flex; align-items: baseline; gap: 10px;
+  }
+  .brand .dot { color: var(--pink-bright); }
+  .brand .tag { font-family: "Space Mono"; font-size: 9px; letter-spacing: .26em; text-transform: uppercase; opacity: .55; }
+  .top .meta { font-family: "Space Mono"; font-size: 10px; letter-spacing: .22em; text-transform: uppercase; opacity: .75; display: flex; gap: 18px; }
+  .top .meta b { color: var(--pink-bright); font-weight: 700; }
+  .top .meta .led {
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .top .meta .led::before {
+    content: ""; width: 8px; height: 8px; border-radius: 50%;
+    background: var(--amber); box-shadow: 0 0 8px var(--amber);
+  }
+
+  .mock-nav { display: flex; gap: 6px; font-family: "Space Mono"; font-size: 10px; letter-spacing: .18em; text-transform: uppercase; }
+  .mock-nav a { color: var(--paper); border: 1.5px solid rgba(237,226,199,.4); padding: 4px 8px; text-decoration: none; }
+  .mock-nav a.on { background: var(--pink); border-color: var(--pink); color: var(--paper); }
+
+  /* ── grid ──────────────────────────────────────────────────── */
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 280px;
+    gap: 18px;
+    align-items: start;
+  }
+
+  /* ── deck (top console) ────────────────────────────────────── */
+  .deck {
+    background: linear-gradient(180deg, #2a2530 0%, #1c1822 100%);
+    border: 2px solid #44394e; border-radius: 6px;
+    padding: 22px 22px 18px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 18px 40px rgba(0,0,0,.35);
+    color: var(--paper);
+    position: relative;
+  }
+  .deck::before {
+    /* faint screw-bolts in the corners */
+    content: ""; position: absolute; inset: 8px;
+    border: 1px dashed rgba(237,226,199,.08); pointer-events: none;
+  }
+  .deck-head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    border-bottom: 1px dashed rgba(237,226,199,.18); padding-bottom: 10px; margin-bottom: 16px;
+  }
+  .deck-head .lbl { font-family: "Space Mono"; font-size: 10px; letter-spacing: .28em; text-transform: uppercase; color: var(--amber-soft); font-weight: 700; }
+  .deck-head .title { font-family: "Archivo Black"; font-size: 22px; letter-spacing: -.02em; }
+  .deck-head .title em { color: var(--pink-bright); font-style: normal; }
+  .deck-head .right { font-family: "Space Mono"; font-size: 10px; letter-spacing: .2em; text-transform: uppercase; opacity: .65; }
+
+  .deck-row { display: grid; grid-template-columns: 220px 1fr; gap: 22px; align-items: center; }
+
+  /* spinning reel */
+  .reel {
+    width: 200px; height: 200px; border-radius: 50%;
+    background: radial-gradient(circle at 50% 50%, #44394e 0 28px, #1c1822 30px 70px, #2a2530 72px 100%);
+    border: 2px solid #5a4f66;
+    position: relative; margin: 0 auto;
+    box-shadow: inset 0 0 24px rgba(0,0,0,.6), 0 0 0 1px rgba(237,226,199,.06);
+  }
+  .reel::before, .reel::after {
+    content: ""; position: absolute; inset: 0; border-radius: 50%;
+    border: 1px dashed rgba(237,226,199,.08);
+  }
+  .reel::after { inset: 20px; border-color: rgba(237,226,199,.14); }
+  .reel .hub {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+    width: 56px; height: 56px; border-radius: 50%;
+    background: var(--pink); border: 3px solid var(--ink-2);
+    display: flex; align-items: center; justify-content: center;
+    font-family: "Archivo Black"; font-size: 10px; letter-spacing: .14em;
+    text-transform: uppercase; color: var(--paper);
+    box-shadow: inset 0 -3px 8px rgba(0,0,0,.35);
+  }
+  .reel .spokes {
+    position: absolute; inset: 18px; border-radius: 50%;
+    background:
+      conic-gradient(from 0deg, rgba(237,226,199,.10) 0 6deg, transparent 6deg 90deg,
+                     rgba(237,226,199,.10) 90deg 96deg, transparent 96deg 180deg,
+                     rgba(237,226,199,.10) 180deg 186deg, transparent 186deg 270deg,
+                     rgba(237,226,199,.10) 270deg 276deg, transparent 276deg 360deg);
+    animation: spin 9s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* transport + meters */
+  .console {
+    display: flex; flex-direction: column; gap: 14px;
+  }
+  .scrubrow { display: flex; align-items: center; gap: 12px; }
+  .scrub-big {
+    flex: 1; height: 14px; background: #14111a; border: 1px solid #44394e;
+    position: relative; border-radius: 2px;
+    box-shadow: inset 0 1px 0 rgba(0,0,0,.6);
+  }
+  .scrub-big .played {
+    position: absolute; left: 0; top: 0; bottom: 0; width: 24%;
+    background: linear-gradient(180deg, var(--pink-bright), var(--pink));
+    box-shadow: 0 0 8px rgba(217,141,163,.4);
+  }
+  .scrub-big .marker {
+    position: absolute; top: -3px; bottom: -3px; left: 24%; width: 3px;
+    background: var(--paper);
+    box-shadow: 0 0 6px var(--amber);
+  }
+  .scrubrow .time { font-family: "Space Mono"; font-size: 12px; font-weight: 700; letter-spacing: .12em; color: var(--amber-soft); min-width: 110px; text-align: right; }
+
+  .transport { display: flex; gap: 10px; align-items: center; }
+  .tbtn {
+    width: 46px; height: 46px;
+    border: 1.5px solid #5a4f66; background: linear-gradient(180deg,#3a3142,#241f2c);
+    color: var(--paper); cursor: pointer;
+    border-radius: 4px; display: inline-flex; align-items: center; justify-content: center;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.06), 0 2px 0 rgba(0,0,0,.5);
+    font-size: 14px;
+  }
+  .tbtn:hover { background: linear-gradient(180deg,#4a3f52,#322a3c); }
+  .tbtn.play { background: linear-gradient(180deg, var(--pink-bright), var(--pink)); border-color: var(--pink-bright); color: var(--paper); width: 60px; height: 46px; }
+  .tbtn.rec { background: linear-gradient(180deg, #d96a5a, var(--red)); border-color: var(--red); color: var(--paper); }
+  .tbtn .lbl { font-family: "Space Mono"; font-size: 9px; letter-spacing: .14em; text-transform: uppercase; opacity: .85; }
+
+  .vu {
+    display: flex; gap: 4px; align-items: flex-end;
+    height: 32px; padding: 4px; border: 1px solid #44394e; background: #14111a;
+    border-radius: 2px;
+  }
+  .vu i {
+    display: inline-block; width: 4px; background: var(--amber);
+    border-radius: 1px;
+  }
+  .vu i:nth-child(1) { height: 30%; }
+  .vu i:nth-child(2) { height: 55%; }
+  .vu i:nth-child(3) { height: 75%; background: var(--amber-soft); }
+  .vu i:nth-child(4) { height: 95%; background: var(--red); }
+  .vu i:nth-child(5) { height: 70%; background: var(--amber-soft); }
+  .vu i:nth-child(6) { height: 40%; }
+  .vu i:nth-child(7) { height: 20%; opacity: .5; }
+  .vu i:nth-child(8) { height: 12%; opacity: .35; }
+
+  .knobs { display: flex; gap: 18px; align-items: center; }
+  .knob {
+    width: 56px; display: flex; flex-direction: column; align-items: center; gap: 6px;
+  }
+  .knob .dial {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #5a4f66, #2a2530 70%);
+    border: 1.5px solid #44394e; position: relative;
+    box-shadow: inset 0 -3px 6px rgba(0,0,0,.5);
+  }
+  .knob .dial::after {
+    content: ""; position: absolute; top: 6px; left: 50%; width: 3px; height: 14px;
+    background: var(--amber); transform-origin: 50% 100%; transform: translateX(-50%) rotate(35deg);
+    border-radius: 2px;
+  }
+  .knob .lbl { font-family: "Space Mono"; font-size: 9px; letter-spacing: .22em; text-transform: uppercase; opacity: .7; }
+  .knob .v { font-family: "Archivo Black"; font-size: 12px; color: var(--amber-soft); margin-top: -2px; }
+
+  /* segmented selector for voice/model */
+  .seg {
+    display: inline-flex; border: 1px solid #5a4f66; background: #14111a; border-radius: 3px; overflow: hidden;
+  }
+  .seg button {
+    background: transparent; border: none; color: var(--paper); cursor: pointer;
+    padding: 7px 10px; font-family: "Space Mono"; font-size: 10px; letter-spacing: .14em; text-transform: uppercase;
+    border-right: 1px solid #44394e;
+  }
+  .seg button:last-child { border-right: none; }
+  .seg button.on { background: var(--pink); color: var(--paper); }
+
+  .deck-foot {
+    margin-top: 18px; padding-top: 14px;
+    border-top: 1px dashed rgba(237,226,199,.18);
+    display: flex; flex-wrap: wrap; gap: 16px; align-items: center;
+    font-family: "Space Mono"; font-size: 10px; letter-spacing: .18em; text-transform: uppercase; opacity: .8;
+  }
+  .deck-foot .group { display: flex; align-items: center; gap: 8px; }
+  .deck-foot .group .k { opacity: .55; }
+
+  /* ── script holder (the editor) ────────────────────────────── */
+  .script {
+    margin-top: 18px;
+    background: var(--paper); color: var(--ink-2);
+    border: 2px solid var(--ink-2);
+    box-shadow: 0 20px 40px rgba(0,0,0,.4), 8px 8px 0 var(--pink);
+    position: relative;
+    overflow: hidden;
+  }
+  .script::before, .script::after {
+    /* binder clips at the top */
+    content: ""; position: absolute; top: -10px; width: 38px; height: 18px;
+    background: #2a2530; border: 1.5px solid #14111a; border-radius: 2px;
+    box-shadow: 0 4px 6px rgba(0,0,0,.4);
+  }
+  .script::before { left: 80px; }
+  .script::after  { right: 80px; }
+
+  .script-head {
+    padding: 22px 28px 16px; border-bottom: 1.5px dashed var(--ink-2);
+    display: flex; justify-content: space-between; align-items: baseline; gap: 16px;
+    flex-wrap: wrap;
+  }
+  .script-head .kicker { font-family: "Space Mono"; font-size: 10px; letter-spacing: .28em; text-transform: uppercase; color: var(--pink-bright); font-weight: 700; }
+  .script-head .title { font-family: "Archivo Black"; font-size: clamp(26px, 3.2vw, 38px); letter-spacing: -.03em; line-height: 1; margin-top: 6px; }
+  .script-head .title em { color: var(--pink); font-style: normal; }
+  .script-head .meta { font-family: "Space Mono"; font-size: 10.5px; letter-spacing: .18em; text-transform: uppercase; opacity: .7; }
+  .script-head .meta b { color: var(--pink-bright); font-weight: 700; }
+  .script-head .meta .stamp { background: var(--ink-2); color: var(--paper); padding: 3px 8px; margin-left: 6px; }
+
+  .script-body {
+    padding: 22px 28px 28px;
+    font-family: "Archivo"; font-size: 16.5px; line-height: 1.78; color: var(--ink-2);
+    counter-reset: line;
+  }
+  .script-body p {
+    position: relative; padding-left: 38px; margin-bottom: 1em;
+  }
+  .script-body p::before {
+    counter-increment: line;
+    content: counter(line, decimal-leading-zero);
+    position: absolute; left: 0; top: 4px;
+    font-family: "Space Mono"; font-size: 10px; letter-spacing: .14em;
+    color: var(--pink-bright); opacity: .7; font-weight: 700;
+  }
+
+  /* ── tape rack (library) ───────────────────────────────────── */
+  .rack {
+    background: linear-gradient(180deg, #2a2530, #1c1822);
+    border: 2px solid #44394e; border-radius: 6px;
+    padding: 16px; color: var(--paper);
+    box-shadow: 0 18px 40px rgba(0,0,0,.35);
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .rack-head { display: flex; justify-content: space-between; align-items: baseline; padding-bottom: 8px; border-bottom: 1px dashed rgba(237,226,199,.2); }
+  .rack-head h3 { font-family: "Archivo Black"; font-size: 14px; letter-spacing: -.02em; text-transform: uppercase; }
+  .rack-head .sub { font-family: "Space Mono"; font-size: 9.5px; letter-spacing: .2em; text-transform: uppercase; opacity: .6; }
+  .rack-head .sub b { color: var(--pink-bright); }
+  .tapes { display: flex; flex-direction: column; gap: 8px; }
+  .tape {
+    background: linear-gradient(180deg, #3a3142, #2a2530);
+    border: 1px solid #5a4f66; padding: 10px 12px; cursor: pointer;
+    position: relative; display: flex; flex-direction: column; gap: 4px;
+    border-radius: 2px;
+  }
+  .tape.on { background: linear-gradient(180deg, var(--pink), var(--pink-bright)); border-color: var(--pink-bright); }
+  .tape .label {
+    display: inline-block; background: var(--paper); color: var(--ink-2);
+    padding: 2px 6px; font-family: "Space Mono"; font-size: 9px; letter-spacing: .18em; text-transform: uppercase;
+    align-self: flex-start; font-weight: 700;
+  }
+  .tape .t { font-family: "Archivo Black"; font-size: 12px; letter-spacing: -.01em; line-height: 1.15;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tape .m { font-family: "Space Mono"; font-size: 9px; letter-spacing: .14em; text-transform: uppercase; opacity: .7; display: flex; gap: 8px; }
+  .tape.on .m { opacity: .9; }
+  .tape .holes {
+    position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+    display: flex; gap: 4px;
+  }
+  .tape .holes i { width: 6px; height: 6px; background: #14111a; border-radius: 50%; box-shadow: inset 0 1px 0 rgba(0,0,0,.6); }
+  .rack .newtape {
+    background: transparent; border: 1.5px dashed var(--paper); color: var(--paper);
+    cursor: pointer; font-family: "Archivo Black"; font-size: 11px; letter-spacing: .04em; text-transform: uppercase;
+    padding: 10px;
+  }
+  .rack .newtape:hover { background: var(--paper); color: var(--ink-2); }
+
+  /* footer storage as VU style */
+  .deck-foot .seg button.on { background: var(--blue); }
+
+  @media (max-width: 960px) {
+    .grid { grid-template-columns: 1fr; }
+    .deck-row { grid-template-columns: 1fr; }
+    .reel { margin: 0 auto; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="top">
+    <div class="brand">catm<span class="dot">.</span> <span class="tag">studio · v6 / d</span></div>
+    <nav class="mock-nav">
+      <a href="04-editor-document.html">0</a>
+      <a href="a-broadsheet-stack.html">A</a>
+      <a href="b-app-shell.html">B</a>
+      <a href="c-manuscript-focus.html">C</a>
+      <a href="d-studio-console.html" class="on">D</a>
+    </nav>
+    <div class="meta">
+      <span class="led">on air</span>
+      <span>model · <b>low</b></span>
+      <span><b>14</b> tapes</span>
+    </div>
+  </div>
+
+  <div class="grid">
+
+    <div>
+      <!-- deck / console -->
+      <section class="deck" aria-label="Playback deck">
+        <div class="deck-head">
+          <div>
+            <div class="lbl">▸ now playing</div>
+            <div class="title">On the pleasure of <em>reading aloud</em></div>
+          </div>
+          <div class="right">tape № 14 · 19 may · af_heart</div>
+        </div>
+
+        <div class="deck-row">
+          <div class="reel">
+            <div class="spokes"></div>
+            <div class="hub">catm.</div>
+          </div>
+
+          <div class="console">
+            <div class="scrubrow">
+              <div class="scrub-big"><div class="played"></div><div class="marker"></div></div>
+              <span class="time">6:48 / 28:14</span>
+            </div>
+
+            <div class="transport">
+              <button class="tbtn" title="Skip back">⏮</button>
+              <button class="tbtn" title="Back 15s">⏪</button>
+              <button class="tbtn play" title="Play"><svg width="16" height="18" viewBox="0 0 14 16" fill="currentColor"><polygon points="2,1 13,8 2,15"/></svg></button>
+              <button class="tbtn" title="Forward 15s">⏩</button>
+              <button class="tbtn rec" title="Record again"><span class="lbl">REC</span></button>
+              <div class="vu" title="VU"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+            </div>
+
+            <div class="knobs">
+              <div class="knob">
+                <div class="dial"></div>
+                <div class="lbl">speed</div>
+                <div class="v">1.25×</div>
+              </div>
+              <div class="knob">
+                <div class="dial" style="background: radial-gradient(circle at 35% 30%, #6580ad, #2a2530 70%);"></div>
+                <div class="lbl">voice</div>
+                <div class="v">af_heart</div>
+              </div>
+              <div class="seg" aria-label="Tier">
+                <button class="on">LOW</button>
+                <button>MED</button>
+                <button>HIGH</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="deck-foot">
+          <div class="group"><span class="k">script</span><b style="color:var(--pink-bright);font-weight:700">4,218 words</b></div>
+          <div class="group"><span class="k">runtime</span><b style="color:var(--pink-bright);font-weight:700">28 min @ 1.25×</b></div>
+          <div class="group"><span class="k">device</span>80mb voice · 207mb tapes · 14.7gb free</div>
+          <div class="group" style="margin-left:auto"><span class="k">privacy</span>on-device · no server</div>
+        </div>
+      </section>
+
+      <!-- script -->
+      <section class="script" aria-label="Script">
+        <div class="script-head">
+          <div>
+            <div class="kicker">▸ script · saved 19 may</div>
+            <h2 class="title">On the pleasure of <em>reading aloud</em></h2>
+          </div>
+          <div class="meta"><b>4,218</b> words · <b>28 min</b> at 1.25× <span class="stamp">saved</span></div>
+        </div>
+        <div class="script-body">
+          <p>The voice that reads aloud to itself is the most ancient of literary instruments. Long before the printed page, long before the silent eye learned its trick of swallowing meaning in a glance, there was the mouth, the breath, the unhurried turning of one syllable into the next.</p>
+          <p>To listen is to be carried — to surrender the self briefly, the way a small boat surrenders to a current it cannot see beneath it. The voice that reads is not a recitation but an offering; it gives the text a body, a tempo, a place to live.</p>
+          <p>What we lose in silent reading is not understanding but tempo. The page on the desk is consumed; the page read aloud is unfolded. Each word is given the time it deserves, and the listener — even when the listener is also the reader — is made to wait, and in waiting, to attend.</p>
+        </div>
+      </section>
+    </div>
+
+    <!-- tape rack -->
+    <aside class="rack" aria-label="Tape rack">
+      <div class="rack-head">
+        <h3>Tape rack</h3>
+        <span class="sub"><b>14</b> · 207 mb</span>
+      </div>
+      <div class="tapes">
+        <div class="tape on">
+          <span class="label">№ 14</span>
+          <div class="t">On the pleasure of reading aloud</div>
+          <div class="m"><span>28:14</span><span>af_heart</span></div>
+          <div class="holes"><i></i><i></i></div>
+        </div>
+        <div class="tape">
+          <span class="label">№ 13</span>
+          <div class="t">Letters to a Young Poet, II</div>
+          <div class="m"><span>21:04</span><span>af_heart</span></div>
+          <div class="holes"><i></i><i></i></div>
+        </div>
+        <div class="tape">
+          <span class="label">№ 12</span>
+          <div class="t">The Library at Night, ch. III</div>
+          <div class="m"><span>38:42</span><span>am_michael</span></div>
+          <div class="holes"><i></i><i></i></div>
+        </div>
+        <div class="tape">
+          <span class="label">№ 11</span>
+          <div class="t">On Solitude — Montaigne</div>
+          <div class="m"><span>19:18</span><span>af_bella</span></div>
+          <div class="holes"><i></i><i></i></div>
+        </div>
+        <div class="tape">
+          <span class="label">№ 10</span>
+          <div class="t">Notes on Cinema, vol. 4</div>
+          <div class="m"><span>27:11</span><span>am_eric</span></div>
+          <div class="holes"><i></i><i></i></div>
+        </div>
+        <div class="tape">
+          <span class="label">№ 09</span>
+          <div class="t">A short history of the long sentence</div>
+          <div class="m"><span>14:02</span><span>af_heart</span></div>
+          <div class="holes"><i></i><i></i></div>
+        </div>
+      </div>
+      <button class="newtape">+ NEW TAPE</button>
+    </aside>
+
+  </div>
+</div>
+</body>
+</html>

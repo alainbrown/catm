@@ -1,3 +1,4 @@
+import { strToU8, zipSync } from "fflate";
 import { type DBSchema, type IDBPDatabase, openDB } from "idb";
 import type { VoiceId } from "../worker/kokoro.worker";
 
@@ -11,6 +12,14 @@ export interface SessionMeta {
   finishedAt: number | null;
   voice: VoiceId;
   modelId: string;
+  // Set once the user renames a session manually; auto-derivation from
+  // sourceText (in resetSession) is skipped while this is true. Older
+  // records lack the field and read as undefined — equivalent to false.
+  titleEdited?: boolean;
+  // Per-chunk audio duration in seconds, in chunk order. Used to map
+  // audio.currentTime back to a chunk of source text for highlighting.
+  // Older records lack this and skip the highlight feature.
+  chunkDurations?: number[];
 }
 
 const DEFAULT_MODEL = "kokoro-82m-low";
@@ -129,12 +138,33 @@ export async function resetSession(id: string, sourceText: string, voice: VoiceI
   if (!existing) return;
   await database.put("sessions", {
     ...existing,
-    title: deriveTitle(sourceText) || existing.title,
+    title: existing.titleEdited ? existing.title : deriveTitle(sourceText) || existing.title,
     sourceText,
     durationSec: 0,
     lastPositionSec: 0,
     finishedAt: null,
     voice,
+  });
+}
+
+export async function renameSession(id: string, rawTitle: string): Promise<void> {
+  const database = await db();
+  const existing = await database.get("sessions", id);
+  if (!existing) return;
+  const trimmed = rawTitle.trim();
+  if (trimmed.length === 0) {
+    // Clearing the title reverts to auto-derivation from the current text.
+    const { titleEdited: _drop, ...rest } = existing;
+    await database.put("sessions", {
+      ...rest,
+      title: deriveTitle(existing.sourceText) || "Untitled",
+    });
+    return;
+  }
+  await database.put("sessions", {
+    ...existing,
+    title: trimmed.slice(0, 120),
+    titleEdited: true,
   });
 }
 
@@ -187,6 +217,13 @@ export async function finalizeDuration(id: string, durationSec: number): Promise
   await database.put("sessions", { ...existing, durationSec });
 }
 
+export async function finalizeChunkDurations(id: string, chunkDurations: number[]): Promise<void> {
+  const database = await db();
+  const existing = await database.get("sessions", id);
+  if (!existing) return;
+  await database.put("sessions", { ...existing, chunkDurations });
+}
+
 export async function readSessionFile(id: string, name: string): Promise<Uint8Array | null> {
   try {
     const dir = await sessionDir(id);
@@ -213,6 +250,124 @@ export async function deleteSession(id: string): Promise<void> {
   }
   const database = await db();
   await database.delete("sessions", id);
+}
+
+function formatStampForFilename(ms: number): string {
+  const d = new Date(ms);
+  const pad = (n: number): string => n.toString().padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}`;
+}
+
+async function readPlaylistSegmentNames(id: string): Promise<string[]> {
+  const bytes = await readSessionFile(id, "playlist.m3u8");
+  if (!bytes) return [];
+  const text = new TextDecoder().decode(bytes);
+  const names: string[] = [];
+  for (const raw of text.split("\n")) {
+    const line = raw.trim();
+    if (line && !line.startsWith("#")) names.push(line);
+  }
+  return names;
+}
+
+export interface ExportBundle {
+  bytes: Uint8Array;
+  filename: string;
+}
+
+/**
+ * Build a .zip containing a single top-level folder (`catm-<stamp>/`) with:
+ *   - source.txt          source text
+ *   - meta.json           voice, model, createdAt, durationSec
+ *   - playlist.m3u8       HLS playlist (references init + segments by name)
+ *   - init.mp4            fragmented MP4 init segment
+ *   - seg-N.m4s …         media segments in playlist order
+ *
+ * Unzipped you get a self-contained HLS folder: `vlc playlist.m3u8` or any
+ * HLS-aware player will play it. Returns null if the session has no init
+ * segment yet (still synthesising or otherwise incomplete).
+ */
+export async function buildSessionExport(meta: SessionMeta): Promise<ExportBundle | null> {
+  const init = await readSessionFile(meta.id, "init.mp4");
+  if (!init) return null;
+  const playlist = await readSessionFile(meta.id, "playlist.m3u8");
+  if (!playlist) return null;
+  const segNames = await readPlaylistSegmentNames(meta.id);
+
+  const stamp = formatStampForFilename(meta.createdAt);
+  const folder = `catm-${stamp}`;
+  const manifest = {
+    title: meta.title,
+    voice: meta.voice,
+    model: meta.modelId,
+    createdAt: new Date(meta.createdAt).toISOString(),
+    durationSec: meta.durationSec,
+    exportedAt: new Date().toISOString(),
+  };
+
+  const entries: Record<string, Uint8Array> = {
+    [`${folder}/source.txt`]: strToU8(meta.sourceText),
+    [`${folder}/meta.json`]: strToU8(JSON.stringify(manifest, null, 2)),
+    [`${folder}/playlist.m3u8`]: playlist,
+    [`${folder}/init.mp4`]: init,
+  };
+  for (const name of segNames) {
+    const bytes = await readSessionFile(meta.id, name);
+    if (!bytes) return null;
+    entries[`${folder}/${name}`] = bytes;
+  }
+
+  // Store-only: the MP4 payload is already AAC-compressed; deflate saves nothing.
+  const zipped = zipSync(entries, { level: 0 });
+  return { bytes: zipped, filename: `${folder}.zip` };
+}
+
+export interface StorageBreakdown {
+  /** Bytes in OPFS sessions/ — recorded audio. Measured exactly. */
+  sessionsBytes: number;
+  /**
+   * Bytes attributed to the cached voice + everything else this origin
+   * holds (Cache Storage, IndexedDB metadata). Derived as
+   * `usage - sessionsBytes`, clamped to >= 0.
+   */
+  voiceBytes: number;
+  /** Per-origin quota the browser currently grants. NOT device-free space. */
+  quotaBytes: number;
+  /** quotaBytes − total usage, clamped to >= 0. */
+  headroomBytes: number;
+  /** navigator.storage.persisted() — true means data is exempt from eviction. */
+  persisted: boolean;
+}
+
+export async function measureStorage(): Promise<StorageBreakdown> {
+  const est = await navigator.storage?.estimate?.();
+  const usage = est?.usage ?? 0;
+  const quotaBytes = est?.quota ?? 0;
+  let sessionsBytes = 0;
+  try {
+    const root = await navigator.storage.getDirectory();
+    const sessions = await root.getDirectoryHandle("sessions");
+    const sessionsAsIter = sessions as unknown as {
+      values(): AsyncIterable<FileSystemDirectoryHandle | FileSystemFileHandle>;
+    };
+    for await (const dir of sessionsAsIter.values()) {
+      if (dir.kind !== "directory") continue;
+      const dirAsIter = dir as unknown as {
+        values(): AsyncIterable<FileSystemDirectoryHandle | FileSystemFileHandle>;
+      };
+      for await (const entry of dirAsIter.values()) {
+        if (entry.kind !== "file") continue;
+        const file = await (entry as FileSystemFileHandle).getFile();
+        sessionsBytes += file.size;
+      }
+    }
+  } catch {
+    /* no sessions dir yet, or OPFS unavailable */
+  }
+  const voiceBytes = Math.max(0, usage - sessionsBytes);
+  const headroomBytes = Math.max(0, quotaBytes - usage);
+  const persisted = (await navigator.storage?.persisted?.()) ?? false;
+  return { sessionsBytes, voiceBytes, quotaBytes, headroomBytes, persisted };
 }
 
 export async function setPosition(id: string, seconds: number, finished: boolean): Promise<void> {

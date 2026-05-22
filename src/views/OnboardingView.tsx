@@ -1,3 +1,4 @@
+import { BrandMark } from "../components/BrandMark";
 import type { AppStatus } from "../types";
 
 interface OnboardingViewProps {
@@ -9,79 +10,91 @@ export function OnboardingView({
   status,
   onStartDownload,
 }: OnboardingViewProps): React.JSX.Element {
-  if (status.kind === "downloading" || status.kind === "loading") {
-    return <DownloadingHero status={status} />;
-  }
-  return <FirstLaunchHero onStartDownload={onStartDownload} />;
+  return (
+    <div className="onboard-shell">
+      <div className="onboard-brand">
+        <BrandMark size={36} />
+        <span className="name">
+          catm <span>· come and talk to me</span>
+        </span>
+      </div>
+
+      {status.kind === "downloading" || status.kind === "loading" ? (
+        <DownloadingCard status={status} />
+      ) : (
+        <FirstLaunchCard onStartDownload={onStartDownload} />
+      )}
+    </div>
+  );
 }
 
-function FirstLaunchHero({ onStartDownload }: { onStartDownload: () => void }): React.JSX.Element {
+function FirstLaunchCard({ onStartDownload }: { onStartDownload: () => void }): React.JSX.Element {
   return (
-    <section className="onboard-stage">
-      <section className="hero-panel" data-numeral="01" aria-label="First launch">
-        <div className="hero-kicker">▸ first time here</div>
-        <h1 className="hero-title">
+    <>
+      <section className="onboard-card" aria-label="First launch">
+        <div className="kicker">▸ first time here</div>
+        <h1>
           Read <em>anything.</em>
           <br />
-          Out <em>loud.</em>
+          Out loud.
         </h1>
-        <p className="hero-copy">
+        <p className="copy">
           catm reads articles, chapters, notes — anything you'd rather hear than skim — out loud,
           right in your browser. The voice runs on your device, not a server. Once it's downloaded,
           you can read offline forever.
         </p>
-        <div className="hero-actions">
-          <button
-            type="button"
-            className="btn primary"
-            onClick={onStartDownload}
-            data-testid="start-download"
+        <button
+          type="button"
+          className="cta"
+          onClick={onStartDownload}
+          data-testid="start-download"
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.4"
+            aria-hidden="true"
           >
-            ↓ Download voice · 80 mb
-          </button>
-        </div>
+            <title>Download</title>
+            <path d="M12 3v12" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="5" y1="21" x2="19" y2="21" />
+          </svg>
+          Download voice
+          <span className="size">80 mb</span>
+        </button>
       </section>
 
-      <aside className="right-col">
-        <section className="sidebar-card voice-info-card">
-          <h4>
-            What you'll get <span className="sub">low tier · default</span>
-          </h4>
-          <div className="v-name">
-            Kokoro
-            <span className="small">82M params · ONNX · Apache-2.0</span>
+      <div className="onboard-facts">
+        <div className="fact">
+          <div className="k">Disk</div>
+          <div className="v">
+            80 mb
+            <small>one-time</small>
           </div>
-          <div className="row">
-            <b>Disk</b>
-            <span className="v">80 mb · one-time</span>
+        </div>
+        <div className="fact">
+          <div className="k">Privacy</div>
+          <div className="v">
+            On-device
+            <small>no server, ever</small>
           </div>
-          <div className="row">
-            <b>Ram (synthesis)</b>
-            <span className="v">~600 mb</span>
+        </div>
+        <div className="fact">
+          <div className="k">Voices</div>
+          <div className="v">
+            English × 4<small>Kokoro · Apache-2.0</small>
           </div>
-          <div className="row">
-            <b>Language</b>
-            <span className="v">English (4 voices)</span>
-          </div>
-          <div className="row">
-            <b>Privacy</b>
-            <span className="v">stays on this device</span>
-          </div>
-        </section>
-
-        <section className="tip-card">
-          <div className="kicker">▸ heads up</div>
-          <div className="body">
-            The voice downloads once and then lives in your browser's private storage. We never see
-            what you paste in — there's no server.
-          </div>
-        </section>
-      </aside>
-    </section>
+        </div>
+      </div>
+    </>
   );
 }
 
-function DownloadingHero({
+function DownloadingCard({
   status,
 }: {
   status: Extract<AppStatus, { kind: "downloading" } | { kind: "loading" }>;
@@ -92,57 +105,22 @@ function DownloadingHero({
   const totalMb = status.kind === "downloading" ? status.totalMb : 80;
 
   return (
-    <section className="onboard-stage">
-      <section className="progress-card" aria-label="Voice download progress">
-        <span className="stamp">downloading · 1 of 1</span>
-        <div className="pct" data-testid="download-pct">
-          {pct}
-          <span className="symbol">%</span>
-        </div>
-        <div className="meta">
-          {loadedMb.toFixed(1)} / {totalMb.toFixed(0)} mb
-        </div>
-        <div className="bar">
-          <div className="fill" style={{ width: `${pct}%` }} />
-        </div>
-        <div className="nudge">
-          Don't close this tab. The voice is being saved to your browser's private storage — next
-          time, it'll already be here.
-        </div>
-      </section>
-
-      <aside className="right-col">
-        <section className="tip-card">
-          <div className="kicker">▸ while you wait</div>
-          <div className="body">
-            Once the voice lands, you can paste long-form text — chapters, papers, threads — and
-            catm starts speaking within a few seconds. No need to wait for the whole thing to
-            synthesise.
-          </div>
-        </section>
-
-        <section className="sidebar-card voice-info-card">
-          <h4>
-            Coming up <span className="sub">{pct}% done</span>
-          </h4>
-          <div className="v-name">
-            Kokoro
-            <span className="small">82M params · ONNX · Apache-2.0</span>
-          </div>
-          <div className="row">
-            <b>Tier</b>
-            <span className="v">Low</span>
-          </div>
-          <div className="row">
-            <b>Voices</b>
-            <span className="v">af_heart + 3</span>
-          </div>
-          <div className="row">
-            <b>Language</b>
-            <span className="v">English</span>
-          </div>
-        </section>
-      </aside>
+    <section className="onboard-progress" aria-label="Voice download progress">
+      <div className="kicker">downloading Kokoro</div>
+      <div className="pct" data-testid="download-pct">
+        {pct}
+        <span className="sym">%</span>
+      </div>
+      <div className="meta">
+        {loadedMb.toFixed(1)} / {totalMb.toFixed(0)} mb
+      </div>
+      <div className="bar">
+        <div className="fill" style={{ width: `${pct}%` }} />
+      </div>
+      <p className="note">
+        Don't close this tab. The voice is being saved to your browser's private storage — next
+        time, it'll already be here.
+      </p>
     </section>
   );
 }

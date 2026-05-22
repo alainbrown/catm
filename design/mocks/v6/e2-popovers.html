@@ -1,0 +1,512 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>catm — E2 · rail-foot popovers</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* E2 — settings live as popovers off the rail-foot.
+     No separate settings page, no extra bar. Each rail-foot row is
+     clickable; clicking opens a popover anchored above it.
+     This mock shows TWO popovers side-by-side: STORAGE (open on the
+     left) and MODEL (open as a smaller card to the right of the rail)
+     so all three settings surfaces are visible at once for review.
+     In the live app only one would be open at a time. */
+
+  :root {
+    --bg-0: #fafbfc;
+    --bg-1: #ffffff;
+    --bg-2: #f4f5f7;
+    --border: #e6e8ec;
+    --border-strong: #d4d7de;
+    --ink-0: #0d0e12;
+    --ink-1: #2a2d35;
+    --ink-2: #585d6b;
+    --ink-3: #8c92a3;
+    --accent: #5b6cff;
+    --accent-soft: #eef0ff;
+    --accent-ink: #3b48cc;
+    --good: #16a06f;
+    --warn: #b6552b;
+    --danger: #c44a4a;
+    --danger-soft: #fde8e8;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+    color: var(--ink-1); background: var(--bg-0);
+    background-image:
+      radial-gradient(circle at 0% 0%, rgba(91,108,255,.08), transparent 45%),
+      radial-gradient(circle at 100% 100%, rgba(255,170,140,.07), transparent 50%),
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40'><circle cx='1' cy='1' r='1' fill='%23999' opacity='.16'/></svg>");
+    background-attachment: fixed;
+    -webkit-font-smoothing: antialiased;
+    letter-spacing: -0.005em;
+  }
+
+  .shell { display: grid; grid-template-columns: 268px 1fr; min-height: 100vh; }
+
+  .rail {
+    background: rgba(255,255,255,.7); backdrop-filter: blur(14px);
+    border-right: 1px solid var(--border);
+    padding: 18px 14px;
+    display: flex; flex-direction: column; gap: 16px;
+    position: sticky; top: 0; height: 100vh;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; padding: 4px 8px 12px; border-bottom: 1px solid var(--border); }
+  .brand .logo {
+    width: 30px; height: 30px; border-radius: 8px;
+    background: linear-gradient(135deg, var(--accent), #8a98ff);
+    display: inline-flex; align-items: center; justify-content: center;
+    color: white; font-weight: 800; font-size: 14px;
+  }
+  .brand .name { font-weight: 700; font-size: 15px; color: var(--ink-0); }
+  .brand .name span { color: var(--ink-3); font-weight: 500; }
+  .brand .gear {
+    margin-left: auto; background: transparent; border: none; cursor: pointer;
+    width: 28px; height: 28px; border-radius: 6px; color: var(--ink-3);
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .brand .gear:hover { background: var(--bg-2); color: var(--ink-0); }
+
+  .newdoc {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--ink-0); color: white; border: 1px solid var(--ink-0); cursor: pointer;
+    font-family: inherit; font-size: 13px; font-weight: 600;
+    padding: 10px 12px; border-radius: 8px;
+  }
+  .newdoc .k { width: 18px; height: 18px; border-radius: 5px; background: rgba(255,255,255,.14); display: inline-flex; align-items: center; justify-content: center; font-weight: 800; }
+
+  .search {
+    border: 1px solid var(--border); background: var(--bg-1);
+    border-radius: 8px; padding: 8px 10px;
+    display: flex; align-items: center; gap: 8px;
+    color: var(--ink-3); font-size: 13px;
+  }
+  .search input { border: none; outline: none; background: transparent; flex: 1; font-family: inherit; font-size: 13px; color: var(--ink-1); }
+  .search .kbd { border: 1px solid var(--border); border-radius: 5px; padding: 1px 6px; font-family: "JetBrains Mono"; font-size: 10px; color: var(--ink-3); }
+
+  .lbl {
+    font-size: 10.5px; font-weight: 600; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--ink-3); padding: 6px 8px 4px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .lbl b { color: var(--ink-2); font-weight: 600; }
+
+  .hist { display: flex; flex-direction: column; gap: 1px; flex: 1; overflow-y: auto; margin: 0 -4px; padding: 0 4px; }
+  .hist .row { background: transparent; border: none; text-align: left; cursor: pointer; padding: 8px 10px; border-radius: 6px; display: flex; flex-direction: column; gap: 2px; color: var(--ink-1); font-family: inherit; }
+  .hist .row:hover { background: var(--bg-2); }
+  .hist .row.on { background: var(--accent-soft); color: var(--accent-ink); }
+  .hist .row .t { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hist .row .m { font-size: 11px; color: var(--ink-3); }
+  .hist .row.on .m { color: var(--accent-ink); opacity: .75; }
+
+  /* ── rail foot: interactive rows ──────────────────────────── */
+  .rail-foot {
+    border-top: 1px solid var(--border); padding-top: 10px;
+    display: flex; flex-direction: column; gap: 1px;
+    font-size: 12px;
+    position: relative;
+  }
+  .rail-foot .item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 8px;
+    color: var(--ink-2); cursor: pointer; border-radius: 6px;
+    background: transparent; border: none; font-family: inherit; text-align: left;
+    width: 100%;
+  }
+  .rail-foot .item:hover { background: var(--bg-2); color: var(--ink-0); }
+  .rail-foot .item.active { background: var(--accent-soft); color: var(--accent-ink); }
+  .rail-foot .item .left { display: flex; align-items: center; gap: 8px; }
+  .rail-foot .item .left svg { color: var(--ink-3); }
+  .rail-foot .item.active .left svg { color: var(--accent); }
+  .rail-foot .item b { color: var(--ink-1); font-weight: 600; }
+  .rail-foot .item.active b { color: var(--accent-ink); }
+  .rail-foot .item .chev { color: var(--ink-3); font-size: 11px; opacity: 0; transition: opacity .12s; }
+  .rail-foot .item:hover .chev,
+  .rail-foot .item.active .chev { opacity: 1; }
+  .rail-foot .badge { display: inline-flex; align-items: center; gap: 5px; color: var(--good); font-weight: 500; font-size: 11.5px; }
+  .rail-foot .badge::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--good); box-shadow: 0 0 0 3px rgba(22,160,111,.18); }
+
+  /* ── main ──────────────────────────────────────────────────── */
+  .main { display: flex; flex-direction: column; min-height: 100vh; }
+  .topbar {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 28px; border-bottom: 1px solid var(--border);
+    background: rgba(255,255,255,.6); backdrop-filter: blur(8px);
+  }
+  .crumbs { font-size: 13px; color: var(--ink-2); }
+  .crumbs .sep { color: var(--ink-3); margin: 0 6px; }
+  .crumbs b { color: var(--ink-0); font-weight: 600; }
+  .topbar .right { display: flex; align-items: center; gap: 8px; }
+  .chip-sm {
+    display: inline-flex; align-items: center; gap: 6px;
+    border: 1px solid var(--border); background: var(--bg-1);
+    padding: 5px 10px; border-radius: 999px;
+    font-size: 12px; color: var(--ink-2); cursor: pointer;
+  }
+  .chip-sm.good { color: var(--good); border-color: rgba(22,160,111,.3); background: rgba(22,160,111,.06); }
+  .chip-sm.good::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--good); }
+
+  .stage { flex: 1; width: 100%; padding: 40px clamp(28px, 6vw, 80px) 24px; display: flex; flex-direction: column; gap: 22px; }
+  .doc-head .kicker { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+  .doc-head h1 { font-size: 34px; line-height: 1.1; letter-spacing: -.025em; font-weight: 700; color: var(--ink-0); }
+  .doc-head .sub { color: var(--ink-2); font-size: 14.5px; margin-top: 6px; }
+  .doc-head .sub b { color: var(--ink-0); font-weight: 600; }
+
+  .composer { background: var(--bg-1); border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 1px 2px rgba(13,14,18,.04), 0 8px 28px rgba(13,14,18,.05); display: flex; flex-direction: column; min-height: 360px; overflow: hidden; }
+  .composer textarea { flex: 1; resize: none; border: none; outline: none; background: transparent; color: var(--ink-1); font-family: inherit; font-size: 17px; line-height: 1.75; padding: 32px clamp(28px, 5vw, 56px); letter-spacing: -.005em; min-height: 50vh; }
+  .toolbar { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border-top: 1px solid var(--border); background: var(--bg-0); flex-wrap: wrap; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; background: var(--bg-1); border: 1px solid var(--border); padding: 7px 11px; border-radius: 8px; font-size: 12.5px; font-weight: 500; cursor: pointer; color: var(--ink-1); }
+  .pill .k { color: var(--ink-3); font-weight: 500; font-size: 11.5px; }
+  .pill .v { color: var(--ink-0); font-weight: 600; }
+  .pill .caret { color: var(--ink-3); font-size: 10px; }
+  .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; background: var(--bg-1); overflow: hidden; }
+  .seg button { background: transparent; border: none; cursor: pointer; padding: 7px 11px; font-family: inherit; font-size: 12px; font-weight: 600; color: var(--ink-2); border-right: 1px solid var(--border); }
+  .seg button:last-child { border-right: none; }
+  .seg button.on { background: var(--ink-0); color: white; }
+  .spacer { flex: 1; }
+  .stats { color: var(--ink-3); font-size: 12.5px; }
+  .stats b { color: var(--ink-1); font-weight: 600; }
+  .send { display: inline-flex; align-items: center; gap: 8px; background: var(--accent); color: white; border: 1px solid var(--accent); padding: 9px 16px; border-radius: 8px; font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; box-shadow: 0 1px 0 rgba(255,255,255,.18) inset, 0 4px 14px rgba(91,108,255,.28); }
+  .send svg { fill: currentColor; }
+  .dock { background: var(--bg-1); border: 1px solid var(--border); border-radius: 12px; padding: 12px 16px; display: flex; align-items: center; gap: 14px; box-shadow: 0 1px 2px rgba(13,14,18,.04); }
+  .dock .stamp { display: inline-flex; align-items: center; gap: 6px; color: var(--good); font-weight: 600; font-size: 12px; background: rgba(22,160,111,.08); padding: 4px 9px; border-radius: 6px; }
+  .dock .stamp::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--good); }
+  .dock .play { width: 36px; height: 36px; border-radius: 50%; border: none; background: var(--ink-0); color: white; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+  .dock .scrub { flex: 1; height: 6px; background: var(--bg-2); border-radius: 999px; position: relative; overflow: hidden; }
+  .dock .scrub .played { position: absolute; left: 0; top: 0; bottom: 0; width: 24%; background: var(--accent); border-radius: 999px; }
+  .dock .time { font-family: "JetBrains Mono"; font-size: 12px; color: var(--ink-2); min-width: 100px; text-align: right; }
+
+  /* ── POPOVER (shared) ────────────────────────────────────── */
+  .pop {
+    position: fixed; z-index: 40;
+    background: var(--bg-1);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    box-shadow: 0 1px 2px rgba(13,14,18,.04), 0 24px 60px rgba(13,14,18,.18);
+    padding: 16px;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .pop .pop-head {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border);
+  }
+  .pop .pop-head h4 { font-size: 13px; font-weight: 600; letter-spacing: -.01em; color: var(--ink-0); }
+  .pop .pop-head .x { background: transparent; border: none; cursor: pointer; color: var(--ink-3); font-size: 16px; line-height: 1; padding: 0 4px; }
+  .pop .pop-head .x:hover { color: var(--ink-0); }
+  .pop::after {
+    /* little tail pointing down at the rail-foot item */
+    content: ""; position: absolute; left: 28px; bottom: -7px;
+    width: 12px; height: 12px; background: var(--bg-1);
+    border-right: 1px solid var(--border); border-bottom: 1px solid var(--border);
+    transform: rotate(45deg);
+  }
+
+  /* ── storage popover (anchored above the Storage row) ──── */
+  .pop.storage {
+    left: 16px; bottom: 70px; width: 320px;
+  }
+  .pop.storage .bar {
+    height: 10px; background: var(--bg-2); border-radius: 999px;
+    overflow: hidden; display: flex;
+  }
+  .pop.storage .bar .seg-v { background: var(--accent); }
+  .pop.storage .bar .seg-s { background: #f0a06b; }
+  .pop.storage .legend {
+    display: flex; flex-direction: column; gap: 6px;
+    font-size: 12px; color: var(--ink-2);
+  }
+  .pop.storage .legend .row { display: flex; align-items: center; gap: 8px; justify-content: space-between; }
+  .pop.storage .legend .row .left { display: inline-flex; align-items: center; gap: 8px; }
+  .pop.storage .legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+  .pop.storage .legend i.v { background: var(--accent); }
+  .pop.storage .legend i.s { background: #f0a06b; }
+  .pop.storage .legend i.f { background: var(--bg-2); border: 1px solid var(--border); }
+  .pop.storage .legend .row b { color: var(--ink-0); font-weight: 600; font-family: "JetBrains Mono"; font-size: 11.5px; }
+
+  .pop .row-info {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 10px; background: var(--bg-0); border-radius: 8px;
+    font-size: 12px; color: var(--ink-2);
+  }
+  .pop .row-info .badge { color: var(--good); font-weight: 600; display: inline-flex; align-items: center; gap: 5px; }
+  .pop .row-info .badge::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--good); box-shadow: 0 0 0 3px rgba(22,160,111,.18); }
+  .pop .help { font-size: 11.5px; color: var(--ink-3); line-height: 1.5; }
+  .pop .danger-zone {
+    border-top: 1px dashed var(--border); padding-top: 10px;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .pop .danger-zone .ttl {
+    font-size: 10.5px; font-weight: 600; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--ink-3); margin-bottom: 4px;
+  }
+  .pop .danger-btn {
+    background: transparent; border: 1px solid var(--border);
+    color: var(--danger); cursor: pointer;
+    padding: 8px 10px; border-radius: 8px;
+    font-family: inherit; font-size: 12.5px; font-weight: 500;
+    text-align: left;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .pop .danger-btn:hover { background: var(--danger-soft); border-color: rgba(196,74,74,.35); }
+  .pop .danger-btn .meta { color: var(--ink-3); font-weight: 400; font-size: 11.5px; }
+
+  /* ── model popover (anchored above the Model row) ─────── */
+  .pop.model {
+    left: 16px; bottom: 110px; width: 320px;
+  }
+  .pop.model::after { bottom: -7px; left: 28px; }
+  .pop.model .tier {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px; border: 1px solid var(--border); border-radius: 8px;
+    cursor: pointer; background: var(--bg-1);
+  }
+  .pop.model .tier:hover { border-color: var(--border-strong); }
+  .pop.model .tier.on { border-color: var(--accent); background: var(--accent-soft); }
+  .pop.model .tier .radio {
+    width: 16px; height: 16px; border-radius: 50%;
+    border: 1.5px solid var(--border-strong); flex: none;
+    position: relative; background: var(--bg-1);
+  }
+  .pop.model .tier.on .radio { border-color: var(--accent); }
+  .pop.model .tier.on .radio::after {
+    content: ""; position: absolute; inset: 3px; border-radius: 50%; background: var(--accent);
+  }
+  .pop.model .tier .body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .pop.model .tier .body .name { font-size: 13px; font-weight: 600; color: var(--ink-0); display: flex; align-items: baseline; gap: 6px; }
+  .pop.model .tier .body .name .badge { font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: 999px; background: var(--bg-2); color: var(--ink-3); text-transform: uppercase; letter-spacing: .04em; }
+  .pop.model .tier.on .body .name .badge { background: var(--accent-ink); color: white; }
+  .pop.model .tier .body .name .badge.soon { background: transparent; border: 1px dashed var(--border-strong); color: var(--ink-3); }
+  .pop.model .tier .body .meta { font-size: 11.5px; color: var(--ink-3); }
+  .pop.model .tier.soon { opacity: .65; cursor: not-allowed; }
+
+  /* ── scrim ────────────────────────────────────────────── */
+  .scrim {
+    position: fixed; inset: 0; background: rgba(13,14,18,.06);
+    z-index: 35;
+  }
+
+  .mock-nav { position: fixed; top: 14px; right: 18px; z-index: 60; display: flex; gap: 4px; background: rgba(255,255,255,.85); border: 1px solid var(--border); border-radius: 8px; backdrop-filter: blur(8px); padding: 3px; }
+  .mock-nav a { color: var(--ink-2); font-size: 11px; font-weight: 600; text-decoration: none; padding: 4px 8px; border-radius: 5px; }
+  .mock-nav a:hover { background: var(--bg-2); }
+  .mock-nav a.on { background: var(--ink-0); color: white; }
+</style>
+</head>
+<body>
+
+<nav class="mock-nav">
+  <a href="e-helivar-light.html">E</a>
+  <a href="e2-popovers.html" class="on">E2 · popovers</a>
+  <a href="f-mono-clarity.html">F</a>
+  <a href="g-paper-serif.html">G</a>
+  <a href="h-aurora-glass.html">H</a>
+</nav>
+
+<div class="shell">
+
+  <aside class="rail">
+    <div class="brand">
+      <span class="logo">c</span>
+      <span class="name">catm <span>· read aloud</span></span>
+      <button class="gear" title="About catm">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1A1.7 1.7 0 0 0 9 19.4a1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9c.1.4.4.8.7 1 .3.2.7.3 1.1.3H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+      </button>
+    </div>
+
+    <button class="newdoc">
+      <span class="k">+</span> New reading
+      <span style="margin-left:auto; font-family:'JetBrains Mono',monospace; font-size:11px; opacity:.55">⌘N</span>
+    </button>
+
+    <div class="search">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input placeholder="Search readings…" />
+      <span class="kbd">⌘K</span>
+    </div>
+
+    <div class="lbl">Recent <b>14</b></div>
+    <div class="hist">
+      <button class="row on"><span class="t">On the pleasure of reading aloud</span><span class="m">19 May · 28:14</span></button>
+      <button class="row"><span class="t">Letters to a Young Poet, II</span><span class="m">19 May · 21:04</span></button>
+      <button class="row"><span class="t">The Library at Night, ch. III</span><span class="m">17 May · 38:42</span></button>
+      <button class="row"><span class="t">On Solitude — Montaigne</span><span class="m">15 May · 19:18</span></button>
+      <button class="row"><span class="t">Notes on Cinema, vol. 4</span><span class="m">14 May · 27:11</span></button>
+      <button class="row"><span class="t">A short history of the long sentence</span><span class="m">12 May · 14:02</span></button>
+      <button class="row"><span class="t">Borges — On Exactitude in Science</span><span class="m">10 May · 3:48</span></button>
+      <button class="row"><span class="t">The art of the long-form interview</span><span class="m">08 May · 41:22</span></button>
+    </div>
+
+    <div class="rail-foot">
+      <button class="item" id="row-model">
+        <span class="left">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 L2 7 L12 12 L22 7 Z"/><path d="M2 17 L12 22 L22 17"/><path d="M2 12 L12 17 L22 12"/></svg>
+          Model
+        </span>
+        <span style="display:inline-flex; gap:6px; align-items:center">
+          <b>Low · Kokoro</b>
+          <span class="chev">▸</span>
+        </span>
+      </button>
+      <button class="item active" id="row-storage">
+        <span class="left">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v6c0 1.7 4 3 9 3s9-1.3 9-3V5"/><path d="M3 11v6c0 1.7 4 3 9 3s9-1.3 9-3v-6"/></svg>
+          Storage
+        </span>
+        <span style="display:inline-flex; gap:6px; align-items:center">
+          <b>287 mb</b>
+          <span class="chev" style="opacity:1">▾</span>
+        </span>
+      </button>
+      <button class="item">
+        <span class="left">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Privacy
+        </span>
+        <span class="badge">on-device</span>
+      </button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div class="crumbs">Library <span class="sep">/</span> <b>On the pleasure of reading aloud</b></div>
+      <div class="right">
+        <span class="chip-sm">Saved · 19 May</span>
+        <span class="chip-sm good">Ready</span>
+        <button class="chip-sm" title="Rename">✎ Rename</button>
+        <button class="chip-sm" title="Share">↗ Export</button>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="doc-head">
+        <div class="kicker">DOCUMENT · ESSAY</div>
+        <h1>On the pleasure of reading aloud</h1>
+        <p class="sub"><b>4,218 words</b> · about <b>28 minutes</b> at 1.25× · voice <b>af_heart</b></p>
+      </div>
+
+      <div class="composer">
+        <textarea spellcheck="false">The voice that reads aloud to itself is the most ancient of literary instruments. Long before the printed page, long before the silent eye learned its trick of swallowing meaning in a glance, there was the mouth, the breath, the unhurried turning of one syllable into the next.
+
+To listen is to be carried — to surrender the self briefly, the way a small boat surrenders to a current it cannot see beneath it. The voice that reads is not a recitation but an offering; it gives the text a body, a tempo, a place to live.
+
+What we lose in silent reading is not understanding but tempo. The page on the desk is consumed; the page read aloud is unfolded. Each word is given the time it deserves, and the listener — even when the listener is also the reader — is made to wait, and in waiting, to attend.</textarea>
+
+        <div class="toolbar">
+          <button class="pill"><span class="k">Voice</span><span class="v">af_heart</span><span class="caret">▾</span></button>
+          <button class="pill"><span class="k">Model</span><span class="v">Low</span><span class="caret">▾</span></button>
+          <div class="seg">
+            <button>.75</button><button>1.0</button><button class="on">1.25</button><button>1.5</button><button>2.0</button>
+          </div>
+          <span class="spacer"></span>
+          <span class="stats"><b>4,218</b> words · <b>28 min</b></span>
+          <button class="send">
+            <svg width="13" height="14" viewBox="0 0 14 16"><polygon points="2,1 13,8 2,15"/></svg>
+            Record again
+          </button>
+        </div>
+      </div>
+
+      <div class="dock">
+        <span class="stamp">Ready</span>
+        <button class="play"><svg width="12" height="14" viewBox="0 0 14 16" fill="currentColor"><polygon points="2,1 13,8 2,15"/></svg></button>
+        <div class="scrub"><div class="played"></div></div>
+        <span class="time">6:48 / 28:14</span>
+      </div>
+    </div>
+  </main>
+
+</div>
+
+<!-- soft scrim so the popovers feel "modal-light" without trapping the user -->
+<div class="scrim" aria-hidden="true"></div>
+
+<!-- STORAGE popover (anchored above the Storage row in the rail-foot) -->
+<aside class="pop storage" role="dialog" aria-label="Storage">
+  <div class="pop-head">
+    <h4>Storage on this device</h4>
+    <button class="x" title="Close">✕</button>
+  </div>
+
+  <div class="bar" aria-label="Storage breakdown">
+    <div class="seg-v" style="width:6%"></div>
+    <div class="seg-s" style="width:15%"></div>
+  </div>
+  <div class="legend">
+    <div class="row"><span class="left"><i class="v"></i>Voice model · Kokoro</span><b>80 mb</b></div>
+    <div class="row"><span class="left"><i class="s"></i>Recordings · 14</span><b>207 mb</b></div>
+    <div class="row"><span class="left"><i class="f"></i>Free in this browser</span><b>14.7 gb</b></div>
+  </div>
+
+  <div class="row-info">
+    <span>Eviction</span>
+    <span class="badge">persistent</span>
+  </div>
+  <p class="help">Stored in your browser's private storage. Headroom is a browser quota, not your full disk. Persistent means the browser won't evict these files under storage pressure.</p>
+
+  <div class="danger-zone">
+    <div class="ttl">Danger zone</div>
+    <button class="danger-btn">
+      <span>Clear all recordings</span>
+      <span class="meta">14 · 207 mb</span>
+    </button>
+  </div>
+</aside>
+
+<!-- MODEL popover (shown simultaneously for review — in app, only one would be open) -->
+<aside class="pop model" role="dialog" aria-label="Voice model" style="left: 360px; bottom: 70px;">
+  <div class="pop-head">
+    <h4>Voice model</h4>
+    <button class="x" title="Close">✕</button>
+  </div>
+
+  <button class="tier on">
+    <span class="radio"></span>
+    <span class="body">
+      <span class="name">Low <span class="badge">selected</span></span>
+      <span class="meta">Kokoro · 82M · 80 mb · clearly synthetic but pleasant</span>
+    </span>
+  </button>
+  <button class="tier soon">
+    <span class="radio"></span>
+    <span class="body">
+      <span class="name">Medium <span class="badge soon">soon</span></span>
+      <span class="meta">~500 mb · closer to a human narrator</span>
+    </span>
+  </button>
+  <button class="tier soon">
+    <span class="radio"></span>
+    <span class="body">
+      <span class="name">High <span class="badge soon">soon</span></span>
+      <span class="meta">~700 mb · near-human, expressive</span>
+    </span>
+  </button>
+
+  <p class="help">Voice models run entirely on this device. Changing tier downloads a new model once, then keeps it cached for offline use.</p>
+
+  <div class="danger-zone">
+    <div class="ttl">Danger zone</div>
+    <button class="danger-btn">
+      <span>Remove voice from device</span>
+      <span class="meta">80 mb</span>
+    </button>
+  </div>
+
+  <!-- override tail to point at the model row (one row higher than storage) -->
+  <style>
+    .pop.model::after { left: auto; right: auto; bottom: -7px;
+      /* sit at the visual anchor for the Model row, which is above Storage.
+         Since this popover is placed to the right of the rail in this mock,
+         we hide the tail to avoid confusion. */
+      display: none;
+    }
+  </style>
+</aside>
+
+</body>
+</html>

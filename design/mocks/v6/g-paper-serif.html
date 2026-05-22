@@ -1,0 +1,334 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>catm — G · paper serif</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* Direction G — "paper serif"
+     C (manuscript-focus) structure. Visual: a clean light scheme like
+     a modern reading app — soft warm off-white, gentle terracotta
+     accents, Fraunces serif for body & headings, Inter for UI chrome.
+     Notion-doc meets book typography. Library lives in a tasteful
+     left drawer; controls float at the bottom-center. */
+
+  :root {
+    --paper: #fbfaf7;
+    --paper-2: #f4f1ea;
+    --paper-edge: #e8e3d6;
+    --ink: #15110d;
+    --ink-2: #3a342d;
+    --ink-3: #756c5f;
+    --ink-4: #a39988;
+    --border: #e6e1d4;
+    --border-strong: #d3ccba;
+    --accent: #b75d3c;     /* warm terracotta */
+    --accent-soft: #f7e7df;
+    --accent-deep: #8c4128;
+    --good: #4f8a5a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+    color: var(--ink); background: var(--paper);
+    -webkit-font-smoothing: antialiased;
+    background-image:
+      radial-gradient(circle at 15% 0%, rgba(183,93,60,.05), transparent 45%),
+      radial-gradient(circle at 100% 100%, rgba(79,138,90,.04), transparent 50%);
+    background-attachment: fixed;
+    min-height: 100vh;
+  }
+
+  /* ── library drawer (left) ─────────────────────────────────── */
+  .drawer {
+    position: fixed; top: 0; left: 0; bottom: 0; width: 300px;
+    background: var(--paper);
+    border-right: 1px solid var(--border);
+    padding: 24px 20px;
+    display: flex; flex-direction: column; gap: 14px;
+    z-index: 10;
+  }
+  .drawer .brand {
+    display: flex; align-items: baseline; gap: 8px;
+    padding-bottom: 16px; border-bottom: 1px solid var(--border);
+  }
+  .drawer .brand .name {
+    font-family: "Fraunces", serif;
+    font-weight: 600; font-size: 22px; letter-spacing: -.02em;
+    color: var(--ink);
+  }
+  .drawer .brand .name em { color: var(--accent); font-style: italic; }
+  .drawer .brand .tag { font-size: 11px; color: var(--ink-3); letter-spacing: .04em; }
+
+  .drawer .new {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--ink); color: var(--paper);
+    border: none; cursor: pointer;
+    padding: 10px 14px; border-radius: 999px;
+    font-family: inherit; font-size: 13px; font-weight: 500;
+    letter-spacing: -.005em;
+    align-self: flex-start;
+  }
+  .drawer .new:hover { background: var(--ink-2); }
+
+  .drawer .lbl {
+    font-family: "Fraunces", serif; font-style: italic;
+    font-size: 13px; color: var(--ink-3);
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 8px 4px 0;
+  }
+  .drawer .lbl b { color: var(--accent); font-weight: 600; font-style: normal; }
+
+  .drawer .list { display: flex; flex-direction: column; gap: 2px; flex: 1; overflow-y: auto; }
+  .drawer .item {
+    background: transparent; border: none; text-align: left; cursor: pointer;
+    padding: 10px 12px; border-radius: 8px;
+    display: flex; flex-direction: column; gap: 2px;
+    color: var(--ink);
+    font-family: inherit;
+  }
+  .drawer .item:hover { background: var(--paper-2); }
+  .drawer .item.on { background: var(--accent-soft); }
+  .drawer .item .t {
+    font-family: "Fraunces", serif; font-size: 14.5px; font-weight: 500;
+    letter-spacing: -.01em; line-height: 1.25;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .drawer .item.on .t { color: var(--accent-deep); }
+  .drawer .item .m { font-size: 11.5px; color: var(--ink-3); }
+  .drawer .item.on .m { color: var(--accent-deep); opacity: .7; }
+
+  .drawer .foot {
+    border-top: 1px solid var(--border); padding-top: 14px;
+    font-size: 12px; color: var(--ink-3);
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .drawer .foot .row { display: flex; justify-content: space-between; align-items: center; }
+  .drawer .foot .row b { color: var(--ink-2); font-weight: 500; }
+  .drawer .foot .badge {
+    color: var(--good); font-weight: 500; font-size: 11.5px;
+    display: inline-flex; align-items: center; gap: 5px;
+  }
+  .drawer .foot .badge::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--good); }
+
+  /* ── stage (centered manuscript) ───────────────────────────── */
+  .stage {
+    margin-left: 300px;
+    padding: 56px clamp(32px, 6vw, 96px) 180px;
+  }
+  .sheet {
+    width: 100%; max-width: none;
+    background: transparent;
+    color: var(--ink);
+  }
+
+  .sheet .doc-meta {
+    display: flex; gap: 12px; align-items: center;
+    font-size: 12px; color: var(--ink-3);
+    margin-bottom: 22px;
+  }
+  .sheet .doc-meta .stamp {
+    background: var(--ink); color: var(--paper);
+    padding: 3px 8px; border-radius: 999px; font-size: 11px;
+    font-weight: 500;
+  }
+  .sheet .doc-meta .stamp.ready { background: var(--good); }
+  .sheet .doc-meta .dot { color: var(--ink-4); }
+
+  .sheet h1 {
+    font-family: "Fraunces", serif;
+    font-weight: 600; font-size: clamp(38px, 5vw, 56px);
+    line-height: 1.05; letter-spacing: -.02em;
+    color: var(--ink); margin-bottom: 14px;
+  }
+  .sheet h1 em { font-style: italic; color: var(--accent); font-weight: 500; }
+
+  .sheet .byline {
+    font-family: "Fraunces", serif; font-style: italic;
+    font-size: 17px; color: var(--ink-3);
+    margin-bottom: 36px; padding-bottom: 28px; border-bottom: 1px solid var(--border);
+  }
+  .sheet .byline b { font-style: normal; color: var(--ink); font-weight: 500; }
+
+  .sheet .body {
+    font-family: "Fraunces", serif;
+    font-size: 20px; line-height: 1.6;
+    color: var(--ink-2);
+    font-weight: 400;
+    column-width: 38ch;
+    column-gap: 56px;
+    column-rule: 1px solid var(--border);
+  }
+  .sheet .body p { margin-bottom: 1.1em; break-inside: avoid-column; }
+  .sheet .body p:first-of-type::first-letter {
+    font-family: "Fraunces", serif;
+    font-size: 3.6em; float: left; line-height: .85; font-weight: 600;
+    padding: 6px 12px 0 0; color: var(--accent);
+  }
+
+  .sheet .end {
+    margin-top: 40px; text-align: center; color: var(--ink-4);
+    font-family: "Fraunces", serif; font-style: italic; font-size: 14px;
+    letter-spacing: .04em;
+  }
+
+  /* ── floating control bar ──────────────────────────────────── */
+  .floater {
+    position: fixed; left: calc(50% + 150px); bottom: 24px; transform: translateX(-50%);
+    background: var(--paper);
+    border: 1px solid var(--border);
+    box-shadow: 0 1px 2px rgba(15,17,13,.04), 0 12px 32px rgba(15,17,13,.10);
+    border-radius: 14px;
+    padding: 8px 10px;
+    display: flex; align-items: center; gap: 8px;
+    z-index: 9;
+  }
+  .floater .play {
+    width: 38px; height: 38px; border-radius: 10px; border: none;
+    background: var(--ink); color: var(--paper); cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .floater .play:hover { background: var(--ink-2); }
+  .floater .scrub-wrap { display: flex; flex-direction: column; gap: 2px; min-width: 200px; }
+  .floater .scrub { height: 4px; background: var(--paper-2); border-radius: 999px; position: relative; overflow: hidden; }
+  .floater .scrub .played { position: absolute; left: 0; top: 0; bottom: 0; width: 24%; background: var(--accent); }
+  .floater .time { font-family: "JetBrains Mono", monospace; font-size: 11px; color: var(--ink-3); }
+  .floater .divider { width: 1px; height: 28px; background: var(--border); }
+
+  .floater .pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: transparent; border: 1px solid var(--border);
+    padding: 6px 10px; border-radius: 8px;
+    font-family: inherit; font-size: 12.5px; font-weight: 500;
+    color: var(--ink); cursor: pointer;
+  }
+  .floater .pill:hover { background: var(--paper-2); border-color: var(--border-strong); }
+  .floater .pill .k { color: var(--ink-3); font-size: 11px; font-weight: 400; }
+  .floater .pill .caret { color: var(--ink-4); font-size: 9px; }
+
+  .floater .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .floater .seg button {
+    background: transparent; border: none; border-right: 1px solid var(--border);
+    cursor: pointer; font-family: inherit; font-size: 11.5px; font-weight: 500;
+    color: var(--ink-2); padding: 6px 9px;
+  }
+  .floater .seg button:last-child { border-right: none; }
+  .floater .seg button.on { background: var(--ink); color: var(--paper); }
+
+  .floater .record {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--accent); color: var(--paper);
+    border: 1px solid var(--accent);
+    padding: 8px 14px; border-radius: 10px;
+    font-family: inherit; font-size: 12.5px; font-weight: 600;
+    cursor: pointer;
+  }
+  .floater .record:hover { background: var(--accent-deep); }
+  .floater .record svg { fill: currentColor; }
+
+  .mock-nav {
+    position: fixed; top: 16px; right: 20px; z-index: 30;
+    display: flex; gap: 2px; background: var(--paper); border: 1px solid var(--border); border-radius: 8px; padding: 3px;
+  }
+  .mock-nav a { color: var(--ink-3); font-size: 11px; font-weight: 600; text-decoration: none; padding: 4px 8px; border-radius: 5px; font-family: "Inter", sans-serif; }
+  .mock-nav a:hover { background: var(--paper-2); }
+  .mock-nav a.on { background: var(--ink); color: var(--paper); }
+
+  @media (max-width: 880px) {
+    .drawer { position: relative; width: 100%; height: auto; border-right: none; border-bottom: 1px solid var(--border); }
+    .stage { margin-left: 0; padding: 32px 20px 220px; }
+    .floater { left: 50%; }
+  }
+</style>
+</head>
+<body>
+
+<nav class="mock-nav">
+  <a href="b-app-shell.html">B</a>
+  <a href="c-manuscript-focus.html">C</a>
+  <a href="e-helivar-light.html">E</a>
+  <a href="f-mono-clarity.html">F</a>
+  <a href="g-paper-serif.html" class="on">G</a>
+  <a href="h-aurora-glass.html">H</a>
+</nav>
+
+<aside class="drawer">
+  <div class="brand">
+    <span class="name">catm<em>.</em></span>
+    <span class="tag">read aloud</span>
+  </div>
+
+  <button class="new">+ New reading</button>
+
+  <div class="lbl">Library <b>14</b></div>
+  <div class="list">
+    <button class="item on">
+      <span class="t">On the pleasure of reading aloud</span>
+      <span class="m">19 May · 28:14 · af_heart</span>
+    </button>
+    <button class="item"><span class="t">Letters to a Young Poet, II</span><span class="m">19 May · 21:04</span></button>
+    <button class="item"><span class="t">The Library at Night, ch. III</span><span class="m">17 May · 38:42</span></button>
+    <button class="item"><span class="t">On Solitude — Montaigne</span><span class="m">15 May · 19:18</span></button>
+    <button class="item"><span class="t">Notes on Cinema, vol. 4</span><span class="m">14 May · 27:11</span></button>
+    <button class="item"><span class="t">A short history of the long sentence</span><span class="m">12 May · 14:02</span></button>
+    <button class="item"><span class="t">Borges — On Exactitude in Science</span><span class="m">10 May · 3:48</span></button>
+  </div>
+
+  <div class="foot">
+    <div class="row"><span>Model</span><b>Low · Kokoro</b></div>
+    <div class="row"><span>Storage</span><b>287 mb / 15 gb</b></div>
+    <div class="row"><span>Privacy</span><span class="badge">on-device</span></div>
+  </div>
+</aside>
+
+<section class="stage">
+  <article class="sheet">
+
+    <div class="doc-meta">
+      <span class="stamp ready">Ready · 28:14</span>
+      <span>Essay</span>
+      <span class="dot">·</span>
+      <span>4,218 words</span>
+      <span class="dot">·</span>
+      <span>~28 min at 1.25×</span>
+      <span class="dot">·</span>
+      <span>saved 19 May</span>
+    </div>
+
+    <h1>On the pleasure of <em>reading aloud</em></h1>
+    <p class="byline">Read in <b>af_heart</b>. Drafted and last recorded <b>19 May 2026</b>.</p>
+
+    <div class="body">
+      <p>The voice that reads aloud to itself is the most ancient of literary instruments. Long before the printed page, long before the silent eye learned its trick of swallowing meaning in a glance, there was the mouth, the breath, the unhurried turning of one syllable into the next.</p>
+      <p>To listen is to be carried — to surrender the self briefly, the way a small boat surrenders to a current it cannot see beneath it. The voice that reads is not a recitation but an offering; it gives the text a body, a tempo, a place to live.</p>
+      <p>What we lose in silent reading is not understanding but tempo. The page on the desk is consumed; the page read aloud is unfolded. Each word is given the time it deserves, and the listener — even when the listener is also the reader — is made to wait, and in waiting, to attend.</p>
+    </div>
+
+    <div class="end">— end —</div>
+  </article>
+</section>
+
+<div class="floater">
+  <button class="play"><svg width="13" height="14" viewBox="0 0 14 16" fill="currentColor"><polygon points="2,1 13,8 2,15"/></svg></button>
+  <div class="scrub-wrap">
+    <div class="scrub"><div class="played"></div></div>
+    <span class="time">6:48 / 28:14</span>
+  </div>
+  <span class="divider"></span>
+  <button class="pill"><span class="k">Voice</span><b>af_heart</b><span class="caret">▾</span></button>
+  <div class="seg">
+    <button>.75</button><button>1.0</button><button class="on">1.25</button><button>1.5</button><button>2.0</button>
+  </div>
+  <span class="divider"></span>
+  <button class="record">
+    <svg width="11" height="12" viewBox="0 0 14 16"><polygon points="2,1 13,8 2,15"/></svg>
+    Record again
+  </button>
+</div>
+
+</body>
+</html>

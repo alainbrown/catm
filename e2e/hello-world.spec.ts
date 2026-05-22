@@ -43,7 +43,7 @@ test("synth saves session, sidebar persists across reload, delete clears", async
   await expect(page.getByTestId("library-row")).toHaveCount(1);
 
   await page.reload();
-  await expect(page.getByText(/Ready · paste|words ·/i)).toBeVisible({ timeout: 3 * 60 * 1000 });
+  await expect(page.getByText(/Ready · paste/i)).toBeVisible({ timeout: 3 * 60 * 1000 });
   await expect(page.getByTestId("library-row")).toHaveCount(1);
 
   await page.getByTestId("library-play").first().click();
@@ -90,15 +90,15 @@ test("editing an open document re-synthesises in place (no duplicate row)", asyn
   await expect(page.getByTestId("library-row")).toHaveCount(1);
 });
 
-test("gear opens settings; back returns to editor", async ({ page }) => {
+test("voice chip opens popover and closes on outside click", async ({ page }) => {
   await clearStorage(page);
   await expect(page.getByText(/Ready · paste/i)).toBeVisible({ timeout: 3 * 60 * 1000 });
 
-  await page.getByTestId("gear").click();
-  await expect(page.getByRole("heading", { name: /^Voice$/i })).toBeVisible();
+  await page.getByTestId("voice-chip").click();
+  await expect(page.getByRole("heading", { name: /Voice · English/i })).toBeVisible();
 
-  await page.getByTestId("settings-back").click();
-  await expect(page.getByLabel("Text")).toBeVisible();
+  await page.getByLabel("Text").click();
+  await expect(page.getByRole("heading", { name: /Voice · English/i })).toBeHidden();
 });
 
 test("onboarding: first-launch hero → download → ready stamp", async ({ page }) => {
@@ -121,7 +121,7 @@ test("onboarding: first-launch hero → download → ready stamp", async ({ page
   await expect(page.getByTestId("ready-stamp")).toBeHidden();
 });
 
-test("Settings → Editor round trip does not autoplay the audio", async ({ page }) => {
+test("opening and closing the voice popover does not autoplay the audio", async ({ page }) => {
   test.setTimeout(4 * 60 * 1000);
   await clearStorage(page);
   await expect(page.getByText(/Ready · paste/i)).toBeVisible({ timeout: 3 * 60 * 1000 });
@@ -137,11 +137,11 @@ test("Settings → Editor round trip does not autoplay the audio", async ({ page
   // Pause after autoplay completes the post-synth one-shot.
   await audio.evaluate((el) => (el as HTMLAudioElement).pause());
 
-  await page.getByTestId("gear").click();
-  await expect(page.getByRole("heading", { name: /^Voice$/i })).toBeVisible();
-  await page.getByTestId("settings-back").click();
+  await page.getByTestId("voice-chip").click();
+  await expect(page.getByRole("heading", { name: /Voice · English/i })).toBeVisible();
+  await page.getByLabel("Text").click();
 
-  // Should be paused — coming back from Settings must not trigger autoplay.
+  // Audio should remain paused — opening the popover must not trigger autoplay.
   await expect
     .poll(async () => audio.evaluate((el) => (el as HTMLAudioElement).paused), { timeout: 2_000 })
     .toBe(true);
@@ -152,10 +152,9 @@ test("library row shows the voice the session was recorded with", async ({ page 
   await clearStorage(page);
   await expect(page.getByText(/Ready · paste/i)).toBeVisible({ timeout: 3 * 60 * 1000 });
 
-  // Switch to am_michael before recording.
-  await page.getByTestId("gear").click();
-  await page.getByTestId("voice-am_michael").locator(".voice-pick-btn").click();
-  await page.getByTestId("settings-back").click();
+  // Switch to am_michael via the inline voice chip.
+  await page.getByTestId("voice-chip").click();
+  await page.getByTestId("voice-am_michael").click();
 
   await page.getByLabel("Text").fill("Voice tag test.");
   await page.getByTestId("speak").click();
@@ -171,9 +170,8 @@ test("library row shows the voice the session was recorded with", async ({ page 
   );
 
   // Switching default voice to af_heart marks the open session as modified.
-  await page.getByTestId("gear").click();
-  await page.getByTestId("voice-af_heart").locator(".voice-pick-btn").click();
-  await page.getByTestId("settings-back").click();
+  await page.getByTestId("voice-chip").click();
+  await page.getByTestId("voice-af_heart").click();
   await expect(page.getByText("Save & read")).toBeVisible();
 });
 
@@ -181,33 +179,51 @@ test("voice picker selects and persists across reload", async ({ page }) => {
   await clearStorage(page);
   await expect(page.getByText(/Ready · paste/i)).toBeVisible({ timeout: 3 * 60 * 1000 });
 
-  await page.getByTestId("gear").click();
+  await page.getByTestId("voice-chip").click();
   // af_heart is selected by default.
   await expect(page.getByTestId("voice-af_heart")).toHaveClass(/on/);
 
   // Pick a different voice.
-  await page.getByTestId("voice-am_michael").locator(".voice-pick-btn").click();
+  await page.getByTestId("voice-am_michael").click();
+  // Popover closes after selection; reopen to verify selection.
+  await page.getByTestId("voice-chip").click();
   await expect(page.getByTestId("voice-am_michael")).toHaveClass(/on/);
   await expect(page.getByTestId("voice-af_heart")).not.toHaveClass(/on/);
 
   // Reload — selection persists.
   await page.reload();
-  await page.getByTestId("gear").click();
+  await page.getByTestId("voice-chip").click();
   await expect(page.getByTestId("voice-am_michael")).toHaveClass(/on/);
 });
 
-test("delete model from settings returns to first-launch onboarding", async ({ page }) => {
+test("removing the voice model returns to first-launch onboarding", async ({ page }) => {
   await clearStorage(page);
   await expect(page.getByText(/Ready · paste/i)).toBeVisible({ timeout: 3 * 60 * 1000 });
 
-  await page.getByTestId("gear").click();
-  await page.getByTestId("delete-model").click();
+  // Open the Model popover from the rail-foot, then trigger its trashcan.
+  await page.getByTestId("rail-model").click();
+  await page.getByTestId("tier-remove-low").click();
   await expect(page.getByTestId("confirm-delete-model")).toBeVisible();
   await page.getByTestId("confirm-confirm").click();
 
-  // Confirmed deletion drops the onboarded flag and resets to first-launch.
+  // Confirmed removal drops the onboarded flag and resets to first-launch.
   await expect(page.getByTestId("start-download")).toBeVisible();
   await expect(page.getByRole("heading", { name: /Read.*Out/i })).toBeVisible();
+});
+
+test("clear library wipes all sessions after confirm", async ({ page }) => {
+  test.setTimeout(4 * 60 * 1000);
+  await clearStorage(page);
+  await expect(page.getByText(/Ready · paste/i)).toBeVisible({ timeout: 3 * 60 * 1000 });
+
+  await page.getByLabel("Text").fill("To be cleared.");
+  await page.getByTestId("speak").click();
+  await expect(page.getByTestId("library-row")).toHaveCount(1, { timeout: 90_000 });
+
+  await page.getByTestId("clear-library").click();
+  await expect(page.getByTestId("confirm-clear-library")).toBeVisible();
+  await page.getByTestId("confirm-confirm").click();
+  await expect(page.getByTestId("library-empty")).toBeVisible();
 });
 
 test("switching to a different session while modified shows discard dialog", async ({ page }) => {

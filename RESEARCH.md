@@ -258,11 +258,56 @@ A short evaluation cycle substitutes for indeterminate wait time on third-party 
 
 ### Variants on disk
 
-| File | Size |
-|---|---|
-| `kokoro-v1.0.onnx` (fp32) | 310 MB |
-| `kokoro-v1.0.fp16.onnx` | 169 MB |
-| `kokoro-v1.0.int8.onnx` | **88 MB** ← distribution artifact |
+Sizes verified against `onnx-community/Kokoro-82M-v1.0-ONNX/onnx/`:
+
+| File | Size | transformers.js `dtype` |
+|---|---|---|
+| `model.onnx` (fp32) | 310.5 MB | `fp32` |
+| `model_q4.onnx` | 291.1 MB | `q4` |
+| `model_uint8.onnx` | 169.2 MB | (no dtype binding) |
+| `model_fp16.onnx` | 155.7 MB | `fp16` |
+| `model_q4f16.onnx` | 147.4 MB | `q4f16` |
+| `model_uint8f16.onnx` | 108.9 MB | (no dtype binding) |
+| `model_quantized.onnx` | **88.1 MB** ← shipping artifact | `q8` |
+| `model_q8f16.onnx` | 82.0 MB | (no dtype binding) |
+
+### WebGPU EP compatibility (measured 2026-05-22)
+
+Tested on `onnxruntime-web@1.26.0` with `onnxruntime-web/webgpu` import + the official MS sd-turbo session-options block (`enableMemPattern: false`, `enableCpuMemArena: false`, `extra.session.{disable_prepacking, use_device_allocator_for_initializers, use_ort_model_bytes_directly, use_ort_model_bytes_for_initializers}`), headless Chromium with `--enable-unsafe-webgpu`, input "Quick test of the WebGPU path." (~17 tokens):
+
+| File | Duration | maxAbs | RMS | Verdict |
+|---|---|---|---|---|
+| `model.onnx` (fp32) | 2.88 s | 0.45 | 0.066 | ✓ |
+| `model_q4.onnx` | 2.88 s | 0.44 | 0.066 | ✓ |
+| `model_quantized.onnx` (q8) | 2.86 s | 0.46 | 0.064 | ✓ |
+| `model_uint8.onnx` | 2.90 s | 0.50 | 0.065 | ✓ |
+| `model_fp16.onnx` | 2.90 s | **5.78** | 4.85 | ✗ saturated |
+| `model_q4f16.onnx` | 2.88 s | **5.78** | 4.87 | ✗ saturated |
+| `model_q8f16.onnx` | 24.75 s | **5.78** | 1.66 | ✗ length + saturated |
+| `model_uint8f16.onnx` | 2.94 s | **5.78** | 4.82 | ✗ saturated |
+
+Every variant with **fp16 activations** (the four `*f16` files) produces saturated output (`maxAbs = 5.7797160148620605` exactly — same bit pattern across all four). The same sd-turbo session-options block had **no effect**: byte-identical numbers with and without it. Variants with fp32 or int activations (`fp32`, `q4`, `q8`, `uint8`) all work and produce nearly identical waveforms (`maxAbs` 0.44-0.50).
+
+Tokenizer-config handling (`unk_token: "$"`) was added but the input phonemes are all in-vocab, so it didn't change any output.
+
+**Implication:** the four dtypes the Kokoro model card recommends to kokoro-js (`fp32 | fp16 | q8 | q4 | q4f16`) are not all usable on the WebGPU EP in this ORT version — `fp16` and `q4f16` are broken. Practical working subset on WebGPU is `fp32 | q4 | q8 | uint8`.
+
+### Speed by variant (same input, WebGPU)
+
+Wall-clock vs audio for "Quick test of the WebGPU path." (2.8 s of audio), measured 2026-05-22:
+
+| File | Disk | wallMs | RT factor |
+|---|---|---|---|
+| `model.onnx` (fp32) | 310 MB | 798 | **3.5×** |
+| `model_q4.onnx` | 291 MB | 839 | **3.3×** |
+| `model_uint8.onnx` | 169 MB | 1790 | 1.6× |
+| `model_quantized.onnx` (q8) | 88 MB | **4544** | 0.6× |
+
+q8 trades disk size for inference speed: it's 5.5× slower than fp32 because ORT's WebGPU EP dequantizes int8 weights on the fly per matmul (no native int8 kernel). q4 doesn't pay this cost — same speed as fp32. uint8 is in between.
+
+**We ship `model.onnx` (fp32)**: fastest inference (3.5× realtime), no quantization noise floor, ~500–700 MB peak memory during synthesis. Comfortable on an 8 GB M1 (the assumed hardware floor). `model_uint8.onnx` is the fallback if the 310 MB download becomes a problem for slow connections; `model_q4.onnx` is essentially the same speed as fp32 at 291 MB if quality regresses under fp32. The q8 file is a worse trade across the board on WebGPU.
+
+The session-option cluster from the sd-turbo example (`disable_prepacking`, `enableMemPattern: false`, `enableCpuMemArena: false`, etc.) moves q8 wallMs by less than 1% — confirmed via A/B. Those options are memory-savings tuned for multi-GB diffusion models and don't apply to our scale.
 
 ### Rationale against substituting Supertonic 3 for Low
 

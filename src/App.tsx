@@ -4,6 +4,7 @@ import { DiscardDialog } from "./components/DiscardDialog";
 import { ModelPopover } from "./components/ModelPopover";
 import { Rail } from "./components/Rail";
 import { encodePcmToCompleteMp4 } from "./hls/encode";
+import { LOW_TIER, formatMb } from "./modelConfig";
 import {
   type SegmentEntry,
   type SessionMeta,
@@ -26,6 +27,24 @@ import type { AppStatus, DocState } from "./types";
 import { OnboardingView } from "./views/OnboardingView";
 import { ReaderView } from "./views/ReaderView";
 import type { InMsg, OutMsg, VoiceId } from "./worker/kokoro.worker";
+import type { DeviceInfo } from "./worker/workerProtocol";
+
+export interface PerfState {
+  device: DeviceInfo | null;
+  synthSamplesPerSec: number[]; // 60 samples of PCM samples/sec
+  // Rolling memory readings (MB) from performance.measureUserAgentSpecificMemory().
+  // NaN entries mean "not yet sampled" or "API unavailable" for that slot.
+  memoryMb: number[];
+  // Set once isolation is known. null means "not yet known"; false means
+  // the API is unavailable (no COI / unsupported browser).
+  memoryApiAvailable: boolean | null;
+  lastSynth: { wallMs: number; audioSec: number } | null;
+}
+
+const MEM_SAMPLE_INTERVAL_MS = 5_000;
+const MEM_WINDOW = 60; // 60 samples × 5 s = 5 min of history
+
+const PERF_WINDOW = 60;
 
 const VOICE_KEY = "catm:voice";
 const DEFAULT_VOICE: VoiceId = "af_heart";
@@ -110,6 +129,14 @@ export function App(): React.JSX.Element {
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
 
   const deviceRef = useRef<"webgpu" | "wasm">("wasm");
+  const [perf, setPerf] = useState<PerfState>({
+    device: null,
+    synthSamplesPerSec: new Array(PERF_WINDOW).fill(0),
+    memoryMb: new Array(MEM_WINDOW).fill(Number.NaN),
+    memoryApiAvailable: null,
+    lastSynth: null,
+  });
+  const synthAccumRef = useRef(0); // samples emitted since last 1 s tick
   const workerRef = useRef<Worker | null>(null);
   const nextTxnIdRef = useRef(1);
   const pendingPreviewRef = useRef(
@@ -149,6 +176,53 @@ export function App(): React.JSX.Element {
     });
   }, []);
 
+  // 1 Hz throughput rotation.
+  useEffect(() => {
+    const id = setInterval(() => {
+      const samplesThisSecond = synthAccumRef.current;
+      synthAccumRef.current = 0;
+      setPerf((p) => ({
+        ...p,
+        synthSamplesPerSec: [...p.synthSamplesPerSec.slice(1), samplesThisSecond],
+      }));
+    }, 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Periodic memory measurement via the cross-origin-isolated API. Returns
+  // total bytes used by the agent — page + workers + WASM, aggregated. The
+  // API is browser-rate-limited (~once every several seconds), so we poll
+  // every 5 s. Requires window.crossOriginIsolated; the coi-serviceworker
+  // shim arranges that on page load.
+  useEffect(() => {
+    type Perf = Performance & { measureUserAgentSpecificMemory?: () => Promise<{ bytes: number }> };
+    const p = performance as Perf;
+    const isolated = typeof window !== "undefined" && window.crossOriginIsolated === true;
+    const available = isolated && typeof p.measureUserAgentSpecificMemory === "function";
+    if (!available) {
+      setPerf((s) => ({ ...s, memoryApiAvailable: false }));
+      return;
+    }
+    setPerf((s) => ({ ...s, memoryApiAvailable: true }));
+    let cancelled = false;
+    const sample = async (): Promise<void> => {
+      try {
+        const r = await p.measureUserAgentSpecificMemory?.();
+        if (cancelled || !r) return;
+        const mb = r.bytes / (1024 * 1024);
+        setPerf((s) => ({ ...s, memoryMb: [...s.memoryMb.slice(1), mb] }));
+      } catch {
+        /* rate-limit / transient failures: skip this tick */
+      }
+    };
+    void sample();
+    const id = setInterval(() => void sample(), MEM_SAMPLE_INTERVAL_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, []);
+
   const startWorker = useCallback(() => {
     if (workerRef.current) return;
     const w = new Worker(new URL("./worker/kokoro.worker.ts", import.meta.url), {
@@ -161,6 +235,8 @@ export function App(): React.JSX.Element {
       if (msg.type === "ready") {
         const wasOnboarding = !readOnboarded();
         deviceRef.current = msg.device;
+        document.documentElement.dataset.ttsDevice = msg.device;
+        setPerf((p) => ({ ...p, device: msg.info }));
         setStatus({ kind: "ready", device: msg.device });
         if (wasOnboarding) {
           writeOnboarded();
@@ -227,6 +303,7 @@ export function App(): React.JSX.Element {
         return;
       }
       if (msg.type === "chunk-encoded") {
+        synthAccumRef.current += msg.samples;
         const active = activeSynthsRef.current.get(msg.txnId);
         if (!active || active.cancelled) return;
         active.chunkDurations.push(msg.durationSec);
@@ -234,6 +311,9 @@ export function App(): React.JSX.Element {
         return;
       }
       if (msg.type === "synth-end-ok") {
+        setPerf((p) => ({ ...p, lastSynth: { wallMs: msg.wallMs, audioSec: msg.audioSec } }));
+        document.documentElement.dataset.lastSynthWallMs = msg.wallMs.toFixed(1);
+        document.documentElement.dataset.lastSynthAudioSec = msg.audioSec.toFixed(3);
         const active = activeSynthsRef.current.get(msg.txnId);
         if (!active) return;
         activeSynthsRef.current.delete(msg.txnId);
@@ -546,7 +626,8 @@ export function App(): React.JSX.Element {
             body={
               <>
                 The voice will be removed from this device. You'll have to download it again before
-                your next read — about 80 mb. Your saved sessions stay where they are.
+                your next read — about {formatMb(LOW_TIER.sizeMb)}. Your saved sessions stay where
+                they are.
               </>
             }
             confirmLabel="Delete model"
@@ -569,6 +650,7 @@ export function App(): React.JSX.Element {
           recordingId={status.kind === "synthesising" ? doc.id : null}
           modified={modified}
           storage={storage}
+          perf={perf}
           modelPopoverOpen={modelPopoverOpen}
           onNewDocument={onNewDocument}
           onOpen={onOpenSession}
@@ -625,7 +707,8 @@ export function App(): React.JSX.Element {
           body={
             <>
               The voice will be removed from this device. You'll have to download it again before
-              your next read — about 80 mb. Your saved sessions stay where they are.
+              your next read — about {formatMb(LOW_TIER.sizeMb)}. Your saved sessions stay where
+              they are.
             </>
           }
           confirmLabel="Delete model"

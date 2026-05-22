@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
+import type { PerfState } from "../App";
 import type { SessionMeta, StorageBreakdown } from "../storage/sessionStore";
 import { BrandMark } from "./BrandMark";
+import { PerfWidget } from "./PerfWidget";
 
 function fmtBytes(bytes: number): string {
   if (bytes >= 1024 ** 3) return `${(bytes / 1024 ** 3).toFixed(1)} gb`;
@@ -22,6 +24,7 @@ interface RailProps {
   recordingId: string | null;
   modified: boolean;
   storage: StorageBreakdown | null;
+  perf: PerfState;
   modelPopoverOpen: boolean;
   onNewDocument: () => void;
   onOpen: (id: string) => void;
@@ -37,6 +40,7 @@ export function Rail({
   recordingId,
   modified,
   storage,
+  perf,
   modelPopoverOpen,
   onNewDocument,
   onOpen,
@@ -216,6 +220,8 @@ export function Rail({
         </span>
       </button>
 
+      <PerfWidget perf={perf} />
+
       <section className="foot-section" aria-label="Storage">
         <h5 className="foot-lbl">
           Storage
@@ -243,11 +249,7 @@ export function Rail({
           </span>
           <b>{storage ? fmtBytes(storage.headroomBytes) : "—"}</b>
         </div>
-        {storage ? (
-          <span className={storage.persisted ? "foot-badge" : "foot-badge warn"}>
-            {storage.persisted ? "persistent" : "may be evicted"}
-          </span>
-        ) : null}
+        {storage?.persisted ? <span className="foot-badge">persistent</span> : null}
         <button
           type="button"
           className="ghost-danger"

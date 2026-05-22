@@ -1,0 +1,399 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>catm — v7 / A · rail Performance widget</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* v7 / A — Performance widget in the rail-foot, between Model and Storage.
+     Built against the helivar-light language already in production.
+     One screen, focused on the rail-foot. Main column dimmed so the
+     widget reads as the subject. */
+
+  :root {
+    --bg-0: #fafbfc;
+    --bg-1: #ffffff;
+    --bg-2: #f4f5f7;
+    --border: #e6e8ec;
+    --border-strong: #d4d7de;
+    --ink-0: #0d0e12;
+    --ink-1: #2a2d35;
+    --ink-2: #585d6b;
+    --ink-3: #8c92a3;
+    --accent: #5b6cff;
+    --accent-soft: #eef0ff;
+    --accent-ink: #3b48cc;
+    --good: #16a06f;
+    --good-soft: #e5f5ee;
+    --warn: #b35a00;
+    --warn-soft: #fbf0e2;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+    color: var(--ink-1);
+    background: var(--bg-0);
+    background-image:
+      radial-gradient(circle at 0% 0%, rgba(91,108,255,.08), transparent 45%),
+      radial-gradient(circle at 100% 100%, rgba(255,170,140,.07), transparent 50%),
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40'><circle cx='1' cy='1' r='1' fill='%23999' opacity='.16'/></svg>");
+    background-attachment: fixed;
+    -webkit-font-smoothing: antialiased;
+    letter-spacing: -0.005em;
+  }
+
+  .shell { display: grid; grid-template-columns: 268px 1fr; min-height: 100vh; }
+
+  /* ── left rail ─────────────────────────────────────────────── */
+  .rail {
+    background: rgba(255,255,255,.78); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+    border-right: 1px solid var(--border);
+    padding: 18px 14px;
+    display: flex; flex-direction: column; gap: 14px;
+    position: sticky; top: 0; height: 100vh;
+  }
+  .brand {
+    display: flex; align-items: center; gap: 10px;
+    padding: 4px 8px 12px; border-bottom: 1px solid var(--border);
+  }
+  .brand .logo {
+    width: 30px; height: 30px; border-radius: 8px;
+    background: linear-gradient(135deg, var(--accent), #8a98ff);
+    display: inline-flex; align-items: center; justify-content: center;
+    color: white; font-weight: 800; font-size: 14px; letter-spacing: -.04em;
+  }
+  .brand .name { font-weight: 700; font-size: 15px; color: var(--ink-0); letter-spacing: -.02em; }
+  .brand .name span { color: var(--ink-3); font-weight: 500; }
+
+  .newdoc {
+    display: flex; align-items: center; gap: 10px; justify-content: center;
+    background: var(--ink-0); color: white;
+    border: 1px solid var(--ink-0); cursor: pointer;
+    font-family: inherit; font-size: 13px; font-weight: 600;
+    padding: 9px 12px; border-radius: 8px;
+    letter-spacing: -.01em;
+  }
+
+  /* Library list (compressed so the rail-foot has room) */
+  .lbl {
+    font-size: 10.5px; font-weight: 600; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--ink-3); padding: 6px 8px 2px;
+    display: flex; justify-content: space-between; align-items: baseline;
+  }
+  .lbl b { color: var(--ink-2); font-family: "JetBrains Mono", monospace; font-size: 10.5px; }
+  .hist { display: flex; flex-direction: column; gap: 1px; flex: 1; overflow: hidden; }
+  .row {
+    display: flex; flex-direction: column; align-items: flex-start;
+    background: transparent; border: none; padding: 7px 8px;
+    border-radius: 6px; cursor: pointer; text-align: left; gap: 1px;
+  }
+  .row:hover { background: var(--bg-2); }
+  .row.on { background: var(--accent-soft); }
+  .row .t { font-size: 12.5px; color: var(--ink-1); font-weight: 500; }
+  .row.on .t { color: var(--accent-ink); font-weight: 600; }
+  .row .m { font-size: 10.5px; color: var(--ink-3); font-family: "JetBrains Mono", monospace; }
+
+  /* ── rail-foot ────────────────────────────────────────────── */
+  .foot { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+  .foot-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 9px 8px;
+    border-top: 1px solid var(--border);
+    background: transparent;
+    font-size: 12px;
+  }
+  .foot-row .left { display: inline-flex; align-items: center; gap: 8px; color: var(--ink-2); }
+  .foot-row .left svg { color: var(--ink-3); }
+  .foot-row b { color: var(--ink-1); font-weight: 600; }
+
+  /* The new Performance section */
+  .perf {
+    border-top: 1px solid var(--border);
+    padding-top: 12px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .perf-lbl {
+    font-size: 10.5px; font-weight: 600; letter-spacing: .08em;
+    text-transform: uppercase; color: var(--ink-3);
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 0 4px;
+  }
+  .perf-lbl span.dev {
+    font-family: "JetBrains Mono", monospace; font-size: 10.5px; text-transform: none;
+    color: var(--good); letter-spacing: -.01em;
+  }
+  .perf-device {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 8px; font-size: 12px;
+    background: var(--good-soft);
+    border: 1px solid #cfe9dd;
+    border-radius: 6px;
+    color: #0e6b4a;
+  }
+  .perf-device .dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--good); box-shadow: 0 0 0 3px rgba(22,160,111,.18);
+  }
+  .perf-device .gpu { font-weight: 600; color: #0a4d36; }
+  .perf-device .feat {
+    margin-left: auto;
+    display: inline-flex; gap: 4px;
+  }
+  .perf-device .feat .tag {
+    font-family: "JetBrains Mono", monospace; font-size: 9.5px;
+    color: #0e6b4a; background: rgba(255,255,255,.55);
+    border: 1px solid #b9dbcb; border-radius: 4px;
+    padding: 1px 4px; letter-spacing: -.01em;
+  }
+
+  .perf-charts { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .chart {
+    background: var(--bg-1); border: 1px solid var(--border); border-radius: 6px;
+    padding: 6px 8px;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .chart .head { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; }
+  .chart .k {
+    font-size: 9.5px; font-weight: 600; letter-spacing: .07em;
+    text-transform: uppercase; color: var(--ink-3);
+  }
+  .chart .v {
+    font-family: "JetBrains Mono", monospace; font-size: 11px;
+    color: var(--ink-1); font-weight: 600;
+  }
+  .chart svg { display: block; width: 100%; height: 22px; }
+  .chart .footnote {
+    font-family: "JetBrains Mono", monospace; font-size: 9px; color: var(--ink-3);
+    letter-spacing: -.01em;
+  }
+
+  .perf-stats {
+    display: grid; grid-template-columns: 1fr auto;
+    row-gap: 3px; column-gap: 8px;
+    padding: 0 4px;
+    font-size: 11.5px; color: var(--ink-2);
+  }
+  .perf-stats b {
+    font-family: "JetBrains Mono", monospace; font-size: 11.5px;
+    color: var(--ink-1); font-weight: 600;
+  }
+
+  /* Storage section retained, lighter density */
+  .store { border-top: 1px solid var(--border); padding-top: 12px; display: flex; flex-direction: column; gap: 6px; }
+  .store .head { display: flex; justify-content: space-between; align-items: baseline; padding: 0 4px; }
+  .store .head h5 { font-size: 10.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+  .store .head span { font-family: "JetBrains Mono", monospace; font-size: 10.5px; color: var(--ink-2); font-weight: 600; }
+  .store-bar {
+    height: 6px; border-radius: 3px;
+    background: var(--bg-2); overflow: hidden;
+    display: flex;
+  }
+  .store-bar .v { background: linear-gradient(90deg, #5b6cff, #8a98ff); height: 100%; }
+  .store-bar .s { background: linear-gradient(90deg, #ffaa8c, #ffc9b0); height: 100%; }
+  .store-line { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--ink-2); padding: 0 4px; }
+  .store-line b { font-family: "JetBrains Mono", monospace; color: var(--ink-1); font-weight: 600; font-size: 11.5px; }
+  .store-line .dotv { width: 6px; height: 6px; border-radius: 50%; background: #5b6cff; display: inline-block; margin-right: 6px; vertical-align: middle; }
+  .store-line .dots { width: 6px; height: 6px; border-radius: 50%; background: #ffaa8c; display: inline-block; margin-right: 6px; vertical-align: middle; }
+
+  /* ── faded main column ───────────────────────────────────── */
+  .main { padding: 28px 36px; opacity: .35; pointer-events: none; }
+  .crumbs { font-size: 12px; color: var(--ink-3); margin-bottom: 18px; }
+  .crumbs b { color: var(--ink-1); }
+  .doc-head .kicker {
+    font-size: 10px; letter-spacing: .14em; color: var(--ink-3);
+    text-transform: uppercase; font-weight: 600;
+  }
+  .doc-head h1 {
+    font-size: 28px; font-weight: 800; color: var(--ink-0);
+    letter-spacing: -.02em; margin: 6px 0 4px;
+  }
+  .doc-head .sub { font-size: 12.5px; color: var(--ink-2); margin-bottom: 18px; }
+  .body p {
+    font-size: 15.5px; line-height: 1.7; color: var(--ink-1);
+    max-width: 64ch; margin-bottom: 14px;
+  }
+
+  /* Callout pointing at the new widget */
+  .callout {
+    position: fixed; top: 260px; left: 286px;
+    display: flex; align-items: center; gap: 10px;
+    pointer-events: auto;
+  }
+  .callout svg { color: var(--accent); }
+  .callout .bubble {
+    background: var(--ink-0); color: white;
+    border-radius: 8px; padding: 8px 12px;
+    font-size: 12.5px; font-weight: 500;
+    box-shadow: 0 6px 18px rgba(13,14,18,.16);
+    max-width: 240px;
+  }
+  .callout .bubble b { color: #b9c1ff; font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <!-- LEFT RAIL -->
+  <aside class="rail">
+
+    <div class="brand">
+      <span class="logo">C</span>
+      <div class="name">catm <span>· reader</span></div>
+    </div>
+
+    <button class="newdoc">＋ New reading</button>
+
+    <div class="lbl">Library <b>14</b></div>
+    <div class="hist">
+      <button class="row on">
+        <span class="t">On the pleasure of reading aloud</span>
+        <span class="m">19 May · 28:14 · af_heart</span>
+      </button>
+      <button class="row">
+        <span class="t">Letters to a Young Poet, II</span>
+        <span class="m">19 May · 21:04 · am_michael</span>
+      </button>
+      <button class="row">
+        <span class="t">Notes on Cinema, vol. 4</span>
+        <span class="m">14 May · 27:11 · af_heart</span>
+      </button>
+      <button class="row">
+        <span class="t">Borges — On Exactitude</span>
+        <span class="m">10 May · 3:48 · af_bella</span>
+      </button>
+    </div>
+
+    <!-- ────────────── RAIL FOOT ────────────── -->
+    <div class="foot">
+
+      <!-- Model (existing) -->
+      <div class="foot-row">
+        <span class="left">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L4 7v10l8 5 8-5V7z"/></svg>
+          Model
+        </span>
+        <b>Low · Kokoro q8</b>
+      </div>
+
+      <!-- ────── PERFORMANCE (new) ────── -->
+      <section class="perf" aria-label="Performance">
+        <div class="perf-lbl">
+          Performance
+          <span class="dev">live</span>
+        </div>
+
+        <div class="perf-device" title="WebGPU adapter info from navigator.gpu">
+          <span class="dot"></span>
+          <span class="gpu">Apple M2 Pro</span>
+          <span class="feat">
+            <span class="tag">f16</span>
+            <span class="tag">timing</span>
+          </span>
+        </div>
+
+        <div class="perf-charts">
+          <!-- LEFT: JS heap sparkline -->
+          <div class="chart" title="performance.memory.usedJSHeapSize (Chrome only)">
+            <div class="head">
+              <span class="k">heap</span>
+              <span class="v">182 MB</span>
+            </div>
+            <!-- Synthetic sparkline data: 24 samples, rising trend, ~rolling 60s -->
+            <svg viewBox="0 0 96 22" preserveAspectRatio="none" aria-hidden="true">
+              <defs>
+                <linearGradient id="g1" x1="0" x2="0" y1="0" y2="1">
+                  <stop offset="0" stop-color="#5b6cff" stop-opacity=".35"/>
+                  <stop offset="1" stop-color="#5b6cff" stop-opacity="0"/>
+                </linearGradient>
+              </defs>
+              <path d="M0,18 L4,17 L8,17 L12,15 L16,14 L20,15 L24,13 L28,11 L32,12 L36,10 L40,9 L44,9 L48,7 L52,8 L56,6 L60,7 L64,5 L68,6 L72,4 L76,5 L80,4 L84,3 L88,4 L92,3 L96,3 L96,22 L0,22 Z"
+                    fill="url(#g1)"/>
+              <path d="M0,18 L4,17 L8,17 L12,15 L16,14 L20,15 L24,13 L28,11 L32,12 L36,10 L40,9 L44,9 L48,7 L52,8 L56,6 L60,7 L64,5 L68,6 L72,4 L76,5 L80,4 L84,3 L88,4 L92,3 L96,3"
+                    fill="none" stroke="#5b6cff" stroke-width="1.2"/>
+            </svg>
+            <span class="footnote">60 s · main thread</span>
+          </div>
+
+          <!-- RIGHT: synth throughput -->
+          <div class="chart" title="PCM samples emitted per second (worker chunk-encoded events)">
+            <div class="head">
+              <span class="k">synth</span>
+              <span class="v">24 kS/s</span>
+            </div>
+            <!-- Throughput burst pattern: idle, burst, idle, burst -->
+            <svg viewBox="0 0 96 22" preserveAspectRatio="none" aria-hidden="true">
+              <defs>
+                <linearGradient id="g2" x1="0" x2="0" y1="0" y2="1">
+                  <stop offset="0" stop-color="#16a06f" stop-opacity=".4"/>
+                  <stop offset="1" stop-color="#16a06f" stop-opacity="0"/>
+                </linearGradient>
+              </defs>
+              <path d="M0,20 L8,20 L12,8 L16,4 L20,3 L24,5 L28,9 L32,18 L40,20 L48,20 L52,12 L56,5 L60,4 L64,6 L68,10 L72,17 L78,20 L96,20 L96,22 L0,22 Z"
+                    fill="url(#g2)"/>
+              <path d="M0,20 L8,20 L12,8 L16,4 L20,3 L24,5 L28,9 L32,18 L40,20 L48,20 L52,12 L56,5 L60,4 L64,6 L68,10 L72,17 L78,20 L96,20"
+                    fill="none" stroke="#16a06f" stroke-width="1.2"/>
+            </svg>
+            <span class="footnote">60 s · worker</span>
+          </div>
+        </div>
+
+        <div class="perf-stats">
+          <span>Last synth</span><b>2.86 s @ 9.8× rt</b>
+          <span>Voice load</span><b>91 ms</b>
+          <span>Session init</span><b>1.42 s · once</b>
+        </div>
+      </section>
+
+      <!-- Storage (existing, lightly compressed) -->
+      <section class="store" aria-label="Storage">
+        <div class="head">
+          <h5>Storage</h5>
+          <span>287 MB / 15 GB</span>
+        </div>
+        <div class="store-bar" aria-hidden="true">
+          <span class="v" style="width: 30%"></span>
+          <span class="s" style="width: 28%"></span>
+        </div>
+        <div class="store-line">
+          <span><i class="dotv"></i>Voice · Kokoro q8</span><b>88 MB</b>
+        </div>
+        <div class="store-line">
+          <span><i class="dots"></i>Recordings · 14</span><b>199 MB</b>
+        </div>
+      </section>
+
+    </div>
+  </aside>
+
+  <!-- MAIN (faded) -->
+  <main class="main">
+    <div class="crumbs">Library <span>/</span> <b>On the pleasure of reading aloud</b></div>
+    <div class="doc-head">
+      <div class="kicker">DOCUMENT · ESSAY</div>
+      <h1>On the pleasure of reading aloud</h1>
+      <p class="sub"><b>4,218 words</b> · about <b>28 minutes</b> at 1.25× · voice <b>af_heart</b></p>
+    </div>
+    <div class="body">
+      <p>The voice that reads aloud to itself is the most ancient of literary instruments. Long before the printed page, long before the silent eye learned its trick of swallowing meaning in a glance, there was the mouth, the breath, the unhurried turning of one syllable into the next.</p>
+      <p>To listen is to be carried — to surrender the self briefly, the way a small boat surrenders to a current it cannot see beneath it. The voice that reads is not a recitation but an offering; it gives the text a body, a tempo, a place to live.</p>
+    </div>
+  </main>
+
+  <!-- Callout pointing at the new widget -->
+  <div class="callout" aria-hidden="true">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M5 12h14M13 6l6 6-6 6"/>
+    </svg>
+    <div class="bubble">
+      <b>NEW · Performance</b><br/>
+      Device fingerprint, JS-heap &amp; synth-throughput sparklines, and last-run timings — all from observable signals.
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

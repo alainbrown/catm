@@ -19,6 +19,10 @@
   </head>
   <body>
     <div id="root"></div>
+    <!-- Registers a service worker that injects COOP/COEP/CORP headers so the
+         page becomes crossOriginIsolated. Required for
+         performance.measureUserAgentSpecificMemory() and SharedArrayBuffer. -->
+    <script src="/coi-serviceworker.js"></script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

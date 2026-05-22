@@ -18,7 +18,16 @@ export default defineConfig({
       use: {
         ...devices["Desktop Chrome"],
         launchOptions: {
-          args: ["--enable-features=SharedArrayBuffer"],
+          // SharedArrayBuffer is required by ORT's threaded WASM build.
+          // --enable-unsafe-webgpu + --use-angle=metal (mac) / Vulkan (linux)
+          // unlocks WebGPU in headless. The new-headless flag is now default
+          // in Playwright's bundled Chromium, so no extra channel switch.
+          args: [
+            "--enable-features=SharedArrayBuffer,Vulkan",
+            "--enable-unsafe-webgpu",
+            "--use-angle=default",
+            "--disable-vulkan-surface",
+          ],
         },
       },
     },

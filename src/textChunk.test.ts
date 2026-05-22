@@ -52,10 +52,6 @@ describe("locateChunks", () => {
     const source = "Aaaaa. Bbbbb. Ccccc.";
     const chunks = ["Aaaaa.", "Bbbbb.", "Ccccc."];
     const ranges = locateChunks(source, chunks);
-    expect(ranges.map((r) => source.slice(r.start, r.end))).toEqual([
-      "Aaaaa.",
-      "Bbbbb.",
-      "Ccccc.",
-    ]);
+    expect(ranges.map((r) => source.slice(r.start, r.end))).toEqual(["Aaaaa.", "Bbbbb.", "Ccccc."]);
   });
 });

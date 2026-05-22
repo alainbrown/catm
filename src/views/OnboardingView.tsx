@@ -1,4 +1,5 @@
 import { BrandMark } from "../components/BrandMark";
+import { LOW_TIER, formatMb } from "../modelConfig";
 import type { AppStatus } from "../types";
 
 interface OnboardingViewProps {
@@ -40,8 +41,8 @@ function FirstLaunchCard({ onStartDownload }: { onStartDownload: () => void }): 
         </h1>
         <p className="copy">
           catm reads articles, chapters, notes — anything you'd rather hear than skim — out loud,
-          right in your browser. The voice runs on your device, not a server. Once it's downloaded,
-          you can read offline forever.
+          right in your browser. The voice runs on your device, not a server — it's a{" "}
+          {formatMb(LOW_TIER.sizeMb)} download the first time, then cached for offline use forever.
         </p>
         <button
           type="button"
@@ -64,7 +65,7 @@ function FirstLaunchCard({ onStartDownload }: { onStartDownload: () => void }): 
             <line x1="5" y1="21" x2="19" y2="21" />
           </svg>
           Download voice
-          <span className="size">80 mb</span>
+          <span className="size">{formatMb(LOW_TIER.sizeMb)}</span>
         </button>
       </section>
 
@@ -72,7 +73,7 @@ function FirstLaunchCard({ onStartDownload }: { onStartDownload: () => void }): 
         <div className="fact">
           <div className="k">Disk</div>
           <div className="v">
-            80 mb
+            {formatMb(LOW_TIER.sizeMb)}
             <small>one-time</small>
           </div>
         </div>
@@ -102,7 +103,7 @@ function DownloadingCard({
   const fraction = status.kind === "downloading" ? status.fraction : 0;
   const pct = Math.round(fraction * 100);
   const loadedMb = status.kind === "downloading" ? status.loadedMb : 0;
-  const totalMb = status.kind === "downloading" ? status.totalMb : 80;
+  const totalMb = status.kind === "downloading" ? status.totalMb : LOW_TIER.sizeMb;
 
   return (
     <section className="onboard-progress" aria-label="Voice download progress">

@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { HIGH_TIER_PLACEHOLDER, LOW_TIER, MEDIUM_TIER_PLACEHOLDER, formatMb } from "../modelConfig";
 
 interface ModelPopoverProps {
   onClose: () => void;
@@ -40,7 +41,9 @@ export function ModelPopover({
             <span className="name">
               Low · Kokoro <span className="badge">selected</span>
             </span>
-            <span className="meta">82M · 80 mb · clearly synthetic but pleasant</span>
+            <span className="meta">
+              {LOW_TIER.paramCount} · {formatMb(LOW_TIER.sizeMb)} · {LOW_TIER.blurb}
+            </span>
           </span>
           <button
             type="button"
@@ -75,7 +78,9 @@ export function ModelPopover({
             <span className="name">
               Medium <span className="badge soon">soon</span>
             </span>
-            <span className="meta">~500 mb · closer to a human narrator</span>
+            <span className="meta">
+              ~{formatMb(MEDIUM_TIER_PLACEHOLDER.approxSizeMb)} · {MEDIUM_TIER_PLACEHOLDER.blurb}
+            </span>
           </span>
         </div>
         <div className="tier soon">
@@ -84,7 +89,9 @@ export function ModelPopover({
             <span className="name">
               High <span className="badge soon">soon</span>
             </span>
-            <span className="meta">~700 mb · near-human, expressive</span>
+            <span className="meta">
+              ~{formatMb(HIGH_TIER_PLACEHOLDER.approxSizeMb)} · {HIGH_TIER_PLACEHOLDER.blurb}
+            </span>
           </span>
         </div>
 

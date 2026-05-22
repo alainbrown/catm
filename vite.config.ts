@@ -8,6 +8,6 @@ export default defineConfig({
     format: "es",
   },
   optimizeDeps: {
-    exclude: ["onnxruntime-web", "kokoro-js"],
+    exclude: ["onnxruntime-web"],
   },
 });

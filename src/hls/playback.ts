@@ -74,6 +74,10 @@ export function attachHlsToAudio(audio: HTMLAudioElement, sessionId: string): Hl
 
   const hls = new Hls({
     loader: OpfsLoader as unknown as typeof Hls.DefaultConfig.loader,
+    // EVENT playlists without ENDLIST are treated as live by hls.js, which
+    // seeks to live-edge on first load and skips most of segment 0. Pin the
+    // start to t=0 so playback always begins at the start of the recording.
+    startPosition: 0,
     // hls.js types want explicit configs for these too but the cast above is
     // enough at runtime; the default loader covers the rest.
   } as unknown as Partial<typeof Hls.DefaultConfig>);

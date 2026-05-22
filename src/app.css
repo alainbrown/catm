@@ -310,6 +310,145 @@ textarea {
   border-color: var(--border-strong);
 }
 
+/* ── rail-foot: Performance widget ────────────────────────── */
+.perf-section {
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.perf-lbl {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 0 4px;
+}
+.perf-tick {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 10.5px;
+  letter-spacing: -0.01em;
+  color: var(--good);
+  font-weight: 600;
+  text-transform: none;
+}
+.perf-device {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  font-size: 12px;
+  border-radius: 6px;
+}
+.perf-device.good {
+  background: #e5f5ee;
+  border: 1px solid #cfe9dd;
+  color: #0e6b4a;
+}
+.perf-device.wasm {
+  background: #fbf0e2;
+  border: 1px solid #f0d6a8;
+  color: #6b4400;
+}
+.perf-device .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: none;
+}
+.perf-device.good .dot {
+  box-shadow: 0 0 0 3px rgba(22, 160, 111, 0.18);
+}
+.perf-device .gpu {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.perf-device .feat {
+  margin-left: auto;
+  display: inline-flex;
+  gap: 4px;
+  flex: none;
+}
+.perf-device .tag {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 9.5px;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid currentColor;
+  border-color: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+  padding: 1px 4px;
+  letter-spacing: -0.01em;
+}
+.perf-charts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.perf-chart {
+  background: var(--bg-1);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.perf-chart .head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 6px;
+}
+.perf-chart .k {
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+.perf-chart .v {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--ink-1);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.perf-spark {
+  display: block;
+  width: 100%;
+  height: 22px;
+}
+.perf-chart .foot {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 9px;
+  color: var(--ink-3);
+  letter-spacing: -0.01em;
+}
+.perf-stats {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  row-gap: 3px;
+  column-gap: 8px;
+  padding: 0 4px;
+  font-size: 11.5px;
+  color: var(--ink-2);
+}
+.perf-stats b {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 11.5px;
+  color: var(--ink-1);
+  font-weight: 600;
+}
+
 /* ── rail-foot: inline Model + Storage sections ───────────── */
 .foot-section {
   border-top: 1px solid var(--border);

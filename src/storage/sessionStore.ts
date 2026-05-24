@@ -277,22 +277,33 @@ export interface ExportBundle {
 
 /**
  * Build a .zip containing a single top-level folder (`catm-<stamp>/`) with:
+ *   - audio.mp4           init segment + media segments concatenated into one
+ *                         fragmented MP4 (valid byte concat — no remux)
  *   - source.txt          source text
  *   - meta.json           voice, model, createdAt, durationSec
- *   - playlist.m3u8       HLS playlist (references init + segments by name)
- *   - init.mp4            fragmented MP4 init segment
- *   - seg-N.m4s …         media segments in playlist order
  *
- * Unzipped you get a self-contained HLS folder: `vlc playlist.m3u8` or any
- * HLS-aware player will play it. Returns null if the session has no init
- * segment yet (still synthesising or otherwise incomplete).
+ * Returns null if the session has no init segment yet (still synthesising or
+ * otherwise incomplete) or if any referenced segment is missing.
  */
 export async function buildSessionExport(meta: SessionMeta): Promise<ExportBundle | null> {
   const init = await readSessionFile(meta.id, "init.mp4");
   if (!init) return null;
-  const playlist = await readSessionFile(meta.id, "playlist.m3u8");
-  if (!playlist) return null;
   const segNames = await readPlaylistSegmentNames(meta.id);
+
+  const parts: Uint8Array[] = [init];
+  let total = init.byteLength;
+  for (const name of segNames) {
+    const bytes = await readSessionFile(meta.id, name);
+    if (!bytes) return null;
+    parts.push(bytes);
+    total += bytes.byteLength;
+  }
+  const audio = new Uint8Array(total);
+  let offset = 0;
+  for (const part of parts) {
+    audio.set(part, offset);
+    offset += part.byteLength;
+  }
 
   const stamp = formatStampForFilename(meta.createdAt);
   const folder = `catm-${stamp}`;
@@ -306,16 +317,10 @@ export async function buildSessionExport(meta: SessionMeta): Promise<ExportBundl
   };
 
   const entries: Record<string, Uint8Array> = {
+    [`${folder}/audio.mp4`]: audio,
     [`${folder}/source.txt`]: strToU8(meta.sourceText),
     [`${folder}/meta.json`]: strToU8(JSON.stringify(manifest, null, 2)),
-    [`${folder}/playlist.m3u8`]: playlist,
-    [`${folder}/init.mp4`]: init,
   };
-  for (const name of segNames) {
-    const bytes = await readSessionFile(meta.id, name);
-    if (!bytes) return null;
-    entries[`${folder}/${name}`] = bytes;
-  }
 
   // Store-only: the MP4 payload is already AAC-compressed; deflate saves nothing.
   const zipped = zipSync(entries, { level: 0 });

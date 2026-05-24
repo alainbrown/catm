@@ -7,11 +7,29 @@ function fmt(t: number): string {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-interface AudioPlayerProps {
-  audioRef: RefObject<HTMLAudioElement | null>;
+const SPEED_CYCLE = [1, 1.25, 1.5, 1.75, 2, 0.75] as const;
+
+function nextSpeed(current: number): number {
+  const idx = SPEED_CYCLE.findIndex((s) => Math.abs(s - current) < 1e-6);
+  const next = SPEED_CYCLE[(idx + 1) % SPEED_CYCLE.length];
+  return next ?? 1;
 }
 
-export function AudioPlayer({ audioRef }: AudioPlayerProps): React.JSX.Element {
+function formatSpeed(s: number): string {
+  return `${s}×`;
+}
+
+interface AudioPlayerProps {
+  audioRef: RefObject<HTMLAudioElement | null>;
+  speed: number;
+  onChangeSpeed: (s: number) => void;
+}
+
+export function AudioPlayer({
+  audioRef,
+  speed,
+  onChangeSpeed,
+}: AudioPlayerProps): React.JSX.Element {
   const [playing, setPlaying] = useState(false);
   const [current, setCurrent] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -49,6 +67,11 @@ export function AudioPlayer({ audioRef }: AudioPlayerProps): React.JSX.Element {
       a.removeEventListener("progress", onProg);
     };
   }, [audioRef]);
+
+  useEffect(() => {
+    const a = audioRef.current;
+    if (a) a.playbackRate = speed;
+  }, [audioRef, speed]);
 
   function toggle(): void {
     const a = audioRef.current;
@@ -108,6 +131,15 @@ export function AudioPlayer({ audioRef }: AudioPlayerProps): React.JSX.Element {
       <span className="time">
         {fmt(current)} / {fmt(duration)}
       </span>
+      <button
+        type="button"
+        className="speed-btn"
+        aria-label={`Playback speed: ${formatSpeed(speed)}. Click to change.`}
+        title="Playback speed"
+        onClick={() => onChangeSpeed(nextSpeed(speed))}
+      >
+        {formatSpeed(speed)}
+      </button>
     </div>
   );
 }

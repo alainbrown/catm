@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ConfirmDialog } from "./components/ConfirmDialog";
 import { DiscardDialog } from "./components/DiscardDialog";
-import { ModelManager, type TierState } from "./components/ModelManager";
 import { Rail } from "./components/Rail";
 import { encodePcmToCompleteMp4 } from "./hls/encode";
 import { BASIC_TIER, formatMb } from "./modelConfig";
+import { UpdateBanner } from "./pwa/UpdateBanner";
+import { type IngestedDraft, consumeShareTarget, onFileLaunch } from "./pwa/ingest";
 import {
   type SegmentEntry,
   type SessionMeta,
@@ -48,6 +49,32 @@ const PERF_WINDOW = 60;
 
 const VOICE_KEY = "catm:voice";
 const DEFAULT_VOICE: VoiceId = "af_heart";
+
+const SPEED_KEY = "catm:speed";
+const DEFAULT_SPEED = 1.25;
+const SPEED_PRESETS = [1, 1.25, 1.5, 1.75, 2, 0.75] as const;
+
+function readSpeed(): number {
+  try {
+    const v = localStorage.getItem(SPEED_KEY);
+    if (v) {
+      const n = Number(v);
+      if (Number.isFinite(n) && SPEED_PRESETS.includes(n as (typeof SPEED_PRESETS)[number]))
+        return n;
+    }
+  } catch {
+    /* ignore */
+  }
+  return DEFAULT_SPEED;
+}
+
+function writeSpeed(s: number): void {
+  try {
+    localStorage.setItem(SPEED_KEY, String(s));
+  } catch {
+    /* ignore */
+  }
+}
 
 function readVoice(): VoiceId {
   try {
@@ -108,41 +135,25 @@ const SYNTH_CANCELLED = "__catm_synth_cancelled__";
 
 export function App(): React.JSX.Element {
   const [onboarded, setOnboarded] = useState<boolean>(() => readOnboarded());
-  const [status, setStatus] = useState<AppStatus>(() =>
-    readOnboarded() ? { kind: "loading" } : { kind: "first-launch" },
-  );
+  const [status, setStatus] = useState<AppStatus>({ kind: "loading" });
   const [doc, setDoc] = useState<DocState>(EMPTY_DOC);
   const [sessions, setSessions] = useState<SessionMeta[]>([]);
   const [storage, setStorage] = useState<StorageBreakdown | null>(null);
-  const [speed] = useState<number>(1.25);
+  const [speed, setSpeedState] = useState<number>(() => readSpeed());
+  const setSpeed = useCallback((s: number) => {
+    writeSpeed(s);
+    setSpeedState(s);
+  }, []);
   const [pendingNav, setPendingNav] = useState<
     { kind: "open"; id: string } | { kind: "new" } | null
   >(null);
   const [playToken, setPlayToken] = useState(0);
   const [showReadyStamp, setShowReadyStamp] = useState(false);
-  const [confirmRemoveBasic, setConfirmRemoveBasic] = useState(false);
-  const [confirmClearLibrary, setConfirmClearLibrary] = useState(false);
+  const [confirmReset, setConfirmReset] = useState(false);
   const [voice, setVoice] = useState<VoiceId>(() => readVoice());
   const [liveChunkDurations, setLiveChunkDurations] = useState<number[] | null>(null);
   const [previewVoice, setPreviewVoice] = useState<VoiceId | null>(null);
-  const [modelPopoverOpen, setModelPopoverOpen] = useState(false);
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
-
-  // Manager state mirrors the Basic worker's status. The Pro card always
-  // shows "coming soon" — see ModelManager.
-  const basicTierState: TierState =
-    status.kind === "downloading"
-      ? {
-          kind: "downloading",
-          loadedMb: status.loadedMb,
-          totalMb: status.totalMb,
-          fraction: status.fraction,
-        }
-      : status.kind === "ready"
-        ? { kind: "ready" }
-        : status.kind === "error"
-          ? { kind: "error", message: status.message }
-          : { kind: "absent" };
 
   const deviceRef = useRef<"webgpu" | "wasm">("wasm");
   const [perf, setPerf] = useState<PerfState>({
@@ -190,6 +201,25 @@ export function App(): React.JSX.Element {
     void navigator.storage?.persist?.().catch(() => {
       /* not supported, denied, or transient failure */
     });
+  }, []);
+
+  // PWA ingestion: share_target query params (on first load) and file_handlers
+  // launches (any time, while installed). We only ingest into an empty draft
+  // so we never clobber unsaved work — if the user already has text, the
+  // launch is dropped silently. A future iteration could prompt to open a
+  // new draft instead.
+  useEffect(() => {
+    const ingest = (draft: IngestedDraft) => {
+      if (!draft.text || draft.text.length === 0) return;
+      setDoc((d) => {
+        if (d.id !== null || d.sourceText.length > 0) return d;
+        return { ...d, sourceText: draft.text };
+      });
+    };
+    const initial = consumeShareTarget();
+    if (initial) ingest(initial);
+    const cleanup = onFileLaunch(ingest);
+    return cleanup;
   }, []);
 
   // 1 Hz throughput rotation.
@@ -259,6 +289,12 @@ export function App(): React.JSX.Element {
           writeOnboarded();
           setOnboarded(true);
           setShowReadyStamp(true);
+          // Mark origin storage as persistent so the cached model weights and
+          // OPFS sessions aren't evicted under pressure. Browser may decline
+          // silently — that's fine, it's a best-effort hint.
+          if (navigator.storage?.persist) {
+            navigator.storage.persist().catch(() => {});
+          }
         }
         return;
       }
@@ -373,22 +409,15 @@ export function App(): React.JSX.Element {
   }, [refreshLibrary, voice]);
 
   useEffect(() => {
-    if (!onboarded) return;
     startWorker();
     return () => {
       workerRef.current?.terminate();
       workerRef.current = null;
     };
-  }, [onboarded, startWorker]);
+  }, [startWorker]);
 
   function dismissReadyStamp(): void {
     if (showReadyStamp) setShowReadyStamp(false);
-  }
-
-  function onStartDownload(): void {
-    if (workerRef.current) return;
-    setStatus({ kind: "loading" });
-    startWorker();
   }
 
   async function performPreviewSynth(
@@ -561,39 +590,49 @@ export function App(): React.JSX.Element {
     await refreshLibrary();
   }
 
-  async function removeBasic(): Promise<void> {
+  async function onReset(): Promise<void> {
+    // 1. Tear down the worker so the cached model can be deleted safely.
     workerRef.current?.terminate();
     workerRef.current = null;
     progressMapRef.current.clear();
     pendingPreviewRef.current.clear();
     activeSynthsRef.current.clear();
+    // 2. Delete the model + voice files from the HTTP cache.
     try {
       const keys = await caches.keys();
       await Promise.all(
         keys
-          .filter((k) => k.includes("kokoro") || k.includes("transformers") || k.includes("hf"))
+          .filter(
+            (k) =>
+              k.includes("kokoro") ||
+              k.includes("transformers") ||
+              k.includes("hf") ||
+              k === "catm-model-v1",
+          )
           .map((k) => caches.delete(k)),
       );
     } catch {
       /* ignore */
     }
-    try {
-      localStorage.removeItem(ONBOARDED_KEY);
-    } catch {
-      /* ignore */
-    }
-    setOnboarded(false);
-    setStatus({ kind: "first-launch" });
-    setDoc(EMPTY_DOC);
-    setConfirmRemoveBasic(false);
-  }
-
-  async function onClearAllSessions(): Promise<void> {
+    // 3. Wipe library (IDB metadata + OPFS audio).
     for (const s of sessions) {
       await deleteSession(s.id);
     }
+    // 4. Clear local preferences.
+    try {
+      localStorage.removeItem(ONBOARDED_KEY);
+      localStorage.removeItem(VOICE_KEY);
+    } catch {
+      /* ignore */
+    }
+    // 5. Reset UI state and kick off a fresh download.
+    setOnboarded(false);
+    setVoice(DEFAULT_VOICE);
+    setStatus({ kind: "loading" });
     setDoc(EMPTY_DOC);
+    setConfirmReset(false);
     await refreshLibrary();
+    startWorker();
   }
 
   function resolveDiscardDialog(action: "cancel" | "discard" | "save"): void {
@@ -617,9 +656,7 @@ export function App(): React.JSX.Element {
     })();
   }
 
-  const isOnboarding =
-    !onboarded &&
-    (status.kind === "first-launch" || status.kind === "downloading" || status.kind === "loading");
+  const isOnboarding = !onboarded && (status.kind === "downloading" || status.kind === "loading");
 
   const currentTitle = doc.id
     ? (sessions.find((s) => s.id === doc.id)?.title ?? "Untitled")
@@ -632,7 +669,8 @@ export function App(): React.JSX.Element {
   if (isOnboarding) {
     return (
       <>
-        <OnboardingView status={status} onStartDownload={onStartDownload} />
+        <OnboardingView status={status} />
+        <UpdateBanner />
       </>
     );
   }
@@ -647,13 +685,11 @@ export function App(): React.JSX.Element {
           modified={modified}
           storage={storage}
           perf={perf}
-          modelPopoverOpen={modelPopoverOpen}
           onNewDocument={onNewDocument}
           onOpen={onOpenSession}
           onDelete={(id) => void onDeleteSession(id)}
           onExport={(id) => void onExportSession(id)}
-          onToggleModel={() => setModelPopoverOpen((o) => !o)}
-          onClearLibrary={() => setConfirmClearLibrary(true)}
+          onReset={() => setConfirmReset(true)}
         />
 
         <main className="main">
@@ -662,6 +698,7 @@ export function App(): React.JSX.Element {
             doc={doc}
             modified={modified}
             speed={speed}
+            onChangeSpeed={setSpeed}
             sessions={sessions}
             shouldPlayToken={playToken}
             showReadyStamp={showReadyStamp && doc.sourceText.length === 0 && !doc.id}
@@ -677,67 +714,30 @@ export function App(): React.JSX.Element {
             liveChunkDurations={liveChunkDurations}
             onChangeVoice={onChangeVoice}
             onPreviewVoice={(v) => void onPreviewVoice(v)}
-            onOpenModelManager={() => setModelPopoverOpen(true)}
+            onExport={(id) => void onExportSession(id)}
           />
         </main>
       </div>
 
-      {modelPopoverOpen ? (
-        <ModelManager
-          basicState={basicTierState}
-          synthInProgress={status.kind === "synthesising"}
-          onClose={() => setModelPopoverOpen(false)}
-          onRemoveBasic={() => {
-            setModelPopoverOpen(false);
-            setConfirmRemoveBasic(true);
-          }}
-        />
-      ) : null}
-
-      {confirmRemoveBasic ? (
+      {confirmReset ? (
         <ConfirmDialog
           title={
             <>
-              Remove <em>{BASIC_TIER.family}</em>?
+              Reset <em>catm</em>?
             </>
           }
           body={
             <>
-              Basic ({BASIC_TIER.family}, about {formatMb(BASIC_TIER.sizeMb)}) will be removed from
-              this device. You'll have to download it again before your next read. Your saved
-              sessions stay where they are.
+              This will delete the voice model (~{formatMb(BASIC_TIER.sizeMb)}), all{" "}
+              <b>{sessions.length}</b> saved {sessions.length === 1 ? "recording" : "recordings"},
+              and your preferences. The voice will re-download on next launch. There is no undo.
             </>
           }
-          confirmLabel="Remove"
+          confirmLabel="Reset"
           tone="danger"
-          onCancel={() => setConfirmRemoveBasic(false)}
-          onConfirm={() => void removeBasic()}
-          testId="confirm-remove-basic"
-        />
-      ) : null}
-
-      {confirmClearLibrary ? (
-        <ConfirmDialog
-          title={
-            <>
-              Clear <em>library</em>?
-            </>
-          }
-          body={
-            <>
-              This will delete all <b>{sessions.length}</b> saved{" "}
-              {sessions.length === 1 ? "recording" : "recordings"} from this device. The voice
-              itself stays installed. There is no undo.
-            </>
-          }
-          confirmLabel="Clear all recordings"
-          tone="danger"
-          onCancel={() => setConfirmClearLibrary(false)}
-          onConfirm={() => {
-            void onClearAllSessions();
-            setConfirmClearLibrary(false);
-          }}
-          testId="confirm-clear-library"
+          onCancel={() => setConfirmReset(false)}
+          onConfirm={() => void onReset()}
+          testId="confirm-reset"
         />
       ) : null}
 
@@ -750,6 +750,8 @@ export function App(): React.JSX.Element {
           onSaveAndOpen={() => resolveDiscardDialog("save")}
         />
       ) : null}
+
+      <UpdateBanner />
     </>
   );
 }

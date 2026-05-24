@@ -101,15 +101,12 @@ test("voice chip opens popover and closes on outside click", async ({ page }) =>
   await expect(page.getByRole("heading", { name: /Voice · English/i })).toBeHidden();
 });
 
-test("onboarding: first-launch hero → download → ready stamp", async ({ page }) => {
+test("onboarding: auto-loading screen → ready stamp", async ({ page }) => {
   test.setTimeout(4 * 60 * 1000);
   await clearStorage(page, { onboarded: false });
 
-  // First-launch hero is visible; worker hasn't started yet.
-  await expect(page.getByRole("heading", { name: /Read.*Out/i })).toBeVisible();
-  await expect(page.getByTestId("start-download")).toBeVisible();
-
-  await page.getByTestId("start-download").click();
+  // No CTA — the loading screen appears immediately and the download starts on its own.
+  await expect(page.getByTestId("loading-pct")).toBeVisible();
 
   // Eventually reaches ready and shows the "Ready ★" stamp.
   await expect(page.getByTestId("ready-stamp")).toBeVisible({ timeout: 3 * 60 * 1000 });
@@ -196,34 +193,69 @@ test("voice picker selects and persists across reload", async ({ page }) => {
   await expect(page.getByTestId("voice-am_michael")).toHaveClass(/on/);
 });
 
-test("removing the voice model returns to first-launch onboarding", async ({ page }) => {
-  await clearStorage(page);
-  await expect(page.getByText(/Ready · paste/i)).toBeVisible({ timeout: 3 * 60 * 1000 });
-
-  // Open the Model popover from the rail-foot, then trigger its trashcan.
-  await page.getByTestId("rail-model").click();
-  await page.getByTestId("tier-remove-basic").click();
-  await expect(page.getByTestId("confirm-remove-basic")).toBeVisible();
-  await page.getByTestId("confirm-confirm").click();
-
-  // Confirmed removal drops the onboarded flag and resets to first-launch.
-  await expect(page.getByTestId("start-download")).toBeVisible();
-  await expect(page.getByRole("heading", { name: /Read.*Out/i })).toBeVisible();
-});
-
-test("clear library wipes all sessions after confirm", async ({ page }) => {
+test("reset wipes model, library, and settings; returns to loading screen", async ({ page }) => {
   test.setTimeout(4 * 60 * 1000);
   await clearStorage(page);
   await expect(page.getByText(/Ready · paste/i)).toBeVisible({ timeout: 3 * 60 * 1000 });
 
-  await page.getByLabel("Text").fill("To be cleared.");
+  // Make sure there's something to clear.
+  await page.getByLabel("Text").fill("To be reset.");
   await page.getByTestId("speak").click();
   await expect(page.getByTestId("library-row")).toHaveCount(1, { timeout: 90_000 });
 
-  await page.getByTestId("clear-library").click();
-  await expect(page.getByTestId("confirm-clear-library")).toBeVisible();
+  await page.getByTestId("reset").click();
+  await expect(page.getByTestId("confirm-reset")).toBeVisible();
   await page.getByTestId("confirm-confirm").click();
-  await expect(page.getByTestId("library-empty")).toBeVisible();
+
+  // Reset drops the onboarded flag; the loading screen re-appears and the
+  // download restarts automatically (no CTA).
+  await expect(page.getByTestId("loading-pct")).toBeVisible();
+});
+
+test("export downloads a zip containing a single combined audio.mp4", async ({ page }) => {
+  test.setTimeout(4 * 60 * 1000);
+  await clearStorage(page);
+  await expect(page.getByText(/Ready · paste/i)).toBeVisible({ timeout: 3 * 60 * 1000 });
+
+  await page.getByLabel("Text").fill("Export round-trip check.");
+  await page.getByTestId("speak").click();
+  await expect
+    .poll(async () => page.getByTestId("audio").evaluate((el) => (el as HTMLAudioElement).src), {
+      timeout: 90_000,
+    })
+    .toMatch(/^blob:/);
+
+  const [download] = await Promise.all([
+    page.waitForEvent("download"),
+    page.getByTestId("library-export").first().click(),
+  ]);
+
+  const path = await download.path();
+  expect(path).toBeTruthy();
+  const fs = await import("node:fs");
+  const { unzipSync, strFromU8 } = await import("fflate");
+  const buf = fs.readFileSync(path!);
+  const entries = unzipSync(new Uint8Array(buf));
+  const names = Object.keys(entries);
+
+  // Exactly three files in one top-level folder: audio.mp4, source.txt, meta.json.
+  expect(names).toHaveLength(3);
+  const folder = names[0]!.split("/")[0]!;
+  expect(folder).toMatch(/^catm-/);
+  expect(new Set(names)).toEqual(
+    new Set([`${folder}/audio.mp4`, `${folder}/source.txt`, `${folder}/meta.json`]),
+  );
+
+  // audio.mp4 starts with an MP4 ftyp box: bytes 4..8 are the ASCII tag "ftyp".
+  const audio = entries[`${folder}/audio.mp4`]!;
+  expect(audio.byteLength).toBeGreaterThan(0);
+  expect(strFromU8(audio.subarray(4, 8))).toBe("ftyp");
+
+  // source.txt and meta.json carry through.
+  expect(strFromU8(entries[`${folder}/source.txt`]!)).toBe("Export round-trip check.");
+  const meta = JSON.parse(strFromU8(entries[`${folder}/meta.json`]!));
+  expect(meta.title).toBeTruthy();
+  expect(meta.voice).toBeTruthy();
 });
 
 test("switching to a different session while modified shows discard dialog", async ({ page }) => {

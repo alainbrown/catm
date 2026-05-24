@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AudioPlayer } from "../components/AudioPlayer";
-import { ModelChip } from "../components/ModelChip";
 import { VoiceChip } from "../components/VoiceChip";
 import { attachHlsToAudio } from "../hls/playback";
 import type { SessionMeta } from "../storage/sessionStore";
@@ -28,6 +27,7 @@ interface ReaderViewProps {
   doc: DocState;
   modified: boolean;
   speed: number;
+  onChangeSpeed: (s: number) => void;
   sessions: SessionMeta[];
   shouldPlayToken: number;
   showReadyStamp: boolean;
@@ -38,9 +38,9 @@ interface ReaderViewProps {
   onCancel: () => void;
   onRename: (id: string, title: string) => void;
   onChangeVoice: (v: VoiceId) => void;
-  onOpenModelManager: () => void;
   liveChunkDurations: number[] | null;
   onPreviewVoice: (v: VoiceId) => void;
+  onExport: (id: string) => void;
 }
 
 export function ReaderView(props: ReaderViewProps): React.JSX.Element {
@@ -49,6 +49,7 @@ export function ReaderView(props: ReaderViewProps): React.JSX.Element {
     doc,
     modified,
     speed,
+    onChangeSpeed,
     sessions,
     shouldPlayToken,
     showReadyStamp,
@@ -61,7 +62,7 @@ export function ReaderView(props: ReaderViewProps): React.JSX.Element {
     previewVoice,
     onChangeVoice,
     onPreviewVoice,
-    onOpenModelManager,
+    onExport,
   } = props;
 
   const words = countWords(doc.sourceText);
@@ -151,8 +152,8 @@ export function ReaderView(props: ReaderViewProps): React.JSX.Element {
     : modified && doc.id
       ? "Save & read"
       : doc.id
-        ? "Record again"
-        : "Record";
+        ? "Generate again"
+        : "Generate";
 
   const title = session?.title ?? (doc.sourceText.length > 0 ? "Untitled draft" : null);
   const kicker = doc.id
@@ -213,6 +214,31 @@ export function ReaderView(props: ReaderViewProps): React.JSX.Element {
             ) : null
           ) : null}
           {isStale ? <span className="chip-sm warn">audio stale</span> : null}
+          {doc.id && doc.hasAudio && !isSynth ? (
+            <button
+              type="button"
+              className="topbar-btn"
+              onClick={() => onExport(doc.id as string)}
+              title="Export this reading as a .zip"
+              data-testid="editor-export"
+            >
+              <svg
+                width="13"
+                height="13"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                aria-hidden="true"
+              >
+                <title>Export</title>
+                <path d="M12 3v12" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="5" y1="21" x2="19" y2="21" />
+              </svg>
+              Export
+            </button>
+          ) : null}
         </div>
       </header>
 
@@ -284,19 +310,6 @@ export function ReaderView(props: ReaderViewProps): React.JSX.Element {
           />
 
           <div className="toolbar">
-            <ModelChip
-              downloading={
-                status.kind === "downloading"
-                  ? {
-                      loadedMb: status.loadedMb,
-                      totalMb: status.totalMb,
-                      fraction: status.fraction,
-                    }
-                  : null
-              }
-              disabled={isSynth}
-              onOpenManager={onOpenModelManager}
-            />
             <VoiceChip
               voice={voice}
               previewVoice={previewVoice}
@@ -346,7 +359,7 @@ export function ReaderView(props: ReaderViewProps): React.JSX.Element {
                 pointerEvents: "none",
               }}
             />
-            <AudioPlayer audioRef={audioRef} />
+            <AudioPlayer audioRef={audioRef} speed={speed} onChangeSpeed={onChangeSpeed} />
           </div>
         ) : null}
 

@@ -1,8 +1,7 @@
 export type View = "reader";
 
 export type AppStatus =
-  | { kind: "first-launch" } // user hasn't onboarded yet; waiting for them to start the download
-  | { kind: "loading" } // worker booting / preparing
+  | { kind: "loading" } // worker booting / preparing — model not yet downloading
   | { kind: "downloading"; loadedMb: number; totalMb: number; fraction: number }
   | { kind: "ready"; device: "webgpu" | "wasm" }
   | { kind: "synthesising" }

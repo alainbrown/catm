@@ -32,7 +32,7 @@ The app is one React surface (`src/App.tsx`) that owns nearly all state and driv
 
 ### Synthesis pipeline (progressive HLS)
 
-Long text is sliced into ~300-char chunks (`src/textChunk.ts`, sentence-boundary aware). The flow:
+Long text is sliced into ~500-char chunks (`src/textChunk.ts`, sentence-boundary aware). The flow:
 
 1. App posts `synth-start` → `synth-chunk` × N → `synth-end` to `src/worker/kokoro.worker.ts`.
 2. The worker drives `KokoroTTS.generate()` per chunk, feeding PCM into `ProgressiveEncoder` (`src/hls/encode.ts`), which upsamples 24 kHz → 48 kHz (linear 2×, valid since the source is band-limited) and AAC-encodes into fragmented MP4 via WebCodecs `AudioEncoder` + `mp4-muxer`'s `StreamTarget`.

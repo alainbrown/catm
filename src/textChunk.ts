@@ -1,4 +1,4 @@
-export const CHUNK_CHARS = 300;
+export const CHUNK_CHARS = 500;
 
 /**
  * Split text into chunks for progressive synthesis. Paragraphs (blank-line

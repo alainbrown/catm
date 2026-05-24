@@ -25,13 +25,11 @@ interface RailProps {
   modified: boolean;
   storage: StorageBreakdown | null;
   perf: PerfState;
-  modelPopoverOpen: boolean;
   onNewDocument: () => void;
   onOpen: (id: string) => void;
   onDelete: (id: string) => void;
   onExport: (id: string) => void;
-  onToggleModel: () => void;
-  onClearLibrary: () => void;
+  onReset: () => void;
 }
 
 export function Rail({
@@ -41,13 +39,11 @@ export function Rail({
   modified,
   storage,
   perf,
-  modelPopoverOpen,
   onNewDocument,
   onOpen,
   onDelete,
   onExport,
-  onToggleModel,
-  onClearLibrary,
+  onReset,
 }: RailProps): React.JSX.Element {
   const [query, setQuery] = useState("");
 
@@ -70,7 +66,8 @@ export function Rail({
       <div className="brand">
         <BrandMark size={28} />
         <span className="name" title="come and talk to me">
-          catm <span>· come and talk to me</span>
+          <b>catm</b>
+          <span>come and talk to me</span>
         </span>
       </div>
 
@@ -187,38 +184,6 @@ export function Rail({
         />
       ) : null}
 
-      <button
-        type="button"
-        className={modelPopoverOpen ? "foot-row active" : "foot-row"}
-        onClick={onToggleModel}
-        aria-expanded={modelPopoverOpen}
-        aria-haspopup="dialog"
-        data-testid="rail-model"
-      >
-        <span className="left">
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            aria-hidden="true"
-          >
-            <title>Models</title>
-            <polygon points="12 2 2 7 12 12 22 7 12 2" />
-            <polyline points="2 17 12 22 22 17" />
-            <polyline points="2 12 12 17 22 12" />
-          </svg>
-          Models
-        </span>
-        <span className="right">
-          <span className="chev" aria-hidden="true">
-            ▸
-          </span>
-        </span>
-      </button>
-
       <PerfWidget perf={perf} />
 
       <section className="foot-section" aria-label="Storage">
@@ -249,21 +214,11 @@ export function Rail({
           <b>{storage ? fmtBytes(storage.headroomBytes) : "—"}</b>
         </div>
         {storage?.persisted ? <span className="foot-badge">persistent</span> : null}
-        <button
-          type="button"
-          className="ghost-danger"
-          onClick={onClearLibrary}
-          disabled={sessions.length === 0}
-          data-testid="clear-library"
-        >
-          Clear all recordings
+        <button type="button" className="ghost-danger" onClick={onReset} data-testid="reset">
+          Reset
         </button>
       </section>
 
-      <div className="foot-line privacy">
-        <span>Privacy</span>
-        <span className="foot-badge inline">on-device</span>
-      </div>
     </aside>
   );
 }

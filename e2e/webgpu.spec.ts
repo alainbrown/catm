@@ -28,7 +28,6 @@ test("WebGPU synth produces speech-shaped audio (no silence, click, or saturatio
   });
   test.skip(!hasGpu, "this Chromium build cannot expose WebGPU; see playwright.config.ts");
 
-  await page.getByTestId("start-download").click();
   try {
     await expect(page.getByTestId("ready-stamp")).toBeVisible({ timeout: 3 * 60 * 1000 });
   } catch (err) {

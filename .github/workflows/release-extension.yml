@@ -1,0 +1,114 @@
+# Releases the "Send to catm" Chrome extension.
+#
+# Triggers
+#   • Push to main that touches anything under extension/
+#   • Manual workflow_dispatch
+#
+# What it does
+#   • Always: builds extension.zip, uploads it as a CI artifact (Actions tab)
+#   • On manifest.json version bump: also creates a GitHub Release tagged
+#     ext-v<version> with the zip attached
+#   • If the CWS_* secrets are configured: also uploads + publishes the new
+#     version to the Chrome Web Store via chrome-webstore-upload-cli
+#
+# Secrets to add (Repo settings → Secrets and variables → Actions)
+#   CWS_APP_ID         — extension ID from the Chrome Web Store dashboard
+#   CWS_CLIENT_ID      — OAuth 2.0 client ID from Google Cloud Console
+#   CWS_CLIENT_SECRET  — OAuth 2.0 client secret
+#   CWS_REFRESH_TOKEN  — one-time OAuth refresh token; the setup flow is
+#                        documented at
+#                        https://github.com/fregante/chrome-webstore-upload-keys
+#
+# Until those secrets exist the workflow will still build the zip and attach
+# it to a GitHub Release on each version bump — you can upload it manually
+# from the Releases page.
+
+name: Release extension
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'extension/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write  # to create GitHub releases
+
+concurrency:
+  group: release-extension
+  cancel-in-progress: false  # never cancel an in-flight publish
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2  # we compare manifest.json against the parent commit
+
+      - name: Validate background.js syntax
+        run: node --check extension/background.js
+
+      - name: Detect version bump
+        id: ver
+        run: |
+          current=$(jq -r .version extension/manifest.json)
+          echo "current=$current" >> "$GITHUB_OUTPUT"
+          if git cat-file -e HEAD~1:extension/manifest.json 2>/dev/null; then
+            previous=$(git show HEAD~1:extension/manifest.json | jq -r .version)
+          else
+            previous=""
+          fi
+          if [ "$current" != "$previous" ]; then
+            echo "bumped=true" >> "$GITHUB_OUTPUT"
+            echo "Version bumped: ${previous:-<none>} → $current"
+          else
+            echo "bumped=false" >> "$GITHUB_OUTPUT"
+            echo "Version unchanged ($current) — will build zip artefact but skip release"
+          fi
+
+      - name: Build extension.zip
+        run: ./scripts/package-extension.sh
+
+      - name: Upload zip as workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: extension-v${{ steps.ver.outputs.current }}-${{ github.sha }}
+          path: extension.zip
+          retention-days: 90
+
+      - name: Create GitHub Release
+        if: steps.ver.outputs.bumped == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="ext-v${{ steps.ver.outputs.current }}"
+          gh release create "$tag" extension.zip \
+            --title "Extension v${{ steps.ver.outputs.current }}" \
+            --notes "Auto-built from ${GITHUB_SHA::7}. If CWS auto-publish is not configured, upload extension.zip to the Chrome Web Store dashboard manually."
+
+      - name: Publish to Chrome Web Store
+        if: steps.ver.outputs.bumped == 'true'
+        env:
+          CWS_APP_ID: ${{ secrets.CWS_APP_ID }}
+          CWS_CLIENT_ID: ${{ secrets.CWS_CLIENT_ID }}
+          CWS_CLIENT_SECRET: ${{ secrets.CWS_CLIENT_SECRET }}
+          CWS_REFRESH_TOKEN: ${{ secrets.CWS_REFRESH_TOKEN }}
+        run: |
+          if [ -z "${CWS_APP_ID:-}" ] || [ -z "${CWS_CLIENT_ID:-}" ] \
+             || [ -z "${CWS_CLIENT_SECRET:-}" ] || [ -z "${CWS_REFRESH_TOKEN:-}" ]; then
+            echo "::notice::CWS_* secrets not set — skipping auto-publish. The zip is attached to the GitHub Release; upload it via the Chrome Web Store dashboard."
+            exit 0
+          fi
+          npx --yes chrome-webstore-upload-cli@3 upload \
+            --source extension.zip \
+            --extension-id "$CWS_APP_ID" \
+            --client-id "$CWS_CLIENT_ID" \
+            --client-secret "$CWS_CLIENT_SECRET" \
+            --refresh-token "$CWS_REFRESH_TOKEN"
+          npx --yes chrome-webstore-upload-cli@3 publish \
+            --extension-id "$CWS_APP_ID" \
+            --client-id "$CWS_CLIENT_ID" \
+            --client-secret "$CWS_CLIENT_SECRET" \
+            --refresh-token "$CWS_REFRESH_TOKEN"

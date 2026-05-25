@@ -4,7 +4,12 @@ import { DiscardDialog } from "./components/DiscardDialog";
 import { Rail } from "./components/Rail";
 import { encodePcmToCompleteMp4 } from "./hls/encode";
 import { UpdateBanner } from "./pwa/UpdateBanner";
-import { type IngestedDraft, consumeShareTarget, onFileLaunch } from "./pwa/ingest";
+import {
+  type IngestedDraft,
+  consumeShareTarget,
+  onExtensionBridge,
+  onFileLaunch,
+} from "./pwa/ingest";
 import {
   type SegmentEntry,
   type SessionMeta,
@@ -223,8 +228,12 @@ export function App(): React.JSX.Element {
     };
     const initial = consumeShareTarget();
     if (initial) ingest(initial);
-    const cleanup = onFileLaunch(ingest);
-    return cleanup;
+    const cleanupFile = onFileLaunch(ingest);
+    const cleanupExt = onExtensionBridge(ingest);
+    return () => {
+      cleanupFile();
+      cleanupExt();
+    };
   }, []);
 
   // 1 Hz throughput rotation.

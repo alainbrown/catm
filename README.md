@@ -1,5 +1,8 @@
 # catm — come and talk to me
 
+[![Test](https://github.com/catm-app/catm-app.github.io/actions/workflows/test.yml/badge.svg)](https://github.com/catm-app/catm-app.github.io/actions/workflows/test.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
+
 **Try it →** [catm-app.github.io](https://catm-app.github.io/)
 
 <p align="center">

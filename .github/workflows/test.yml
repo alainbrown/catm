@@ -1,11 +1,14 @@
 # Runs unit tests (Vitest) and the full Playwright e2e suite on every push
 # and pull request.
 #
-# Runner choice: macos-14 (Apple Silicon) so the e2e tests can use WebGPU via
-# Metal — Kokoro synthesis falls back to WASM without it, which works but is
-# slow enough to make CI runs unpleasant. macOS minutes are free for public
-# repos; if this repo is ever made private, switch to ubuntu-latest (WASM
-# fallback) or accept the 10x minute multiplier.
+# Runner choice: ubuntu-latest with Mesa's lavapipe software Vulkan driver.
+# GitHub-hosted macOS runners (macos-14/15) do not expose a GPU — Metal
+# passthrough is not implemented (see actions/runner-images#7085). The only
+# free-tier CI path with usable WebGPU is Linux + lavapipe (software Vulkan).
+# It's a software rasterizer, so synthesis is still slower than a real GPU,
+# but materially faster than WASM fallback. playwright.config.ts already
+# passes the matching Vulkan flags (--use-angle=default, --enable-features=
+# SharedArrayBuffer,Vulkan, --enable-unsafe-webgpu, --disable-vulkan-surface).
 
 name: Test
 
@@ -20,7 +23,7 @@ concurrency:
 
 jobs:
   test:
-    runs-on: macos-14
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
@@ -29,6 +32,8 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
+      - name: Install Mesa lavapipe (software Vulkan for WebGPU)
+        run: sudo apt-get update && sudo apt-get install -y mesa-vulkan-drivers
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
       - name: Unit tests

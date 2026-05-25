@@ -12,3 +12,4 @@ test-results
 !.env.example
 *.tsbuildinfo
 test-fixtures/
+extension.zip

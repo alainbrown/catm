@@ -15,6 +15,7 @@ import sharp from "sharp";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const publicDir = resolve(here, "..", "public");
+const extensionIconsDir = resolve(here, "..", "extension", "icons");
 
 const svg = await readFile(resolve(publicDir, "favicon.svg"));
 
@@ -28,6 +29,13 @@ async function plain(size, filename) {
     .resize(size, size, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
     .png()
     .toFile(resolve(publicDir, filename));
+}
+
+async function extensionIcon(size) {
+  await sharp(svg, { density: 512 })
+    .resize(size, size, { fit: "contain", background: { r: 0, g: 0, b: 0, alpha: 0 } })
+    .png()
+    .toFile(resolve(extensionIconsDir, `icon-${size}.png`));
 }
 
 async function maskable(size, filename, background) {
@@ -52,6 +60,10 @@ await Promise.all([
   plain(512, "icon-512.png"),
   maskable(512, "icon-maskable-512.png", BG),
   maskable(180, "apple-touch-icon.png", BG),
+  // Chrome MV3 extension icons — sizes match extension/manifest.json.
+  extensionIcon(48),
+  extensionIcon(128),
+  extensionIcon(512),
 ]);
 
 // Also write a tiny build manifest so we can sanity-check sizes from CI.

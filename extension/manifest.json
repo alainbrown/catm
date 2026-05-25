@@ -11,6 +11,9 @@
   },
   "permissions": ["contextMenus"],
   "host_permissions": ["https://catm-app.github.io/*"],
+  "action": {
+    "default_title": "Open catm"
+  },
   "background": {
     "service_worker": "background.js",
     "type": "module"

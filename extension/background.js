@@ -10,6 +10,18 @@ chrome.runtime.onInstalled.addListener(() => {
   });
 });
 
+async function openCatm(targetUrl) {
+  const [existing] = await chrome.tabs.query({ url: CATM_MATCH });
+  if (existing?.id != null) {
+    await chrome.tabs.update(existing.id, { active: true, url: targetUrl });
+    if (existing.windowId != null) {
+      await chrome.windows.update(existing.windowId, { focused: true });
+    }
+    return;
+  }
+  await chrome.tabs.create({ url: targetUrl });
+}
+
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   if (info.menuItemId !== MENU_ID) return;
   const text = info.selectionText?.trim();
@@ -19,15 +31,9 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   url.searchParams.set("text", text);
   if (tab?.title) url.searchParams.set("title", tab.title);
   if (tab?.url) url.searchParams.set("url", tab.url);
-  const target = url.toString();
+  await openCatm(url.toString());
+});
 
-  const [existing] = await chrome.tabs.query({ url: CATM_MATCH });
-  if (existing?.id != null) {
-    await chrome.tabs.update(existing.id, { active: true, url: target });
-    if (existing.windowId != null) {
-      await chrome.windows.update(existing.windowId, { focused: true });
-    }
-    return;
-  }
-  await chrome.tabs.create({ url: target });
+chrome.action.onClicked.addListener(() => {
+  openCatm(`${CATM_ORIGIN}/`);
 });

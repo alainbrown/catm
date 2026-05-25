@@ -127,12 +127,18 @@ test("playback covers the entire saved audio without forward-skipping", async ({
   await clearStorage(page);
   await expect(page.getByText(/Ready · paste/i)).toBeVisible({ timeout: 3 * 60 * 1000 });
 
+  // Mute the audio as soon as it appears so any pre-synth autoplay in CI
+  // doesn't trip the browser's audio-output guards. DO NOT set playbackRate
+  // here — the audio element attaches mid-synth (after
+  // PLAYBACK_BUFFER_SEGMENTS) and 8× consumption while segments are still
+  // being written live causes hls.js to underrun/retry and starve the worker
+  // on slower CI hardware. The playback-loop evaluate below sets rate=8
+  // after synth is fully done.
   await page.addInitScript(() => {
     const apply = () => {
       const el = document.querySelector('[data-testid="audio"]') as HTMLAudioElement | null;
       if (el) {
         el.muted = true;
-        el.playbackRate = 8; // run the test faster than real-time
         return true;
       }
       return false;

@@ -161,7 +161,7 @@ test("playback covers the entire saved audio without forward-skipping", async ({
     );
   await page.getByTestId("speak").click();
 
-  await expect(page.getByText(/^(Generate|Save & read)/)).toBeVisible({ timeout: 120_000 });
+  await expect(page.getByText(/^(Generate|Save & generate)/)).toBeVisible({ timeout: 120_000 });
 
   const audio = page.getByTestId("audio");
   // Wait for the audio element to actually have a usable duration before the
@@ -236,7 +236,7 @@ for (const c of cases) {
     await page.getByLabel("Text").fill(c.text);
     await page.getByTestId("speak").click();
 
-    await expect(page.getByText(/^(Generate|Save & read)/)).toBeVisible({ timeout: 120_000 });
+    await expect(page.getByText(/^(Generate|Save & generate)/)).toBeVisible({ timeout: 120_000 });
     await waitForSessionFinalized(page);
 
     const { duration, samples } = await decodeSessionAudio(page);

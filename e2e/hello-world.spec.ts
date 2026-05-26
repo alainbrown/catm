@@ -85,12 +85,12 @@ test("editing an open document re-synthesises in place (no duplicate row)", asyn
 
   await expect(page.getByTestId("library-row")).toHaveCount(1);
 
-  // Modify the text — modified indicator should appear, Read becomes "Save & read".
+  // Modify the text — modified indicator appears, Generate becomes "Save & generate".
   await page.getByLabel("Text").fill("Second version.");
-  await expect(page.getByText("Save & read")).toBeVisible();
+  await expect(page.getByText("Save & generate")).toBeVisible();
 
   await page.getByTestId("speak").click();
-  await expect(page.getByText("Save & read")).toBeHidden({ timeout: 90_000 });
+  await expect(page.getByText("Save & generate")).toBeHidden({ timeout: 90_000 });
 
   // Still only one row — the existing session was updated in place.
   await expect(page.getByTestId("library-row")).toHaveCount(1);
@@ -183,7 +183,7 @@ test("library row shows the voice the session was recorded with", async ({ page 
   // Switching default voice to af_heart marks the open session as modified.
   await page.getByTestId("voice-chip").click();
   await page.getByTestId("voice-af_heart").click();
-  await expect(page.getByText("Save & read")).toBeVisible();
+  await expect(page.getByText("Save & generate")).toBeVisible();
 });
 
 test("voice picker selects and persists across reload", async ({ page }) => {

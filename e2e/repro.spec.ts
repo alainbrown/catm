@@ -59,7 +59,7 @@ test("repro: pasted DL article — capture saved audio for inspection", async ({
 
   await page.getByLabel("Text").fill(USER_TEXT);
   await page.getByTestId("speak").click();
-  await expect(page.getByText(/^(Generate|Save & read)/)).toBeVisible({ timeout: 5 * 60 * 1000 });
+  await expect(page.getByText(/^(Generate|Save & generate)/)).toBeVisible({ timeout: 5 * 60 * 1000 });
   await page.waitForTimeout(800);
 
   const cap: Capture = await page.evaluate(async (inputText) => {

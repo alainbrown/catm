@@ -156,8 +156,7 @@ export function ReaderView(props: ReaderViewProps): React.JSX.Element {
       : doc.id
         ? "Generate again"
         : "Generate";
-  const recordLabel =
-    !isSynth && estMin > 0 ? `${recordVerb} · ${estMin} min` : recordVerb;
+  const recordLabel = !isSynth && estMin > 0 ? `${recordVerb} · ${estMin} min` : recordVerb;
 
   const title = session?.title ?? (doc.sourceText.length > 0 ? "Untitled draft" : null);
 
@@ -407,6 +406,7 @@ function EditableText({
   }, [activeRange]);
 
   return (
+    // biome-ignore lint/a11y/useSemanticElements: contenteditable host for highlight overlay; <textarea> cannot render inline children
     <div
       ref={ref}
       contentEditable="plaintext-only"

@@ -1,4 +1,11 @@
-import { AbsoluteFill, Easing, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
+import {
+  AbsoluteFill,
+  Easing,
+  interpolate,
+  spring,
+  useCurrentFrame,
+  useVideoConfig,
+} from "remotion";
 import { Backdrop } from "../components/Backdrop";
 import { COLORS, FONT, SHADOW } from "../theme";
 
@@ -119,11 +126,7 @@ export function SceneProgressive() {
             });
             const isPlayed = i < playheadProgress;
             const bg = isPlayed ? COLORS.accent : t > 0.99 ? COLORS.accentSoft : COLORS.bgSoft;
-            const border = isPlayed
-              ? COLORS.accent
-              : t > 0.99
-                ? COLORS.accent
-                : COLORS.border;
+            const border = isPlayed ? COLORS.accent : t > 0.99 ? COLORS.accent : COLORS.border;
             return (
               <div
                 key={i}
@@ -178,9 +181,7 @@ export function SceneProgressive() {
             // Bars only "active" when the playhead has reached them.
             const barX = TIMELINE_X + (i / 80) * TIMELINE_WIDTH;
             const passed = barX < playheadX;
-            const pulse = passed
-              ? 0.4 + 0.6 * Math.abs(Math.sin((frame + i * 7) / 6))
-              : 0.18;
+            const pulse = passed ? 0.4 + 0.6 * Math.abs(Math.sin((frame + i * 7) / 6)) : 0.18;
             const h = (12 + seed * 60) * pulse;
             return (
               <div

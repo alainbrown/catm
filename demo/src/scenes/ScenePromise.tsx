@@ -55,7 +55,9 @@ export function ScenePromise() {
         }}
       >
         <BrandMark size={36} />
-        <span style={{ fontWeight: 700, fontSize: 22, color: COLORS.ink0, letterSpacing: "-0.02em" }}>
+        <span
+          style={{ fontWeight: 700, fontSize: 22, color: COLORS.ink0, letterSpacing: "-0.02em" }}
+        >
           catm
         </span>
       </div>

@@ -1,14 +1,15 @@
 {
-  "$schema": "https://biomejs.dev/schemas/1.9.4/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.4.15/schema.json",
   "vcs": { "enabled": true, "clientKind": "git", "useIgnoreFile": true },
   "files": {
-    "ignore": [
-      "dist",
-      "node_modules",
-      "test-results",
-      "playwright-report",
-      "design",
-      "extension/app"
+    "includes": [
+      "**",
+      "!**/dist",
+      "!**/node_modules",
+      "!**/test-results",
+      "!**/playwright-report",
+      "!**/design",
+      "!**/extension/app"
     ]
   },
   "formatter": { "enabled": true, "indentStyle": "space", "indentWidth": 2, "lineWidth": 100 },
@@ -16,7 +17,7 @@
     "enabled": true,
     "rules": {
       "recommended": true,
-      "style": { "noNonNullAssertion": "off" },
+      "style": { "noNonNullAssertion": "off", "noDescendingSpecificity": "off" },
       "suspicious": { "noExplicitAny": "warn" }
     }
   },

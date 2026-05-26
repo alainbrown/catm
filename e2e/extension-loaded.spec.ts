@@ -16,7 +16,7 @@ import { existsSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { type BrowserContext, type Worker, chromium, expect, test } from "@playwright/test";
+import { type BrowserContext, chromium, expect, test, type Worker } from "@playwright/test";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(__dirname, "..");

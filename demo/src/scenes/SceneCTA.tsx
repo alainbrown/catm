@@ -1,4 +1,11 @@
-import { AbsoluteFill, Easing, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
+import {
+  AbsoluteFill,
+  Easing,
+  interpolate,
+  spring,
+  useCurrentFrame,
+  useVideoConfig,
+} from "remotion";
 import { Backdrop } from "../components/Backdrop";
 import { BrandMark } from "../components/BrandMark";
 import { COLORS, FONT } from "../theme";

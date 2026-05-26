@@ -5,14 +5,11 @@ import { DiscardDialog } from "./components/DiscardDialog";
 import { PopoutButton } from "./components/PopoutButton";
 import { Rail } from "./components/Rail";
 import { encodePcmToCompleteMp4 } from "./hls/encode";
-import { UpdateBanner } from "./pwa/UpdateBanner";
 import { consumeExtensionShare } from "./pwa/extensionIngest";
-import { type IngestedDraft, consumeShareTarget, onFileLaunch } from "./pwa/ingest";
+import { consumeShareTarget, type IngestedDraft, onFileLaunch } from "./pwa/ingest";
+import { UpdateBanner } from "./pwa/UpdateBanner";
 import { IS_EXTENSION, IS_SIDE_PANEL } from "./runtime";
 import {
-  type SegmentEntry,
-  type SessionMeta,
-  type StorageBreakdown,
   buildSessionExport,
   createSession,
   deleteSession,
@@ -22,6 +19,9 @@ import {
   measureStorage,
   renameSession,
   resetSession,
+  type SegmentEntry,
+  type SessionMeta,
+  type StorageBreakdown,
   writeInit,
   writePlaylist,
   writeSegment,

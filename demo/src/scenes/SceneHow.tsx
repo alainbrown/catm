@@ -1,4 +1,11 @@
-import { AbsoluteFill, Easing, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
+import {
+  AbsoluteFill,
+  Easing,
+  interpolate,
+  spring,
+  useCurrentFrame,
+  useVideoConfig,
+} from "remotion";
 import { Backdrop } from "../components/Backdrop";
 import { COLORS, FONT, SHADOW } from "../theme";
 
@@ -120,7 +127,9 @@ export function SceneHow() {
         >
           Model downloaded once
           <span style={{ color: COLORS.ink4 }}>·</span>
-          <span style={{ fontFamily: FONT.mono, color: COLORS.ink0, fontWeight: 600 }}>~310 MB</span>
+          <span style={{ fontFamily: FONT.mono, color: COLORS.ink0, fontWeight: 600 }}>
+            ~310 MB
+          </span>
           <span style={{ color: COLORS.ink4 }}>·</span>
           cached forever.
         </div>

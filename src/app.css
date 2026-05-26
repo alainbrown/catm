@@ -64,7 +64,8 @@ body {
   font-family: "Inter Variable", "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
   color: var(--ink-1);
   background: var(--bg-0);
-  background-image: radial-gradient(circle at 0% 0%, rgba(91, 108, 255, 0.08), transparent 45%),
+  background-image:
+    radial-gradient(circle at 0% 0%, rgba(91, 108, 255, 0.08), transparent 45%),
     radial-gradient(circle at 100% 100%, rgba(255, 170, 140, 0.07), transparent 50%),
     url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40'><circle cx='1' cy='1' r='1' fill='%23999' opacity='.16'/></svg>");
   background-attachment: fixed;
@@ -171,7 +172,9 @@ textarea {
   font-weight: 600;
   padding: 10px 12px;
   border-radius: 8px;
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.1) inset, 0 1px 2px rgba(13, 14, 18, 0.18);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.1) inset,
+    0 1px 2px rgba(13, 14, 18, 0.18);
   letter-spacing: -0.01em;
 }
 .newdoc:hover:not(:disabled) {
@@ -697,7 +700,9 @@ textarea {
   align-items: center;
   justify-content: center;
   flex: none;
-  transition: background 0.12s, color 0.12s;
+  transition:
+    background 0.12s,
+    color 0.12s;
 }
 .pop .tier .tier-x:hover:not(:disabled) {
   background: var(--danger-soft);
@@ -813,7 +818,9 @@ textarea {
   font-weight: 500;
   text-align: center;
   margin-top: 4px;
-  transition: background 0.12s, border-color 0.12s;
+  transition:
+    background 0.12s,
+    border-color 0.12s;
 }
 .ghost-danger:hover:not(:disabled) {
   background: var(--danger-soft);
@@ -988,7 +995,9 @@ textarea {
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 48ch;
-  transition: background 0.12s, border-color 0.12s;
+  transition:
+    background 0.12s,
+    border-color 0.12s;
 }
 .crumbs .title-btn:hover {
   background: var(--bg-1);
@@ -1040,17 +1049,23 @@ textarea {
   background: var(--bg-1);
   border: 1px solid var(--border);
   border-radius: 14px;
-  box-shadow: 0 1px 2px rgba(13, 14, 18, 0.04), 0 8px 28px rgba(13, 14, 18, 0.05);
+  box-shadow:
+    0 1px 2px rgba(13, 14, 18, 0.04),
+    0 8px 28px rgba(13, 14, 18, 0.05);
   display: flex;
   flex-direction: column;
   min-height: 360px;
   overflow: hidden;
-  transition: border-color 0.15s, box-shadow 0.15s;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
 }
 .composer:focus-within {
   border-color: var(--border-strong);
-  box-shadow: 0 1px 2px rgba(13, 14, 18, 0.04), 0 8px 28px rgba(13, 14, 18, 0.05), 0 0 0 4px
-    rgba(91, 108, 255, 0.1);
+  box-shadow:
+    0 1px 2px rgba(13, 14, 18, 0.04),
+    0 8px 28px rgba(13, 14, 18, 0.05),
+    0 0 0 4px rgba(91, 108, 255, 0.1);
 }
 .composer textarea {
   flex: 1;
@@ -1120,7 +1135,9 @@ textarea {
   font-weight: 500;
   cursor: pointer;
   color: var(--ink-1);
-  transition: border-color 0.12s, background 0.12s;
+  transition:
+    border-color 0.12s,
+    background 0.12s;
 }
 .pill:hover:not(:disabled) {
   border-color: var(--border-strong);
@@ -1207,7 +1224,9 @@ textarea {
   font-weight: 600;
   cursor: pointer;
   letter-spacing: -0.01em;
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.18) inset, 0 4px 14px rgba(91, 108, 255, 0.28);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.18) inset,
+    0 4px 14px rgba(91, 108, 255, 0.28);
   transition: background 0.12s;
 }
 .send:hover:not(:disabled) {
@@ -1224,7 +1243,9 @@ textarea {
 .send.save {
   background: var(--ink-0);
   border-color: var(--ink-0);
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.1) inset, 0 4px 14px rgba(13, 14, 18, 0.2);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.1) inset,
+    0 4px 14px rgba(13, 14, 18, 0.2);
 }
 .send.save:hover:not(:disabled) {
   background: var(--ink-1);
@@ -1232,7 +1253,9 @@ textarea {
 .send.cancel {
   background: var(--danger);
   border-color: var(--danger);
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.18) inset, 0 4px 14px rgba(196, 74, 74, 0.28);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.18) inset,
+    0 4px 14px rgba(196, 74, 74, 0.28);
 }
 .send.cancel:hover:not(:disabled) {
   background: #a83a3a;
@@ -1356,7 +1379,9 @@ textarea {
   flex: none;
   min-width: 44px;
   text-align: center;
-  transition: background 0.12s ease, color 0.12s ease;
+  transition:
+    background 0.12s ease,
+    color 0.12s ease;
 }
 .dock .speed-btn:hover {
   background: var(--bg-2);
@@ -1372,7 +1397,9 @@ textarea {
   background: var(--bg-1);
   border: 1px solid var(--border);
   border-radius: 14px;
-  box-shadow: 0 1px 2px rgba(13, 14, 18, 0.04), 0 24px 60px rgba(13, 14, 18, 0.18);
+  box-shadow:
+    0 1px 2px rgba(13, 14, 18, 0.04),
+    0 24px 60px rgba(13, 14, 18, 0.18);
   padding: 12px;
   display: flex;
   flex-direction: column;
@@ -1562,7 +1589,9 @@ textarea {
   background: var(--bg-1);
   border: 1px solid var(--border);
   border-radius: 20px;
-  box-shadow: 0 1px 2px rgba(13, 14, 18, 0.04), 0 24px 60px rgba(13, 14, 18, 0.08);
+  box-shadow:
+    0 1px 2px rgba(13, 14, 18, 0.04),
+    0 24px 60px rgba(13, 14, 18, 0.08);
   padding: 44px clamp(28px, 5vw, 56px);
   max-width: 560px;
   width: 100%;
@@ -1610,7 +1639,9 @@ textarea {
   padding: 13px 22px;
   border-radius: 10px;
   cursor: pointer;
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.18) inset, 0 6px 20px rgba(91, 108, 255, 0.32);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.18) inset,
+    0 6px 20px rgba(91, 108, 255, 0.32);
   transition: background 0.12s;
 }
 .onboard-card .cta:hover {
@@ -1669,7 +1700,9 @@ textarea {
   background: var(--bg-1);
   border: 1px solid var(--border);
   border-radius: 20px;
-  box-shadow: 0 1px 2px rgba(13, 14, 18, 0.04), 0 24px 60px rgba(13, 14, 18, 0.08);
+  box-shadow:
+    0 1px 2px rgba(13, 14, 18, 0.04),
+    0 24px 60px rgba(13, 14, 18, 0.08);
   padding: 36px clamp(28px, 5vw, 48px);
   max-width: 560px;
   width: 100%;
@@ -1794,7 +1827,9 @@ textarea {
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.12s, border-color 0.12s;
+  transition:
+    background 0.12s,
+    border-color 0.12s;
 }
 .btn:hover:not(:disabled) {
   background: var(--bg-2);
@@ -2134,7 +2169,8 @@ textarea {
    inverted-color buttons with hardcoded white text, pastel pills). */
 @media (prefers-color-scheme: dark) {
   body {
-    background-image: radial-gradient(circle at 0% 0%, rgba(91, 108, 255, 0.18), transparent 45%),
+    background-image:
+      radial-gradient(circle at 0% 0%, rgba(91, 108, 255, 0.18), transparent 45%),
       radial-gradient(circle at 100% 100%, rgba(255, 170, 140, 0.1), transparent 50%),
       url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40'><circle cx='1' cy='1' r='1' fill='%23fff' opacity='.08'/></svg>");
   }

@@ -1,5 +1,5 @@
 import { mkdirSync, writeFileSync } from "node:fs";
-import { type Page, expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 
 async function clearStorage(page: Page): Promise<void> {
   await page.goto("/");
@@ -59,7 +59,9 @@ test("repro: pasted DL article — capture saved audio for inspection", async ({
 
   await page.getByLabel("Text").fill(USER_TEXT);
   await page.getByTestId("speak").click();
-  await expect(page.getByText(/^(Generate|Save & generate)/)).toBeVisible({ timeout: 5 * 60 * 1000 });
+  await expect(page.getByText(/^(Generate|Save & generate)/)).toBeVisible({
+    timeout: 5 * 60 * 1000,
+  });
   await page.waitForTimeout(800);
 
   const cap: Capture = await page.evaluate(async (inputText) => {

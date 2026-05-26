@@ -1,4 +1,11 @@
-import { AbsoluteFill, Easing, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
+import {
+  AbsoluteFill,
+  Easing,
+  interpolate,
+  spring,
+  useCurrentFrame,
+  useVideoConfig,
+} from "remotion";
 import { Backdrop } from "../components/Backdrop";
 import { COLORS, FONT, SHADOW } from "../theme";
 
@@ -205,10 +212,7 @@ export function ScenePrivacy() {
               />
               {/* arrow head — only visible once the shaft has fully drawn */}
               {arrowGrow > 0.95 ? (
-                <polygon
-                  points={`${184},${30} ${196},${40} ${184},${50}`}
-                  fill={COLORS.ink3}
-                />
+                <polygon points={`${184},${30} ${196},${40} ${184},${50}`} fill={COLORS.ink3} />
               ) : null}
               {/* red strike */}
               <line

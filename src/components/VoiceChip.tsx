@@ -71,7 +71,7 @@ export function VoiceChip({
         </span>
       </button>
       {open ? (
-        <div className="pop voice" aria-label="Choose voice">
+        <div className="pop voice" role="dialog" aria-label="Choose voice">
           <h5>Voice · English</h5>
           <div className="pop-list">
             {VOICES.map((v) => {

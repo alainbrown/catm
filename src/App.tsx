@@ -707,32 +707,33 @@ export function App(): React.JSX.Element {
   return (
     <>
       <div className={`shell${IS_SIDE_PANEL ? " shell-panel" : ""}`}>
-        {IS_SIDE_PANEL ? (
-          <header className="panel-brandbar">
-            <BrandMark size={24} />
-            <span className="panel-brandbar-name">
-              <b>catm</b>
-              <span>come and talk to me</span>
+        {/* Rendered always — CSS hides it on wide viewports (desktop tab,
+            desktop PWA) and shows it on narrow ones (side panel + mobile
+            PWA). Popout button and device chip are extension-only. */}
+        <header className="panel-brandbar">
+          <BrandMark size={24} />
+          <span className="panel-brandbar-name">
+            <b>catm</b>
+            <span>come and talk to me</span>
+          </span>
+          {IS_SIDE_PANEL && status.kind === "ready" ? (
+            <span
+              className={`panel-device${status.device === "webgpu" ? " on-gpu" : ""}`}
+              title={
+                status.device === "webgpu"
+                  ? "Synthesis runs on the GPU"
+                  : "Synthesis runs in WebAssembly"
+              }
+            >
+              {status.device === "webgpu" ? "WebGPU" : "WASM"}
             </span>
-            {status.kind === "ready" ? (
-              <span
-                className={`panel-device${status.device === "webgpu" ? " on-gpu" : ""}`}
-                title={
-                  status.device === "webgpu"
-                    ? "Synthesis runs on the GPU"
-                    : "Synthesis runs in WebAssembly"
-                }
-              >
-                {status.device === "webgpu" ? "WebGPU" : "WASM"}
-              </span>
-            ) : status.kind === "downloading" || status.kind === "loading" ? (
-              <span className="panel-device" title="Loading the model">
-                loading…
-              </span>
-            ) : null}
-            <PopoutButton />
-          </header>
-        ) : null}
+          ) : IS_SIDE_PANEL && (status.kind === "downloading" || status.kind === "loading") ? (
+            <span className="panel-device" title="Loading the model">
+              loading…
+            </span>
+          ) : null}
+          {IS_SIDE_PANEL ? <PopoutButton /> : null}
+        </header>
         <Rail
           sessions={sessions}
           activeId={doc.id}

@@ -149,13 +149,15 @@ export function ReaderView(props: ReaderViewProps): React.JSX.Element {
     return ranges[idx] ?? null;
   }, [doc.sourceText, durations, texts, currentTime]);
 
-  const recordLabel = isSynth
+  const recordVerb = isSynth
     ? "Cancel"
     : modified && doc.id
-      ? "Save & read"
+      ? "Save & generate"
       : doc.id
         ? "Generate again"
         : "Generate";
+  const recordLabel =
+    !isSynth && estMin > 0 ? `${recordVerb} · ${estMin} min` : recordVerb;
 
   const title = session?.title ?? (doc.sourceText.length > 0 ? "Untitled draft" : null);
 
@@ -275,9 +277,6 @@ export function ReaderView(props: ReaderViewProps): React.JSX.Element {
               disabled={isSynth}
             />
             <span className="spacer" />
-            <span className="stats">
-              <b>{words.toLocaleString()}</b> words · <b>{estMin || 0} min</b>
-            </span>
             <button
               type="button"
               className={isSynth ? "send cancel" : modified && doc.id ? "send save" : "send"}
@@ -291,8 +290,19 @@ export function ReaderView(props: ReaderViewProps): React.JSX.Element {
                   <rect x="1" y="1" width="10" height="10" rx="1.5" />
                 </svg>
               ) : (
-                <svg width="12" height="13" viewBox="0 0 14 16" aria-hidden="true">
-                  <polygon points="2,1 13,8 2,15" />
+                /* Waveform / equalizer bars — communicates "produce audio"
+                   rather than "play existing audio". */
+                <svg
+                  width="14"
+                  height="12"
+                  viewBox="0 0 16 14"
+                  aria-hidden="true"
+                  fill="currentColor"
+                >
+                  <rect x="1" y="5" width="2" height="4" rx="1" />
+                  <rect x="5" y="2" width="2" height="10" rx="1" />
+                  <rect x="9" y="4" width="2" height="6" rx="1" />
+                  <rect x="13" y="6" width="2" height="2" rx="1" />
                 </svg>
               )}
               {recordLabel}

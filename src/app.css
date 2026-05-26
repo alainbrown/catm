@@ -2281,6 +2281,12 @@ textarea {
   .shell .rail .brand {
     display: none;
   }
+  /* Make the primary action visually dominant when there's no
+     desktop-style stats slot competing for horizontal space. */
+  .toolbar .send {
+    flex: 1;
+    justify-content: center;
+  }
 }
 .panel-brandbar-name {
   display: inline-flex;

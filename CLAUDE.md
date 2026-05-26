@@ -13,11 +13,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `npm run build:ext` — typecheck + `vite build --mode extension` to `extension/app/` (the bundled extension app; gitignored)
 - `npm run build:all` — both of the above
 - `npm run lint` — Biome check (lint + format diff). `npm run format` to autoformat.
-- `npm test` — Vitest (node env, runs `src/**/*.test.ts{,x}`). `npm run test:watch` for watch mode. Single file: `npx vitest run src/textChunk.test.ts`. Notable suites: `src/textChunk.test.ts` (highlight chunker) and `src/worker/splitToFit.test.ts` (phoneme-token splitter).
-- `npm run e2e` — Playwright (Chromium only, single worker, 5-min test timeout). Reuses an existing dev server on :5173 if running; otherwise spawns one. Single test: `npx playwright test -g "synth saves session"`.
+- `npm test` — full suite: Vitest unit tests then Playwright e2e. This is the verification command; always run it whole. `npm run test:unit` runs only Vitest (node env, `src/**/*.test.ts{,x}`); `npm run test:unit:watch` for watch mode; notable suites: `src/textChunk.test.ts` (highlight chunker) and `src/worker/splitToFit.test.ts` (phoneme-token splitter). `npm run test:e2e` runs only Playwright (Chromium only, single worker, 5-min test timeout, reuses an existing dev server on :5173). Single specs (e.g. `npx vitest run src/textChunk.test.ts`, `npx playwright test -g "synth saves session"`) are fine for iterating on a failure but never sufficient for verifying a change.
 - `npm run icons` — regenerate the PNG icon set (192/512/maskable/apple-touch) from `public/favicon.svg` via `scripts/generate-icons.mjs` (sharp). Run after touching the SVG and commit the outputs.
 
 Playwright launches Chrome with `--enable-features=SharedArrayBuffer` — needed so the worker can run ONNX. If you change the e2e harness, preserve that flag.
+
+**Always run the full test suite. There are no valid subsets.** `npm test` runs unit + e2e together — that is the verification command. Do not run a single spec file ("hello-world only", "the fast one") and report that as verification; that is a skipped test, not a fast test.
 
 ## Architecture
 

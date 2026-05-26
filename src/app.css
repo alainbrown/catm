@@ -2226,6 +2226,318 @@ textarea {
   }
 }
 
+/* ── side-panel mode (extension build, IS_SIDE_PANEL=true) ─────
+   The full app shell is too wide and too vertically tall for a ~380px
+   side panel. We swap the Rail for a compact PanelHeader and tighten
+   the main column. The Rail (with perf, model manager, storage,
+   reset) is reachable from the popped-out tab. */
+.shell-panel {
+  grid-template-columns: 1fr;
+  display: flex;
+  flex-direction: column;
+}
+/* In side-panel mode the panel reads top-to-bottom: brand → editor →
+   library (rail content sans brand). The Rail's internal brand is hidden
+   here because the panel brandbar already shows it. */
+.shell-panel .panel-brandbar {
+  order: 0;
+}
+.shell-panel .main {
+  order: 1;
+  min-height: 0;
+}
+.shell-panel .rail {
+  order: 2;
+  border-right: none;
+  border-top: 1px solid var(--border);
+  position: relative;
+  height: auto;
+  top: auto;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: transparent;
+}
+.shell-panel .rail .brand {
+  display: none;
+}
+
+.panel-brandbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  position: sticky;
+  top: 0;
+  z-index: 30;
+}
+@media (prefers-color-scheme: dark) {
+  .panel-brandbar {
+    background: rgba(22, 26, 33, 0.7);
+  }
+}
+.panel-brandbar-name {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  letter-spacing: -0.02em;
+  flex: 1;
+  min-width: 0;
+}
+.panel-brandbar-name b {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink-0);
+}
+.panel-brandbar-name span {
+  font-size: 11px;
+  color: var(--ink-3);
+  font-weight: 500;
+}
+.shell-panel .topbar {
+  padding: 10px 12px;
+}
+.shell-panel .crumbs b {
+  max-width: 24ch;
+  font-size: 13px;
+}
+.shell-panel .stage {
+  padding: 12px 12px 14px;
+  gap: 12px;
+}
+.shell-panel .doc-head h1 {
+  font-size: 22px;
+}
+.shell-panel .composer {
+  min-height: 220px;
+  border-radius: 10px;
+}
+.shell-panel .composer textarea,
+.shell-panel .editable-text {
+  padding: 14px 14px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.shell-panel .editable-text {
+  height: 38vh;
+}
+.shell-panel .toolbar {
+  padding: 8px 10px;
+  gap: 6px;
+}
+.shell-panel .pill {
+  padding: 5px 9px;
+  font-size: 11.5px;
+}
+.shell-panel .dock {
+  padding: 8px 10px;
+  gap: 10px;
+  border-radius: 10px;
+}
+.shell-panel .onboard-shell {
+  padding: 28px 14px;
+}
+.shell-panel .onboard-card {
+  padding: 28px 20px;
+}
+.shell-panel .onboard-card h1 {
+  font-size: 32px;
+}
+.shell-panel .onboard-progress {
+  padding: 28px 20px;
+}
+
+/* ── PanelHeader (replaces Rail in side-panel mode) ─────────── */
+.panel-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  position: sticky;
+  top: 0;
+  z-index: 30;
+}
+@media (prefers-color-scheme: dark) {
+  .panel-top {
+    background: rgba(22, 26, 33, 0.7);
+  }
+}
+.panel-brand {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  letter-spacing: -0.02em;
+}
+.panel-brand b {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-0);
+}
+.panel-brand span {
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--ink-3);
+}
+.panel-top-spacer {
+  flex: 1;
+}
+.panel-device {
+  font-family: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, monospace;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--ink-3);
+  border: 1px solid var(--border);
+  padding: 2px 7px;
+  border-radius: 999px;
+  letter-spacing: -0.005em;
+  background: var(--bg-2);
+}
+.panel-device.on-gpu {
+  color: var(--good);
+  background: var(--good-soft);
+  border-color: rgba(22, 160, 111, 0.3);
+}
+.panel-iconbtn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--ink-2);
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+.panel-iconbtn:hover {
+  background: var(--bg-2);
+  color: var(--ink-0);
+}
+
+/* Popout matches PanelHeader siblings, framed so it reads as the
+   primary 'leave the panel' action. */
+.popout-btn {
+  background: var(--bg-1);
+  border: 1px solid var(--border);
+  color: var(--ink-2);
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.popout-btn:hover {
+  border-color: var(--border-strong);
+  color: var(--ink-0);
+  background: var(--bg-2);
+}
+
+.panel-recent-wrap {
+  position: relative;
+}
+.panel-recent {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--ink-2);
+  font-size: 11.5px;
+  font-weight: 500;
+  cursor: pointer;
+  letter-spacing: -0.005em;
+}
+.panel-recent:hover:not(:disabled) {
+  color: var(--ink-0);
+  border-color: var(--border-strong);
+}
+.panel-recent[aria-expanded="true"] {
+  color: var(--accent-ink);
+  background: var(--accent-soft);
+  border-color: rgba(91, 108, 255, 0.3);
+}
+.panel-recent:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.panel-recent-pop {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 240px;
+  max-width: calc(100vw - 24px);
+  max-height: 60vh;
+  overflow-y: auto;
+  background: var(--bg-1);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(13, 14, 18, 0.16);
+  padding: 4px;
+  z-index: 40;
+}
+.panel-recent-empty {
+  padding: 14px 12px;
+  font-size: 12px;
+  color: var(--ink-3);
+  text-align: center;
+  font-style: italic;
+}
+.panel-recent-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.panel-recent-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 8px 10px;
+  border-radius: 6px;
+  color: var(--ink-1);
+}
+.panel-recent-row:hover {
+  background: var(--bg-2);
+}
+.panel-recent-row.on {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+.panel-recent-row .t {
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.panel-recent-row .m {
+  font-family: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, monospace;
+  font-size: 10.5px;
+  color: var(--ink-3);
+}
+.panel-recent-row.on .m {
+  color: var(--accent-ink);
+  opacity: 0.75;
+}
+
 /* PWA update banner — appears when a new SW is waiting after a deploy. */
 .catm-update-banner {
   position: fixed;

@@ -9,7 +9,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 - `npm run dev` — Vite dev server on http://localhost:5173
-- `npm run build` — typecheck (`tsc -b`) + `vite build` to `dist/`
+- `npm run build` — typecheck (`tsc -b`) + `vite build` to `dist/` (the PWA at catm-app.github.io)
+- `npm run build:ext` — typecheck + `vite build --mode extension` to `extension/app/` (the bundled extension app; gitignored)
+- `npm run build:all` — both of the above
 - `npm run lint` — Biome check (lint + format diff). `npm run format` to autoformat.
 - `npm test` — Vitest (node env, runs `src/**/*.test.ts{,x}`). `npm run test:watch` for watch mode. Single file: `npx vitest run src/textChunk.test.ts`. Notable suites: `src/textChunk.test.ts` (highlight chunker) and `src/worker/splitToFit.test.ts` (phoneme-token splitter).
 - `npm run e2e` — Playwright (Chromium only, single worker, 5-min test timeout). Reuses an existing dev server on :5173 if running; otherwise spawns one. Single test: `npx playwright test -g "synth saves session"`.
@@ -87,6 +89,23 @@ Both surfaces only ingest into an **empty draft** (`doc.id === null && doc.sourc
 #### iOS specifics
 
 `index.html` sets `viewport-fit=cover` + `apple-mobile-web-app-status-bar-style=black-translucent` so dark mode reads correctly in the standalone PWA. `body` carries `env(safe-area-inset-*)` padding and `.shell` uses `min-height: calc(100dvh - top - bottom)` so a single viewport still fits without forcing a scroll.
+
+### Extension build
+
+`extension/` is a Chrome MV3 extension that bundles the same React app and renders it inside Chrome's side panel.
+
+- **Two builds, one source tree.** `vite build` produces the PWA in `dist/`. `vite build --mode extension` produces `extension/app/` (gitignored). The PWA plugin is gated off in extension mode (no SW — the manifest sets COOP/COEP directly), and a couple of runtime paths are mode-gated via `src/runtime.ts` (`IS_EXTENSION` from `import.meta.env.MODE`, `IS_SIDE_PANEL` from `?ctx` not being `tab`).
+- **Manifest** (`extension/manifest.json`) declares `side_panel.default_path = "app/index.html"`, `sidePanel` permission, CSP `"script-src 'self' 'wasm-unsafe-eval'"`, and COOP/COEP keys so the page is `crossOriginIsolated` without needing the PWA's header-injecting SW. **No `host_permissions`** — the extension never touches `catm-app.github.io`.
+- **Background SW** (`extension/background.js`) calls `chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true })` so the toolbar icon opens the panel, and registers a `"Read it to me"` context menu. On menu click it calls `chrome.sidePanel.open({ windowId })` **synchronously before** any await, then writes the selection to `chrome.storage.session` under `catm:pending-share`. Awaiting before `sidePanel.open` consumes the user gesture and the panel stays closed — preserve the ordering.
+- **Side-panel ingest** (`src/pwa/extensionIngest.ts`) drains `chrome.storage.session["catm:pending-share"]` on mount and subscribes to `chrome.storage.onChanged` so a menu fire while the panel is already open still ingests live. Replaces the old PWA-side `bridge.js` content-script handoff entirely.
+- **WebGPU in MV3.** In extension mode the worker configures `@huggingface/transformers`'s env *before* loading Kokoro:
+  - `env.backends.onnx.wasm.numThreads = 1` — multi-threaded WASM spawns Emscripten pthread workers via `blob:` URLs; MV3 forbids `blob:` in `script-src`.
+  - `env.backends.onnx.wasm.proxy = false` — the proxy worker also spawns via `blob:`.
+  - `env.backends.onnx.wasm.wasmPaths = undefined` — defaults to a jsDelivr CDN URL; MV3 forbids remote scripts. `undefined` makes ORT use the bundled wasm shipped under `extension/app/assets/`.
+  Same pattern used by `tantara/transformers.js-chrome` in production. WebGPU otherwise works the same way it does in the PWA.
+- **Model cache.** No SW means no `catm-model-v1` Cache Storage interception; instead `src/worker/modelCache.ts` patches `globalThis.fetch` inside the worker to do the same cache-first routing for `huggingface.co` URLs. Same bucket name (`catm-model-v1`) so the offline-after-first-download invariant holds.
+- **Side-panel layout.** Top-to-bottom: sticky `.panel-brandbar` (catm logo + name + live WebGPU/WASM device chip + popout button) → `<main>` (untouched ReaderView) → full `<Rail>` (sessions, perf, model, storage, reset). CSS `order` on `.shell-panel` reorders the desktop rail-then-main into brand-then-main-then-rail. The Rail's internal `.brand` is hidden in panel mode to avoid duplicating the brandbar.
+- **Popout to tab.** `<PopoutButton>` in the brandbar (only rendered when `IS_SIDE_PANEL`) calls `chrome.tabs.create({ url: chrome.runtime.getURL("app/index.html?ctx=tab") })` then `window.close()`. Same origin as the panel → shared OPFS/IDB/model cache; the `window.close()` ensures only one view at a time, no IDB race. The tab renders the full desktop shell (rail beside main).
 
 ## Conventions
 

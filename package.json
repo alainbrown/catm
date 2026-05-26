@@ -17,6 +17,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:ext": "tsc -b && vite build --mode extension",
+    "build:all": "npm run build && npm run build:ext",
     "preview": "vite preview",
     "lint": "biome check .",
     "format": "biome format --write .",

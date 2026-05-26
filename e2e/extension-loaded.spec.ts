@@ -1,49 +1,41 @@
 // End-to-end test that actually loads the unpacked extension into Chromium
-// via a persistent context, points it at the local dev server, and drives the
-// real bridge: service-worker stash → content script → page sessionStorage →
-// app ingest.
+// via a persistent context, navigates to the bundled extension app, and
+// drives the real ingest path: service-worker → chrome.storage.session →
+// extension app reads onChanged → editor populated.
 //
 // We can't fire `chrome.contextMenus.onClicked` from outside the browser
 // (no public API), so the background handler's body is exposed as
-// `globalThis.__catmHandleSelection` and the test invokes it via
-// `serviceWorker.evaluate(...)`. Everything downstream of that call is the
-// production flow.
+// `globalThis.__catmIngestSelection` and the test invokes it via
+// `serviceWorker.evaluate(...)`. We pass `windowId: null` to skip the
+// `chrome.sidePanel.open()` call — that API requires a synchronous user
+// gesture, which Playwright SW evaluate doesn't qualify as. Everything
+// downstream of `chrome.storage.session.set` is the production flow.
 
-import { cpSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { execSync } from "node:child_process";
+import { existsSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { type BrowserContext, chromium, expect, test } from "@playwright/test";
+import { type BrowserContext, type Worker, chromium, expect, test } from "@playwright/test";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+const REPO_ROOT = join(__dirname, "..");
+const EXT_DIR = join(REPO_ROOT, "extension");
+const APP_INDEX = join(EXT_DIR, "app", "index.html");
 
-const PROD_ORIGIN = "https://catm-app.github.io";
-const TEST_ORIGIN = "http://localhost:5173";
-
-function buildTestExtension(): string {
-  const src = join(__dirname, "..", "extension");
-  const dst = mkdtempSync(join(tmpdir(), "catm-ext-"));
-  cpSync(src, dst, { recursive: true });
-
-  // Rewrite the three places the prod origin is hardcoded so the extension
-  // talks to the dev server instead.
-  const rewrite = (rel: string) => {
-    const p = join(dst, rel);
-    const before = readFileSync(p, "utf8");
-    const after = before.split(PROD_ORIGIN).join(TEST_ORIGIN);
-    writeFileSync(p, after);
-  };
-  rewrite("manifest.json");
-  rewrite("background.js");
-
-  return dst;
-}
+test.beforeAll(() => {
+  // The unpacked extension references app/index.html as its side_panel and
+  // its popout target. Build once if it's not there yet.
+  if (!existsSync(APP_INDEX)) {
+    execSync("npm run build:ext", { stdio: "inherit", cwd: REPO_ROOT });
+  }
+});
 
 async function launchWithExtension(): Promise<{
   ctx: BrowserContext;
-  swEvaluate: <R, A>(fn: (arg: A) => R | Promise<R>, arg: A) => Promise<R>;
+  sw: Worker;
+  extId: string;
 }> {
-  const extDir = buildTestExtension();
   const userDataDir = mkdtempSync(join(tmpdir(), "catm-ext-profile-"));
   // Old headless mode strips extensions; "new headless" supports them. The
   // headless flag must be passed via args (Playwright's `headless: true` uses
@@ -52,8 +44,8 @@ async function launchWithExtension(): Promise<{
     headless: false,
     args: [
       "--headless=new",
-      `--disable-extensions-except=${extDir}`,
-      `--load-extension=${extDir}`,
+      `--disable-extensions-except=${EXT_DIR}`,
+      `--load-extension=${EXT_DIR}`,
       "--enable-features=SharedArrayBuffer",
     ],
   });
@@ -61,15 +53,19 @@ async function launchWithExtension(): Promise<{
   // The MV3 service worker spins up lazily — wait for it before driving.
   let [sw] = ctx.serviceWorkers();
   if (!sw) sw = await ctx.waitForEvent("serviceworker");
-
-  const swEvaluate = async <R, A>(fn: (arg: A) => R | Promise<R>, arg: A): Promise<R> =>
-    sw.evaluate(fn as never, arg) as Promise<R>;
-
-  return { ctx, swEvaluate };
+  const extId = new URL(sw.url()).hostname;
+  return { ctx, sw, extId };
 }
 
-async function readyEditor(page: import("@playwright/test").Page): Promise<void> {
-  await page.goto(TEST_ORIGIN);
+async function readyExtensionApp(
+  page: import("@playwright/test").Page,
+  extId: string,
+): Promise<void> {
+  // Open the bundled extension app in a tab (same URL the popout button
+  // uses). It's the same origin and same app as the side panel, so the
+  // ingest path is identical — and it's reachable from Playwright without
+  // the gesture restrictions of `chrome.sidePanel.open`.
+  await page.goto(`chrome-extension://${extId}/app/index.html?ctx=tab`);
   await page.evaluate(() => {
     indexedDB.deleteDatabase("catm");
     localStorage.setItem("catm:onboarded", "1");
@@ -81,25 +77,23 @@ async function readyEditor(page: import("@playwright/test").Page): Promise<void>
 test.describe("loaded extension end-to-end", () => {
   test("right-click → small selection lands in editor", async () => {
     test.setTimeout(4 * 60 * 1000);
-    const { ctx, swEvaluate } = await launchWithExtension();
+    const { ctx, sw, extId } = await launchWithExtension();
     try {
       const page = await ctx.newPage();
-      await readyEditor(page);
+      await readyExtensionApp(page, extId);
 
-      await swEvaluate(
-        ({ text }: { text: string }) =>
+      await sw.evaluate(
+        async ({ text }: { text: string }) =>
           // @ts-expect-error global injected by background.js
-          (globalThis as never).__catmHandleSelection({
+          (globalThis as never).__catmIngestSelection({
             text,
             tabTitle: "source tab",
             tabUrl: "https://example.test/article",
+            windowId: null,
           }),
         { text: "Selection from a real extension load." },
       );
 
-      // openCatm focuses/navigates the existing tab, so wait for that nav,
-      // then assert the editor fills.
-      await page.waitForURL(`${TEST_ORIGIN}/`);
       await expect(page.getByTestId("text-input")).toHaveText(
         "Selection from a real extension load.\n\nhttps://example.test/article",
         { timeout: 30_000 },
@@ -109,29 +103,36 @@ test.describe("loaded extension end-to-end", () => {
     }
   });
 
-  test("right-click → 200 KB selection lands intact (regression: URL cap)", async () => {
+  // The original regression guarded against URL length truncation when the
+  // old extension redirected a tab with ?text=…. The new hand-off goes
+  // through chrome.storage.session (Chrome doc: ~10 MB per extension), so
+  // 200 KB sits well within quota — but the test still verifies the bytes
+  // round-trip end-to-end (storage.session.set → onChanged → React state →
+  // editor DOM) without truncation, structured-clone surprises, or DOM-text
+  // collapse.
+  test("right-click → 200 KB selection lands intact end-to-end", async () => {
     test.setTimeout(4 * 60 * 1000);
-    const { ctx, swEvaluate } = await launchWithExtension();
+    const { ctx, sw, extId } = await launchWithExtension();
     try {
       const page = await ctx.newPage();
-      await readyEditor(page);
+      await readyExtensionApp(page, extId);
 
       const line = "The quick brown fox jumps over the lazy dog.";
       const big = Array(4500).fill(line).join("\n");
       expect(big.length).toBeGreaterThan(200_000);
 
-      await swEvaluate(
-        ({ text }: { text: string }) =>
+      await sw.evaluate(
+        async ({ text }: { text: string }) =>
           // @ts-expect-error global injected by background.js
-          (globalThis as never).__catmHandleSelection({
+          (globalThis as never).__catmIngestSelection({
             text,
             tabTitle: null,
             tabUrl: null,
+            windowId: null,
           }),
         { text: big },
       );
 
-      await page.waitForURL(`${TEST_ORIGIN}/`);
       const editor = page.getByTestId("text-input");
       await expect
         .poll(async () => editor.evaluate((el) => (el.textContent ?? "").length), {

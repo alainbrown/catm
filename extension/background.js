@@ -1,53 +1,52 @@
-const CATM_ORIGIN = "https://catm-app.github.io";
-const CATM_MATCH = `${CATM_ORIGIN}/*`;
-const MENU_ID = "send-selection-to-catm";
+const MENU_ID = "catm-read-selection";
 const PENDING_KEY = "catm:pending-share";
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
     id: MENU_ID,
-    title: "Send selection to catm",
+    title: "Read it to me",
     contexts: ["selection"],
   });
 });
 
-async function openCatm() {
-  const targetUrl = `${CATM_ORIGIN}/`;
-  const [existing] = await chrome.tabs.query({ url: CATM_MATCH });
-  if (existing?.id != null) {
-    // Reload so the content script re-runs and picks up the pending share.
-    await chrome.tabs.update(existing.id, { active: true, url: targetUrl });
-    if (existing.windowId != null) {
-      await chrome.windows.update(existing.windowId, { focused: true });
-    }
-    return;
-  }
-  await chrome.tabs.create({ url: targetUrl });
-}
+// Icon click opens the side panel (instead of firing chrome.action.onClicked).
+chrome.sidePanel
+  .setPanelBehavior({ openPanelOnActionClick: true })
+  .catch((err) => console.error("[catm] setPanelBehavior:", err));
 
-// Extracted so e2e tests can drive the bridge end-to-end: there is no public
-// API to fire `chrome.contextMenus.onClicked` programmatically, so the test
-// invokes this function via `serviceWorker.evaluate(...)` instead.
-async function handleSelection({ text, tabTitle, tabUrl }) {
+// Extracted so e2e can drive the ingest end-to-end: there is no public API
+// to fire `chrome.contextMenus.onClicked` programmatically, so tests invoke
+// this via `serviceWorker.evaluate(...)`.
+function ingestSelection({ text, tabTitle, tabUrl, windowId }) {
   const trimmed = text?.trim();
   if (!trimmed) return;
-  await chrome.storage.local.set({
-    [PENDING_KEY]: {
-      text: trimmed,
-      title: tabTitle ?? null,
-      url: tabUrl ?? null,
-      ts: Date.now(),
-    },
-  });
-  await openCatm();
+  // chrome.sidePanel.open() needs a synchronous user gesture — any await
+  // before calling it consumes the gesture and the panel stays closed.
+  // Open first, persist after.
+  if (windowId != null) {
+    chrome.sidePanel
+      .open({ windowId })
+      .catch((err) => console.error("[catm] sidePanel.open:", err));
+  }
+  chrome.storage.session
+    .set({
+      [PENDING_KEY]: {
+        text: trimmed,
+        title: tabTitle ?? null,
+        url: tabUrl ?? null,
+        ts: Date.now(),
+      },
+    })
+    .catch((err) => console.error("[catm] storage.session.set:", err));
 }
-globalThis.__catmHandleSelection = handleSelection;
+globalThis.__catmIngestSelection = ingestSelection;
 
-chrome.contextMenus.onClicked.addListener(async (info, tab) => {
+chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId !== MENU_ID) return;
-  await handleSelection({ text: info.selectionText, tabTitle: tab?.title, tabUrl: tab?.url });
-});
-
-chrome.action.onClicked.addListener(() => {
-  openCatm();
+  ingestSelection({
+    text: info.selectionText,
+    tabTitle: tab?.title,
+    tabUrl: tab?.url,
+    windowId: tab?.windowId,
+  });
 });

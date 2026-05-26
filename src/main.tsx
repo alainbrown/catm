@@ -1,6 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./App";
+import { IS_EXTENSION } from "./runtime";
 import "@fontsource-variable/inter";
 import "@fontsource-variable/jetbrains-mono";
 import "./app.css";
@@ -14,15 +15,12 @@ createRoot(rootEl).render(
   </StrictMode>,
 );
 
-// Register the unified service worker (COI headers + precache + model cache).
-// On first install we reload once so the page is served with COI headers and
-// becomes crossOriginIsolated — required for SharedArrayBuffer / threaded WASM.
-//
-// For subsequent deploys we do NOT auto-activate the new SW: it would replace
-// the controller mid-session (potentially mid-synthesis). Instead we surface a
-// CustomEvent("catm:update-ready") that the UI listens for and prompts the
-// user; on confirm we post SKIP_WAITING and reload after the controller swap.
-if ("serviceWorker" in navigator && import.meta.env.PROD) {
+// The PWA build registers a service worker that injects COOP/COEP headers,
+// precaches the app shell, and cache-first-serves the Kokoro weights. The
+// extension build doesn't need any of that: COOP/COEP come from the
+// extension manifest, app assets are served from chrome-extension://, and
+// the worker installs its own cache-first fetch wrapper for model weights.
+if (!IS_EXTENSION && "serviceWorker" in navigator && import.meta.env.PROD) {
   window.addEventListener("load", () => {
     navigator.serviceWorker
       .register(`${import.meta.env.BASE_URL}sw.js`, { scope: "./" })

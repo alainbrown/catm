@@ -1,15 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { BrandMark } from "./components/BrandMark";
 import { ConfirmDialog } from "./components/ConfirmDialog";
 import { DiscardDialog } from "./components/DiscardDialog";
+import { PopoutButton } from "./components/PopoutButton";
 import { Rail } from "./components/Rail";
 import { encodePcmToCompleteMp4 } from "./hls/encode";
 import { UpdateBanner } from "./pwa/UpdateBanner";
-import {
-  type IngestedDraft,
-  consumeShareTarget,
-  onExtensionBridge,
-  onFileLaunch,
-} from "./pwa/ingest";
+import { consumeExtensionShare } from "./pwa/extensionIngest";
+import { type IngestedDraft, consumeShareTarget, onFileLaunch } from "./pwa/ingest";
+import { IS_EXTENSION, IS_SIDE_PANEL } from "./runtime";
 import {
   type SegmentEntry,
   type SessionMeta,
@@ -226,13 +225,15 @@ export function App(): React.JSX.Element {
         return { ...d, sourceText: draft.text };
       });
     };
+    if (IS_EXTENSION) {
+      const cleanup = consumeExtensionShare(ingest);
+      return cleanup;
+    }
     const initial = consumeShareTarget();
     if (initial) ingest(initial);
     const cleanupFile = onFileLaunch(ingest);
-    const cleanupExt = onExtensionBridge(ingest);
     return () => {
       cleanupFile();
-      cleanupExt();
     };
   }, []);
 
@@ -705,7 +706,33 @@ export function App(): React.JSX.Element {
 
   return (
     <>
-      <div className="shell">
+      <div className={`shell${IS_SIDE_PANEL ? " shell-panel" : ""}`}>
+        {IS_SIDE_PANEL ? (
+          <header className="panel-brandbar">
+            <BrandMark size={24} />
+            <span className="panel-brandbar-name">
+              <b>catm</b>
+              <span>come and talk to me</span>
+            </span>
+            {status.kind === "ready" ? (
+              <span
+                className={`panel-device${status.device === "webgpu" ? " on-gpu" : ""}`}
+                title={
+                  status.device === "webgpu"
+                    ? "Synthesis runs on the GPU"
+                    : "Synthesis runs in WebAssembly"
+                }
+              >
+                {status.device === "webgpu" ? "WebGPU" : "WASM"}
+              </span>
+            ) : status.kind === "downloading" || status.kind === "loading" ? (
+              <span className="panel-device" title="Loading the model">
+                loading…
+              </span>
+            ) : null}
+            <PopoutButton />
+          </header>
+        ) : null}
         <Rail
           sessions={sessions}
           activeId={doc.id}

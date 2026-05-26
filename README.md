@@ -32,7 +32,9 @@ Other scripts:
 
 | Command | What it does |
 | --- | --- |
-| `npm run build` | Typecheck + production build to `dist/` |
+| `npm run build` | Typecheck + production build of the PWA to `dist/` |
+| `npm run build:ext` | Typecheck + production build of the extension into `extension/app/` |
+| `npm run build:all` | Both of the above |
 | `npm run lint` | Biome check (lint + format diff) |
 | `npm run format` | Biome autoformat |
 | `npm test` | Vitest (unit tests) |
@@ -54,9 +56,17 @@ See [`CLAUDE.md`](./CLAUDE.md) for the deeper map (storage layers, worker concur
 
 ## Browser extension
 
-`extension/` is a small Chrome MV3 extension that adds a right-click **"Send selection to catm"** entry. Highlight text on any page, right-click, and the selection is opened in catm via the PWA's `share_target` (reusing an existing catm tab if one is open). Clicking the toolbar icon opens catm directly. The extension only requests permission for `catm-app.github.io` — it never reads page contents.
+`extension/` is a Chrome MV3 extension that hosts the full catm app inside Chrome's **side panel**, plus a right-click **"Read it to me"** entry that drops the current selection into the panel and opens it. The same bundle runs in a popped-out tab via the arrow icon in the panel's brand bar — both views share OPFS / IndexedDB / the cached model since they're the same `chrome-extension://` origin.
 
-To load it: open `chrome://extensions`, turn on Developer mode, **Load unpacked**, and pick the `extension/` directory.
+The extension is self-contained: it bundles the React app under `extension/app/` and uses no remote scripts. WebGPU works inside the panel — the worker disables ORT-Web's blob-based loaders (`numThreads = 1`, `proxy = false`, `wasmPaths = undefined`) so nothing trips MV3's CSP. The hosted PWA at `catm-app.github.io` stays live for mobile / share_target / file_handlers and is independent of the extension.
+
+To build and load it:
+
+```bash
+npm run build:ext
+```
+
+Then `chrome://extensions` → Developer mode → **Load unpacked** → pick the `extension/` directory.
 
 ## Privacy
 

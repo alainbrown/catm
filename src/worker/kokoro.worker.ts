@@ -1,10 +1,28 @@
 /// <reference lib="webworker" />
 
+import { env as hfEnv } from "@huggingface/transformers";
 import { ProgressiveEncoder } from "../hls/encode";
+import { installModelCacheFetch } from "./modelCache";
 import { KokoroSynthesisClient } from "./synthesisModel";
 import type { VoiceId } from "./types";
 import type { DeviceInfo, InMsg, LoadedDevice, OutMsg } from "./workerProtocol";
 import { createHandlers } from "./workerProtocol";
+
+if (import.meta.env.MODE === "extension") {
+  // No SW to cache-first the HF model weights; do it from the worker.
+  installModelCacheFetch();
+  // MV3 forbids `blob:` in script-src and forbids remote scripts. Three
+  // ORT-Web defaults trip those rules — disable them and point ORT at the
+  // bundled wasm (`wasmPaths = undefined` → use co-located files):
+  //   - multi-threaded WASM spawns pthread workers via blob:
+  //   - the proxy worker also spawns via blob:
+  //   - the default `wasmPaths` is a jsDelivr CDN URL
+  // Same pattern used by tantara/transformers.js-chrome (Plasmo) in prod.
+  const wasm = hfEnv.backends.onnx.wasm!;
+  wasm.numThreads = 1;
+  wasm.proxy = false;
+  wasm.wasmPaths = undefined;
+}
 
 export type { VoiceId } from "./types";
 export type { InMsg, OutMsg } from "./workerProtocol";

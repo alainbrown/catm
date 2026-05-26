@@ -1,28 +1,28 @@
 {
   "manifest_version": 3,
-  "name": "Send to catm",
+  "name": "catm",
   "short_name": "catm",
-  "description": "Send selected text to catm for on-device text-to-speech reading.",
-  "version": "0.1.1",
+  "description": "On-device long-form text-to-speech in a side panel. Right-click selected text → Read it to me.",
+  "version": "0.2.0",
   "icons": {
     "48": "icons/icon-48.png",
     "128": "icons/icon-128.png",
     "512": "icons/icon-512.png"
   },
-  "permissions": ["contextMenus", "storage", "tabs"],
-  "host_permissions": ["https://catm-app.github.io/*"],
+  "permissions": ["contextMenus", "storage", "sidePanel", "tabs"],
   "action": {
-    "default_title": "Open catm"
+    "default_title": "Open catm side panel"
   },
+  "side_panel": {
+    "default_path": "app/index.html"
+  },
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+  },
+  "cross_origin_opener_policy": { "value": "same-origin" },
+  "cross_origin_embedder_policy": { "value": "require-corp" },
   "background": {
     "service_worker": "background.js",
     "type": "module"
-  },
-  "content_scripts": [
-    {
-      "matches": ["https://catm-app.github.io/*"],
-      "js": ["bridge.js"],
-      "run_at": "document_start"
-    }
-  ]
+  }
 }

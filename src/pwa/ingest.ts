@@ -3,10 +3,9 @@
 //   - share_target (manifest): incoming `?title=&text=&url=` query params
 //   - file_handlers (manifest): `window.launchQueue` delivering one or more
 //     FileSystemFileHandle entries for .txt / .md
-//   - browser extension bridge: text written into sessionStorage under
-//     `catm:pending-share` by the "Send to catm" extension's content script,
-//     accompanied by a `catm:share-ready` window event (handoff avoids the
-//     URL length cap that would break long right-click selections)
+//
+// The browser extension uses a separate path (chrome.storage.session,
+// `extensionIngest.ts`) — it bundles the app and never touches this origin.
 //
 // Each surface produces a single string of text; the caller decides how to
 // load it (typically: only ingest into an empty draft, otherwise prompt).
@@ -39,58 +38,6 @@ export function consumeShareTarget(): IngestedDraft | null {
   const clean = window.location.pathname + window.location.hash;
   window.history.replaceState(null, "", clean);
   return draft;
-}
-
-const PENDING_SHARE_KEY = "catm:pending-share";
-
-interface PendingShare {
-  text?: unknown;
-  title?: unknown;
-  url?: unknown;
-}
-
-function readPendingShare(): IngestedDraft | null {
-  if (typeof window === "undefined") return null;
-  let raw: string | null = null;
-  try {
-    raw = window.sessionStorage.getItem(PENDING_SHARE_KEY);
-  } catch {
-    return null;
-  }
-  if (!raw) return null;
-  try {
-    window.sessionStorage.removeItem(PENDING_SHARE_KEY);
-  } catch {
-    /* best-effort */
-  }
-  let parsed: PendingShare;
-  try {
-    parsed = JSON.parse(raw) as PendingShare;
-  } catch {
-    return null;
-  }
-  const text = typeof parsed.text === "string" ? parsed.text : "";
-  const url = typeof parsed.url === "string" ? parsed.url : "";
-  const title = typeof parsed.title === "string" ? parsed.title.trim() : "";
-  const parts = [text, url].filter((p) => p.length > 0);
-  if (parts.length === 0 && !title) return null;
-  return { title: title || null, text: parts.join("\n\n").trim() };
-}
-
-// Drain text stashed by the "Send to catm" extension. The extension's content
-// script writes sessionStorage before the page mounts and fires
-// `catm:share-ready`; we check immediately and also listen for the event in
-// case the storage write races React mount.
-export function onExtensionBridge(handler: (draft: IngestedDraft) => void): () => void {
-  if (typeof window === "undefined") return () => {};
-  const drain = () => {
-    const draft = readPendingShare();
-    if (draft) handler(draft);
-  };
-  drain();
-  const listener = () => drain();
-  window.addEventListener("catm:share-ready", listener);
-  return () => window.removeEventListener("catm:share-ready", listener);
 }
 
 interface LaunchParams {

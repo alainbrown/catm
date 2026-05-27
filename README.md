@@ -6,7 +6,7 @@
 **Get it →** [catm-app.github.io](https://catm-app.github.io/)
 
 <p align="center">
-  <img src="./docs/demo.gif" alt="catm — select text, right-click Read it to me, listen — everything runs in the browser" width="720" />
+  <img src="./docs/demo2.gif" alt="catm — select text, right-click Read it to me, listen — everything runs in the browser" width="720" />
 </p>
 
 A 100% in-browser long-form text-to-speech reader, shipped as a Chrome extension. Select any text on any page, right-click **Read it to me**, and the side panel reads it back to you. Synthesis runs locally on your machine — no server, no upload, no account.

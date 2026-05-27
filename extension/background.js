@@ -17,7 +17,7 @@ chrome.sidePanel
 // Extracted so e2e can drive the ingest end-to-end: there is no public API
 // to fire `chrome.contextMenus.onClicked` programmatically, so tests invoke
 // this via `serviceWorker.evaluate(...)`.
-function ingestSelection({ text, tabTitle, tabUrl, windowId }) {
+function ingestSelection({ text, tabTitle, windowId }) {
   const trimmed = text?.trim();
   if (!trimmed) return;
   // chrome.sidePanel.open() needs a synchronous user gesture — any await
@@ -33,7 +33,6 @@ function ingestSelection({ text, tabTitle, tabUrl, windowId }) {
       [PENDING_KEY]: {
         text: trimmed,
         title: tabTitle ?? null,
-        url: tabUrl ?? null,
         ts: Date.now(),
       },
     })
@@ -46,7 +45,6 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
   ingestSelection({
     text: info.selectionText,
     tabTitle: tab?.title,
-    tabUrl: tab?.url,
     windowId: tab?.windowId,
   });
 });

@@ -77,20 +77,17 @@ test("catm full journey on the loaded extension", async () => {
       // chrome.storage.session — the side panel's consumeExtensionShare
       // drains that on mount and via onChanged. windowId:null skips
       // chrome.sidePanel.open() (no user gesture from SW.evaluate).
-      const SOURCE_URL = "https://example.test/article";
       await sw.evaluate(
-        async ({ text, url }: { text: string; url: string }) =>
+        async ({ text }: { text: string }) =>
           // @ts-expect-error global injected by background.js
           (globalThis as never).__catmIngestSelection({
             text,
             tabTitle: "Example Article",
-            tabUrl: url,
             windowId: null,
           }),
-        { text: LONG_TEXT, url: SOURCE_URL },
+        { text: LONG_TEXT },
       );
       await expect(page.getByTestId("text-input")).toContainText(LONG_TEXT);
-      await expect(page.getByTestId("text-input")).toContainText(SOURCE_URL);
 
       // "Read it to me" implies action — no speak.click() here. The ingest
       // handler in App.tsx queues synth automatically when the worker is ready.

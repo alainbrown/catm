@@ -162,7 +162,7 @@
         The extension does these things:
       </p>
       <ul>
-        <li>Adds a context-menu entry, <strong>Read it to me</strong>, that appears when you right-click on selected text. Clicking it opens catm's side panel and queues the selection for reading. The active tab's title and URL are passed alongside the text so the side panel can label the session.</li>
+        <li>Adds a context-menu entry, <strong>Read it to me</strong>, that appears when you right-click on selected text. Clicking it opens catm's side panel and queues the selection for reading. The active tab's title is passed alongside the text so the side panel can label the session.</li>
         <li>Clicking the toolbar icon opens the side panel.</li>
       </ul>
       <p>
@@ -179,7 +179,7 @@
         <li><code>contextMenus</code> — to register the <strong>Read it to me</strong> menu entry.</li>
         <li><code>sidePanel</code> — to open the side panel where the app runs.</li>
         <li><code>storage</code> — to pass the selected text from the menu click to the side panel via <code>chrome.storage.session</code>, which is cleared automatically when you close the window.</li>
-        <li><code>tabs</code> — to read the active tab's title and URL so the side panel can label the session. No tab contents are read.</li>
+        <li><code>tabs</code> — to read the active tab's title so the side panel can label the session. No tab contents are read.</li>
       </ul>
 
       <h2>How to delete your data</h2>

@@ -8,7 +8,6 @@ const PENDING_KEY = "catm:pending-share";
 interface PendingShare {
   text?: unknown;
   title?: unknown;
-  url?: unknown;
 }
 
 interface ChromeStorageChange<T> {
@@ -45,12 +44,10 @@ function getChromeGlobal(): ChromeGlobal | undefined {
 function toDraft(raw: unknown): IngestedDraft | null {
   if (!raw || typeof raw !== "object") return null;
   const p = raw as PendingShare;
-  const text = typeof p.text === "string" ? p.text : "";
-  const url = typeof p.url === "string" ? p.url : "";
+  const text = typeof p.text === "string" ? p.text.trim() : "";
   const title = typeof p.title === "string" ? p.title.trim() : "";
-  const parts = [text, url].filter((s) => s.length > 0);
-  if (parts.length === 0 && !title) return null;
-  return { title: title || null, text: parts.join("\n\n").trim() };
+  if (text.length === 0 && !title) return null;
+  return { title: title || null, text };
 }
 
 export function consumeExtensionShare(handler: (draft: IngestedDraft) => void): () => void {

@@ -64,7 +64,7 @@
       main {
         flex: 1;
         display: grid;
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: 1fr 1.1fr;
         align-items: center;
         gap: clamp(32px, 5vw, 80px);
         padding: clamp(48px, 8vh, 96px) clamp(28px, 5vw, 64px);
@@ -82,6 +82,11 @@
         display: flex; flex-direction: column;
         gap: clamp(18px, 2.5vw, 28px);
         align-items: flex-start;
+      }
+      .brand .lockup {
+        display: flex;
+        align-items: center;
+        gap: clamp(16px, 2vw, 28px);
       }
       .brand .mark {
         width: clamp(72px, 9vw, 116px);
@@ -122,94 +127,31 @@
         width: 22px; height: 1px;
         background: var(--ink-4);
       }
-
-      .right {
-        display: flex; flex-direction: column;
-        gap: 24px;
-        max-width: 520px;
-      }
-      @media (max-width: 920px) {
-        .right { max-width: none; }
+      .brand .sub {
+        font-size: 15px;
+        line-height: 1.5;
+        color: var(--ink-2);
+        max-width: 380px;
+        letter-spacing: -0.005em;
       }
 
-      .reader {
+      .video-frame {
+        position: relative;
+        border-radius: 14px;
+        overflow: hidden;
+        box-shadow:
+          0 1px 0 rgba(255, 255, 255, 0.4) inset,
+          0 1px 2px rgba(13, 14, 18, 0.06),
+          0 32px 80px -10px rgba(13, 14, 18, 0.22);
         background: var(--bg-1);
         border: 1px solid var(--border);
-        border-radius: 16px;
-        box-shadow: 0 1px 2px rgba(13,14,18,0.04), 0 24px 60px -10px rgba(13,14,18,0.14);
-        overflow: hidden;
+        aspect-ratio: 1280 / 800;
       }
-      .reader-head {
-        display: flex; align-items: center; gap: 10px;
-        padding: 12px 18px;
-        border-bottom: 1px solid var(--border);
-        font-family: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, monospace;
-        font-size: 11px;
-        color: var(--ink-3);
-      }
-      .reader-head .play {
-        width: 20px; height: 20px;
-        border-radius: 999px;
-        background: var(--accent);
-        display: inline-flex; align-items: center; justify-content: center;
-        color: white;
-        box-shadow: 0 4px 12px rgba(91, 108, 255, 0.4);
-      }
-      .reader-head .play svg { width: 8px; height: 8px; margin-left: 1px; }
-      .reader-head .label { color: var(--ink-2); font-weight: 500; }
-      .reader-head .meta { margin-left: auto; color: var(--ink-4); }
-
-      .reader-body {
-        padding: 28px clamp(22px, 3vw, 32px) 24px;
-        font-size: clamp(17px, 1.5vw, 19px);
-        line-height: 1.55;
-        letter-spacing: -0.005em;
-        color: var(--ink-1);
-      }
-      .reader-body .past { color: var(--ink-3); }
-      .reader-body .now {
-        background: var(--accent-soft);
-        color: var(--ink-0);
-        padding: 2px 6px;
-        margin: 0 -2px;
-        border-radius: 4px;
-        box-decoration-break: clone;
-        -webkit-box-decoration-break: clone;
-      }
-      .reader-body .future { color: var(--ink-2); }
-
-      .reader-foot {
-        display: flex; align-items: center; gap: 12px;
-        padding: 14px 18px 16px;
-        border-top: 1px solid var(--border);
-        background: var(--bg-2);
-      }
-      .scrub {
-        flex: 1; height: 3px;
-        border-radius: 2px;
-        background: var(--border);
-        position: relative;
-      }
-      .scrub::after {
-        content: "";
-        position: absolute; inset: 0 56% 0 0;
-        background: linear-gradient(90deg, var(--accent), var(--accent-end));
-        border-radius: 2px;
-      }
-      .scrub::before {
-        content: "";
-        position: absolute;
-        left: 44%; top: 50%;
-        transform: translate(-50%, -50%);
-        width: 11px; height: 11px;
-        border-radius: 999px;
-        background: white;
-        border: 2px solid var(--accent);
-        box-shadow: 0 2px 6px rgba(91,108,255,0.4);
-      }
-      .time {
-        font-family: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, monospace;
-        font-size: 10.5px; color: var(--ink-3);
+      .video-frame video {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
       }
 
       .cta-row {
@@ -252,32 +194,15 @@
   <body>
     <main>
       <section class="brand">
-        <span class="mark" aria-hidden="true">c</span>
-        <h1 class="wordmark">cat<em>m</em></h1>
+        <div class="lockup">
+          <span class="mark" aria-hidden="true">c</span>
+          <h1 class="wordmark">cat<em>m</em></h1>
+        </div>
         <div class="tagline">come and talk to me</div>
-      </section>
-
-      <section class="right">
-        <article class="reader">
-          <div class="reader-head">
-            <span class="play" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-            </span>
-            <span class="label">now playing — about catm</span>
-            <span class="meta">webgpu</span>
-          </div>
-          <div class="reader-body">
-            <span class="past">Highlight a paragraph anywhere.</span>
-            <span class="now">catm reads it out loud — in your browser, without sending a word to any server.</span>
-            <span class="future"> Listen on a plane.</span>
-          </div>
-          <div class="reader-foot">
-            <span class="time">0:42</span>
-            <div class="scrub" aria-hidden="true"></div>
-            <span class="time">1:46</span>
-          </div>
-        </article>
-
+        <p class="sub">
+          Right-click any text. The side panel reads it back to you in a natural voice. Synthesis
+          runs locally — nothing leaves your machine.
+        </p>
         <div class="cta-row">
           <a class="cta" href="https://chrome.google.com/webstore/detail/PLACEHOLDER_ID">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="21.17" y1="8" x2="12" y2="8"/><line x1="3.95" y1="6.06" x2="8.54" y2="14"/><line x1="10.88" y1="21.94" x2="15.46" y2="14"/></svg>
@@ -285,6 +210,12 @@
           </a>
           <span class="cta-note">free · open source · 100% local</span>
         </div>
+      </section>
+
+      <section class="video-frame" aria-label="catm demo">
+        <video autoplay muted playsinline loop poster="./demo-poster.png">
+          <source src="./demo.mp4" type="video/mp4" />
+        </video>
       </section>
     </main>
 

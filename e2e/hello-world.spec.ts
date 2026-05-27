@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 async function clearStorage(
   page: import("@playwright/test").Page,
@@ -9,13 +9,9 @@ async function clearStorage(
     indexedDB.deleteDatabase("catm");
     if (onboarded) localStorage.setItem("catm:onboarded", "1");
     else localStorage.removeItem("catm:onboarded");
-    try {
-      const root = await navigator.storage.getDirectory();
-      for await (const name of (root as unknown as { keys(): AsyncIterable<string> }).keys()) {
-        await root.removeEntry(name, { recursive: true });
-      }
-    } catch {
-      /* best effort */
+    const root = await navigator.storage.getDirectory();
+    for await (const name of (root as unknown as { keys(): AsyncIterable<string> }).keys()) {
+      await root.removeEntry(name, { recursive: true });
     }
   }, opts.onboarded ?? true);
   await page.reload();

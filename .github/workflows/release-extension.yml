@@ -28,8 +28,12 @@ name: Release extension
 on:
   push:
     branches: [main]
+    # A release only happens when extension/manifest.json's version bumps,
+    # so trigger only on that file. Pushes to src/, package*, vite.config —
+    # which change the bundle but not the release identity — don't fire
+    # the workflow; they ride along with the next manifest bump.
     paths:
-      - 'extension/**'
+      - 'extension/manifest.json'
   workflow_dispatch:
 
 permissions:
@@ -47,8 +51,19 @@ jobs:
         with:
           fetch-depth: 2  # we compare manifest.json against the parent commit
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+
       - name: Validate background.js syntax
         run: node --check extension/background.js
+
+      - name: Build extension app bundle
+        # extension/app/ is gitignored; it has to be built before the zip
+        # step or the artefact would ship without the React app.
+        run: npm run build
 
       - name: Detect version bump
         id: ver

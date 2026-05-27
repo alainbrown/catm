@@ -1,0 +1,488 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#fafbfc" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0f1115" />
+    <meta name="robots" content="index, follow" />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <title>catm — come and talk to me</title>
+    <meta
+      name="description"
+      content="catm is a Chrome extension that reads any selection out loud. Long-form text-to-speech that runs entirely in your browser — no servers, no accounts, no telemetry."
+    />
+    <style>
+      :root {
+        --bg-0: #fafbfc;
+        --bg-1: #ffffff;
+        --bg-2: #f4f5f7;
+        --bg-3: #ececee;
+        --border: #e6e8ec;
+        --border-strong: #d4d7de;
+        --ink-0: #0d0e12;
+        --ink-1: #2a2d35;
+        --ink-2: #585d6b;
+        --ink-3: #8c92a3;
+        --ink-4: #b4b8c4;
+        --accent: #5b6cff;
+        --accent-end: #8a98ff;
+        --accent-soft: #eef0ff;
+        --accent-ink: #3b48cc;
+        --good: #16a06f;
+        --good-soft: rgba(22, 160, 111, 0.08);
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg-0: #0f1115;
+          --bg-1: #161a21;
+          --bg-2: #1c2129;
+          --bg-3: #232934;
+          --border: #2a303b;
+          --border-strong: #3a4150;
+          --ink-0: #f5f6f8;
+          --ink-1: #d8dbe2;
+          --ink-2: #9da3b1;
+          --ink-3: #6c7283;
+          --ink-4: #4a5060;
+          --accent: #7a8aff;
+          --accent-end: #a8b3ff;
+          --accent-soft: rgba(122, 138, 255, 0.16);
+          --accent-ink: #a8b3ff;
+          --good: #34c896;
+          --good-soft: rgba(52, 200, 150, 0.14);
+        }
+      }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      html, body { height: 100%; }
+      body {
+        font-family: "Inter Variable", "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+        color: var(--ink-1);
+        background: var(--bg-0);
+        background-image:
+          radial-gradient(circle at 0% 0%, rgba(91, 108, 255, 0.08), transparent 45%),
+          radial-gradient(circle at 100% 100%, rgba(255, 170, 140, 0.07), transparent 50%),
+          url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40'><circle cx='1' cy='1' r='1' fill='%23999' opacity='.16'/></svg>");
+        background-attachment: fixed;
+        -webkit-font-smoothing: antialiased;
+        letter-spacing: -0.005em;
+        min-height: 100vh;
+        line-height: 1.55;
+      }
+
+      main {
+        max-width: 1040px;
+        margin: 0 auto;
+        padding: 28px clamp(20px, 4vw, 40px) 80px;
+      }
+
+      /* ── top bar ─────────────────────────────────────────── */
+      header.top {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 14px 18px;
+        background: rgba(255, 255, 255, 0.6);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        margin-bottom: 48px;
+      }
+      @media (prefers-color-scheme: dark) {
+        header.top { background: rgba(22, 26, 33, 0.6); }
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .brand .logo {
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+        background: linear-gradient(135deg, var(--accent), var(--accent-end));
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 800;
+        font-size: 14px;
+        letter-spacing: -0.04em;
+        box-shadow: 0 6px 18px rgba(91, 108, 255, 0.28);
+      }
+      .brand .name {
+        display: flex;
+        flex-direction: column;
+        line-height: 1.15;
+        letter-spacing: -0.02em;
+      }
+      .brand .name b {
+        font-weight: 700;
+        font-size: 15px;
+        color: var(--ink-0);
+      }
+      .brand .name span {
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--ink-3);
+        letter-spacing: 0;
+      }
+      header.top nav {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 22px;
+      }
+      header.top nav a {
+        color: var(--ink-2);
+        font-size: 13px;
+        font-weight: 500;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        letter-spacing: -0.005em;
+      }
+      header.top nav a:hover { color: var(--ink-0); }
+      header.top nav a.icon-link svg {
+        width: 18px;
+        height: 18px;
+        display: block;
+      }
+
+      /* ── hero card ───────────────────────────────────────── */
+      section.hero {
+        background: var(--bg-1);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        box-shadow:
+          0 1px 2px rgba(13, 14, 18, 0.04),
+          0 24px 60px rgba(13, 14, 18, 0.08);
+        padding: clamp(36px, 5vw, 56px) clamp(28px, 5vw, 56px);
+        margin-bottom: 28px;
+        text-align: center;
+      }
+      .kicker {
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--accent);
+        margin-bottom: 18px;
+      }
+      h1 {
+        font-size: clamp(36px, 5.4vw, 56px);
+        line-height: 1.04;
+        letter-spacing: -0.03em;
+        font-weight: 700;
+        color: var(--ink-0);
+        margin-bottom: 18px;
+        max-width: 18ch;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      h1 em {
+        font-style: normal;
+        background: linear-gradient(135deg, var(--accent), var(--accent-end));
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+      .lede {
+        color: var(--ink-2);
+        font-size: clamp(15.5px, 1.6vw, 17px);
+        line-height: 1.6;
+        max-width: 56ch;
+        margin: 0 auto 32px;
+      }
+      .lede strong { color: var(--ink-0); font-weight: 600; }
+      .ctas {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+      }
+      .cta {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        background: var(--accent);
+        color: white;
+        border: 1px solid var(--accent);
+        font-size: 14.5px;
+        font-weight: 600;
+        padding: 14px 24px;
+        border-radius: 10px;
+        cursor: pointer;
+        text-decoration: none;
+        letter-spacing: -0.01em;
+        box-shadow:
+          0 1px 0 rgba(255, 255, 255, 0.18) inset,
+          0 6px 20px rgba(91, 108, 255, 0.32);
+        transition: background 0.12s, transform 0.15s;
+      }
+      .cta:hover { background: var(--accent-ink); transform: translateY(-1px); }
+      .cta svg { width: 18px; height: 18px; }
+      .cta-note {
+        font-size: 12.5px;
+        color: var(--ink-3);
+        font-family: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, monospace;
+      }
+
+      /* ── screenshot frame ───────────────────────────────── */
+      section.screenshot {
+        margin-bottom: 64px;
+      }
+      .screenshot-frame {
+        background: var(--bg-1);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow:
+          0 1px 2px rgba(13, 14, 18, 0.04),
+          0 24px 60px -10px rgba(13, 14, 18, 0.18);
+      }
+      .screenshot-frame img {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+      @media (prefers-color-scheme: dark) {
+        .screenshot-frame {
+          box-shadow:
+            0 1px 2px rgba(0, 0, 0, 0.4),
+            0 24px 60px -10px rgba(0, 0, 0, 0.6);
+        }
+      }
+
+      /* ── feature grid ───────────────────────────────────── */
+      section.features {
+        margin-bottom: 64px;
+      }
+      .section-head {
+        text-align: center;
+        margin-bottom: 28px;
+      }
+      .section-head h2 {
+        font-size: clamp(24px, 3vw, 30px);
+        font-weight: 700;
+        color: var(--ink-0);
+        letter-spacing: -0.02em;
+        margin-bottom: 8px;
+      }
+      .section-head p {
+        color: var(--ink-3);
+        font-size: 14.5px;
+        max-width: 52ch;
+        margin: 0 auto;
+      }
+      .features-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 14px;
+      }
+      .feature {
+        background: var(--bg-1);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 18px 20px;
+        text-align: left;
+      }
+      .feature .feat-kicker {
+        font-size: 10.5px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--ink-3);
+        margin-bottom: 8px;
+      }
+      .feature h3 {
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--ink-0);
+        letter-spacing: -0.01em;
+        margin-bottom: 6px;
+      }
+      .feature p {
+        color: var(--ink-2);
+        font-size: 13.5px;
+        line-height: 1.55;
+      }
+
+      /* ── how it works ───────────────────────────────────── */
+      section.how {
+        margin-bottom: 72px;
+      }
+      .how-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 14px;
+        counter-reset: step;
+      }
+      .how-step {
+        background: var(--bg-1);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 20px 22px;
+        counter-increment: step;
+      }
+      .how-step .num {
+        font-family: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, monospace;
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--accent);
+        letter-spacing: 0.05em;
+        margin-bottom: 10px;
+        text-transform: uppercase;
+      }
+      .how-step .num::before { content: "step 0" counter(step) " · "; color: var(--ink-3); }
+      .how-step h4 {
+        font-size: 15px;
+        font-weight: 700;
+        color: var(--ink-0);
+        letter-spacing: -0.01em;
+        margin-bottom: 6px;
+      }
+      .how-step p {
+        color: var(--ink-2);
+        font-size: 13.5px;
+        line-height: 1.55;
+      }
+
+      /* ── footer ─────────────────────────────────────────── */
+      footer.bottom {
+        margin-top: 56px;
+        padding: 20px 18px;
+        background: rgba(255, 255, 255, 0.6);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 16px;
+        font-size: 12.5px;
+        color: var(--ink-3);
+        font-family: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, monospace;
+        letter-spacing: -0.005em;
+      }
+      @media (prefers-color-scheme: dark) {
+        footer.bottom { background: rgba(22, 26, 33, 0.6); }
+      }
+      footer.bottom a {
+        color: var(--ink-2);
+        text-decoration: none;
+        margin-left: 18px;
+      }
+      footer.bottom a:first-of-type { margin-left: 0; }
+      footer.bottom a:hover { color: var(--accent); }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header class="top">
+        <div class="brand">
+          <span class="logo" aria-hidden="true">c</span>
+          <div class="name">
+            <b>catm</b>
+            <span>come and talk to me</span>
+          </div>
+        </div>
+        <nav>
+          <a href="#features">Features</a>
+          <a href="#how">How it works</a>
+          <a href="./privacy.html">Privacy</a>
+          <a class="icon-link" href="https://github.com/catm-app/catm-app.github.io" aria-label="catm on GitHub">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+          </a>
+        </nav>
+      </header>
+
+      <section class="hero">
+        <div class="kicker">browser-native text-to-speech</div>
+        <h1>Read anything <em>out loud.</em> Locally.</h1>
+        <p class="lede">
+          catm is a Chrome extension that turns any selected text into natural-sounding audio. The Kokoro 82M model runs <strong>entirely in your browser</strong> on WebGPU — no servers, no accounts, no uploads. Listen to articles, papers, and PDFs while you keep working.
+        </p>
+        <div class="ctas">
+          <a class="cta" href="https://chrome.google.com/webstore/detail/PLACEHOLDER_ID">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="21.17" y1="8" x2="12" y2="8"/><line x1="3.95" y1="6.06" x2="8.54" y2="14"/><line x1="10.88" y1="21.94" x2="15.46" y2="14"/></svg>
+            Add to Chrome
+          </a>
+          <span class="cta-note">free · open source · private</span>
+        </div>
+      </section>
+
+      <section class="screenshot">
+        <div class="screenshot-frame">
+          <img src="./demo.gif" alt="catm reading a passage out loud, with the active sentence highlighted as it plays" />
+        </div>
+      </section>
+
+      <section class="features" id="features">
+        <div class="section-head">
+          <h2>Built for long-form reading</h2>
+          <p>Articles, papers, whole book chapters — synthesised in your browser, streamed as they're generated.</p>
+        </div>
+        <div class="features-grid">
+          <div class="feature">
+            <div class="feat-kicker">privacy</div>
+            <h3>100% local</h3>
+            <p>Your text never leaves your device. The TTS model runs in your browser via WebGPU, with a WASM fallback. No backend, no telemetry, ever.</p>
+          </div>
+          <div class="feature">
+            <div class="feat-kicker">workflow</div>
+            <h3>Right-click to listen</h3>
+            <p>Select text on any page, choose <em>Read it to me</em>, and catm starts reading in the side panel while you keep browsing.</p>
+          </div>
+          <div class="feature">
+            <div class="feat-kicker">long-form</div>
+            <h3>Streams as it goes</h3>
+            <p>You can press play before the rest is even synthesised. catm produces audio sentence-by-sentence and appends it live.</p>
+          </div>
+          <div class="feature">
+            <div class="feat-kicker">offline</div>
+            <h3>Works on a plane</h3>
+            <p>After the one-time model download, catm runs with no internet at all. On a plane, on the subway, anywhere.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="how" id="how">
+        <div class="section-head">
+          <h2>How it works</h2>
+          <p>Three steps from highlight to audio.</p>
+        </div>
+        <div class="how-list">
+          <div class="how-step">
+            <div class="num">install</div>
+            <h4>Add the extension</h4>
+            <p>One click from the Chrome Web Store. No account, no signup, no permissions beyond the side panel.</p>
+          </div>
+          <div class="how-step">
+            <div class="num">select</div>
+            <h4>Pick some text</h4>
+            <p>Highlight anything on any webpage and right-click <em>Read it to me</em>.</p>
+          </div>
+          <div class="how-step">
+            <div class="num">listen</div>
+            <h4>Audio in the side panel</h4>
+            <p>catm streams natural-sounding audio while you keep reading or working in the main tab.</p>
+          </div>
+        </div>
+      </section>
+
+      <footer class="bottom">
+        <span>© 2026 · MIT licensed · made by Alain Brown</span>
+        <span>
+          <a href="https://github.com/catm-app/catm-app.github.io">source</a>
+          <a href="./privacy.html">privacy</a>
+          <a href="https://github.com/catm-app/catm-app.github.io/issues">issues</a>
+        </span>
+      </footer>
+    </main>
+  </body>
+</html>

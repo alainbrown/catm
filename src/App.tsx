@@ -4,11 +4,9 @@ import { ConfirmDialog } from "./components/ConfirmDialog";
 import { DiscardDialog } from "./components/DiscardDialog";
 import { PopoutButton } from "./components/PopoutButton";
 import { Rail } from "./components/Rail";
+import { consumeExtensionShare, type IngestedDraft } from "./extensionIngest";
 import { encodePcmToCompleteMp4 } from "./hls/encode";
-import { consumeExtensionShare } from "./pwa/extensionIngest";
-import { consumeShareTarget, type IngestedDraft, onFileLaunch } from "./pwa/ingest";
-import { UpdateBanner } from "./pwa/UpdateBanner";
-import { IS_EXTENSION, IS_SIDE_PANEL } from "./runtime";
+import { IS_SIDE_PANEL } from "./runtime";
 import {
   buildSessionExport,
   createSession,
@@ -29,7 +27,7 @@ import {
 import type { AppStatus, DocState } from "./types";
 import { OnboardingView } from "./views/OnboardingView";
 import { ReaderView } from "./views/ReaderView";
-import type { InMsg, OutMsg, VoiceId } from "./worker/kokoro.worker";
+import type { InMsg, KokoroWorkerConfig, OutMsg, VoiceId } from "./worker/kokoro.worker";
 import type { DeviceInfo } from "./worker/workerProtocol";
 
 export interface PerfState {
@@ -212,11 +210,7 @@ export function App(): React.JSX.Element {
     });
   }, []);
 
-  // PWA ingestion: share_target query params (on first load) and file_handlers
-  // launches (any time, while installed). We only ingest into an empty draft
-  // so we never clobber unsaved work — if the user already has text, the
-  // launch is dropped silently. A future iteration could prompt to open a
-  // new draft instead.
+  // Ingest only into an empty draft so a share never clobbers unsaved work.
   useEffect(() => {
     const ingest = (draft: IngestedDraft) => {
       if (!draft.text || draft.text.length === 0) return;
@@ -225,16 +219,7 @@ export function App(): React.JSX.Element {
         return { ...d, sourceText: draft.text };
       });
     };
-    if (IS_EXTENSION) {
-      const cleanup = consumeExtensionShare(ingest);
-      return cleanup;
-    }
-    const initial = consumeShareTarget();
-    if (initial) ingest(initial);
-    const cleanupFile = onFileLaunch(ingest);
-    return () => {
-      cleanupFile();
-    };
+    return consumeExtensionShare(ingest);
   }, []);
 
   // 1 Hz throughput rotation.
@@ -286,9 +271,17 @@ export function App(): React.JSX.Element {
 
   const startWorker = useCallback(() => {
     if (workerRef.current) return;
-    // Only Basic (Kokoro) ships today; Pro is marked "coming soon" in the UI.
+    const workerConfig: KokoroWorkerConfig = {
+      installModelCacheFetch: true,
+      ortWasm: {
+        numThreads: 1,
+        proxy: false,
+        wasmPaths: undefined,
+      },
+    };
     const w = new Worker(new URL("./worker/kokoro.worker.ts", import.meta.url), {
       type: "module",
+      name: JSON.stringify(workerConfig),
     });
     workerRef.current = w;
 
@@ -696,20 +689,15 @@ export function App(): React.JSX.Element {
       : "a new document";
 
   if (isOnboarding) {
-    return (
-      <>
-        <OnboardingView status={status} />
-        <UpdateBanner />
-      </>
-    );
+    return <OnboardingView status={status} />;
   }
 
   return (
     <>
       <div className={`shell${IS_SIDE_PANEL ? " shell-panel" : ""}`}>
-        {/* Rendered always — CSS hides it on wide viewports (desktop tab,
-            desktop PWA) and shows it on narrow ones (side panel + mobile
-            PWA). Popout button and device chip are extension-only. */}
+        {/* Rendered always — CSS hides it on the wide desktop popout-tab
+            view and shows it in the narrow side panel. Popout button and
+            device chip are side-panel-only. */}
         <header className="panel-brandbar">
           <BrandMark size={24} />
           <span className="panel-brandbar-name">
@@ -801,8 +789,6 @@ export function App(): React.JSX.Element {
           onSaveAndOpen={() => resolveDiscardDialog("save")}
         />
       ) : null}
-
-      <UpdateBanner />
     </>
   );
 }

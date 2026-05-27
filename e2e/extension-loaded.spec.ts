@@ -16,7 +16,8 @@ import { existsSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { type BrowserContext, chromium, expect, test, type Worker } from "@playwright/test";
+import { type BrowserContext, chromium, type Worker } from "@playwright/test";
+import { expect, test, watchPageErrors } from "./fixtures";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(__dirname, "..");
@@ -27,7 +28,7 @@ test.beforeAll(() => {
   // The unpacked extension references app/index.html as its side_panel and
   // its popout target. Build once if it's not there yet.
   if (!existsSync(APP_INDEX)) {
-    execSync("npm run build:ext", { stdio: "inherit", cwd: REPO_ROOT });
+    execSync("npm run build", { stdio: "inherit", cwd: REPO_ROOT });
   }
 });
 
@@ -84,6 +85,7 @@ test.describe("loaded extension end-to-end", () => {
     const { ctx, sw, extId } = await launchWithExtension();
     try {
       const page = await ctx.newPage();
+      const assertNoPageErrors = watchPageErrors(page, "small selection");
       await readyExtensionApp(page, extId);
 
       await sw.evaluate(
@@ -102,6 +104,7 @@ test.describe("loaded extension end-to-end", () => {
         "Selection from a real extension load.\n\nhttps://example.test/article",
         { timeout: 30_000 },
       );
+      assertNoPageErrors();
     } finally {
       await ctx.close();
     }
@@ -119,6 +122,7 @@ test.describe("loaded extension end-to-end", () => {
     const { ctx, sw, extId } = await launchWithExtension();
     try {
       const page = await ctx.newPage();
+      const assertNoPageErrors = watchPageErrors(page, "200 KB selection");
       await readyExtensionApp(page, extId);
 
       const line = "The quick brown fox jumps over the lazy dog.";
@@ -143,6 +147,7 @@ test.describe("loaded extension end-to-end", () => {
           timeout: 60_000,
         })
         .toBe(big.length);
+      assertNoPageErrors();
     } finally {
       await ctx.close();
     }

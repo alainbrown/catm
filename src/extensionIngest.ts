@@ -1,18 +1,7 @@
-// Extension-side share ingest. Replaces the PWA's content-script bridge
-// (`bridge.js` + `onExtensionBridge`) for the bundled extension build.
-//
-// Selection flow:
-//   1. User right-clicks → "Read it to me" in the page.
-//   2. extension/background.js writes `catm:pending-share` into
-//      chrome.storage.session and calls chrome.sidePanel.open().
-//   3. This module drains that key when the panel mounts AND on
-//      chrome.storage.onChanged (covers the case where the panel was
-//      already open when the menu fired).
-//
-// chrome.storage.session clears on browser restart, so a stale share
-// can never resurrect itself days later.
-
-import type { IngestedDraft } from "./ingest";
+export interface IngestedDraft {
+  title: string | null;
+  text: string;
+}
 
 const PENDING_KEY = "catm:pending-share";
 
@@ -48,7 +37,10 @@ interface ChromeGlobal {
   storage?: ChromeStorageGlobal;
 }
 
-declare const chrome: ChromeGlobal | undefined;
+// Bare-identifier `chrome` would ReferenceError outside the extension origin.
+function getChromeGlobal(): ChromeGlobal | undefined {
+  return (globalThis as { chrome?: ChromeGlobal }).chrome;
+}
 
 function toDraft(raw: unknown): IngestedDraft | null {
   if (!raw || typeof raw !== "object") return null;
@@ -61,11 +53,11 @@ function toDraft(raw: unknown): IngestedDraft | null {
   return { title: title || null, text: parts.join("\n\n").trim() };
 }
 
-// Drain any pending share now and subscribe to future writes. Returns a
-// cleanup that removes the listener.
 export function consumeExtensionShare(handler: (draft: IngestedDraft) => void): () => void {
-  const session = chrome?.storage?.session;
-  if (!session || !chrome?.storage) return () => {};
+  const chromeGlobal = getChromeGlobal();
+  const session = chromeGlobal?.storage?.session;
+  const storage = chromeGlobal?.storage;
+  if (!session || !storage) return () => {};
 
   const drain = async () => {
     try {
@@ -87,9 +79,9 @@ export function consumeExtensionShare(handler: (draft: IngestedDraft) => void): 
     if (changes[PENDING_KEY]?.newValue === undefined) return; // removal — ignore
     void drain();
   };
-  chrome.storage.onChanged.addListener(onChanged);
+  storage.onChanged.addListener(onChanged);
 
   return () => {
-    chrome?.storage?.onChanged.removeListener(onChanged);
+    storage.onChanged.removeListener(onChanged);
   };
 }

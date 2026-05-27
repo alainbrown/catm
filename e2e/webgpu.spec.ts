@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 // Drives the full onboarding + first-synth flow on WebGPU and asserts the
 // output PCM (read from OPFS HLS segments) is speech-shaped, not silence,

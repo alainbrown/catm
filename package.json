@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "100% in-browser long-form text-to-speech reader. Kokoro 82M TTS via ONNX Runtime Web (WebGPU/WASM). Installable PWA, no server.",
+  "description": "100% in-browser long-form text-to-speech reader, shipped as a Chrome extension. Kokoro 82M TTS via ONNX Runtime Web (WebGPU/WASM). No server.",
   "author": "Alain Brown",
   "license": "MIT",
   "homepage": "https://catm-app.github.io/",
@@ -16,17 +16,15 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
-    "build:ext": "tsc -b && vite build --mode extension",
-    "build:all": "npm run build && npm run build:ext",
+    "build": "tsc -b && vite build --mode extension",
     "preview": "vite preview",
     "lint": "biome check .",
+    "check:marketing": "node scripts/check-marketing.mjs",
     "format": "biome format --write .",
     "test": "vitest run && playwright test",
     "test:unit": "vitest run",
     "test:unit:watch": "vitest",
-    "test:e2e": "playwright test",
-    "icons": "node scripts/generate-icons.mjs"
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.2.8",
@@ -45,10 +43,8 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^6.0.2",
-    "sharp": "^0.34.5",
     "typescript": "^6.0.3",
     "vite": "^8.0.14",
-    "vite-plugin-pwa": "^1.3.0",
     "vitest": "^4.1.7"
   }
 }

@@ -1,18 +1,15 @@
 import { mkdirSync, writeFileSync } from "node:fs";
-import { expect, type Page, test } from "@playwright/test";
+import type { Page } from "@playwright/test";
+import { expect, test } from "./fixtures";
 
 async function clearStorage(page: Page): Promise<void> {
   await page.goto("/");
   await page.evaluate(async () => {
     indexedDB.deleteDatabase("catm");
     localStorage.setItem("catm:onboarded", "1");
-    try {
-      const root = await navigator.storage.getDirectory();
-      for await (const name of (root as unknown as { keys(): AsyncIterable<string> }).keys()) {
-        await root.removeEntry(name, { recursive: true });
-      }
-    } catch {
-      /* best effort */
+    const root = await navigator.storage.getDirectory();
+    for await (const name of (root as unknown as { keys(): AsyncIterable<string> }).keys()) {
+      await root.removeEntry(name, { recursive: true });
     }
   });
   await page.reload();

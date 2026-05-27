@@ -1,8 +1,18 @@
 name: Deploy to GitHub Pages
 
+# The marketing site is plain static HTML in `marketing/`. There is no
+# build step — this workflow uploads that directory directly as the Pages
+# artefact. Asset-reference validation runs in test.yml as a lint, so the
+# files reaching here have already been checked.
+
 on:
   push:
     branches: [main]
+    # Only fire when the marketing site itself changes. Pushes that only
+    # touch src/, extension/, e2e/, etc. don't need a re-deploy.
+    paths:
+      - 'marketing/**'
+      - '.github/workflows/deploy.yml'
   workflow_dispatch:
 
 permissions:
@@ -15,27 +25,16 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-      - run: npm ci
-      - run: npm run build
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: dist
-
   deploy:
-    needs: build
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: marketing
       - id: deployment
         uses: actions/deploy-pages@v4

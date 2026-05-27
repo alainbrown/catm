@@ -4,17 +4,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-**catm** is a 100% in-browser long-form text-to-speech reader. All synthesis runs locally — the Kokoro 82M TTS model is downloaded once into the browser's HTTP cache and run via ONNX Runtime Web (WebGPU with WASM fallback). There is no server. The app is an installable PWA that, once visited and the model is fetched, works fully offline. Deploys to GitHub Pages from `main`.
+**catm** is a 100% in-browser long-form text-to-speech reader, shipped as a Chrome extension. All synthesis runs locally — the Kokoro 82M TTS model is downloaded once into the browser's HTTP cache and run via ONNX Runtime Web (WebGPU with WASM fallback). There is no server.
+
+`catm-app.github.io` is a **marketing landing page** (hand-written static HTML in `marketing/`) that points visitors at the Chrome Web Store. The runnable React app only ships inside the extension. Deploys to GitHub Pages from `main` via `.github/workflows/deploy.yml`.
 
 ## Commands
 
-- `npm run dev` — Vite dev server on http://localhost:5173
-- `npm run build` — typecheck (`tsc -b`) + `vite build` to `dist/` (the PWA at catm-app.github.io)
-- `npm run build:ext` — typecheck + `vite build --mode extension` to `extension/app/` (the bundled extension app; gitignored)
-- `npm run build:all` — both of the above
+- `npm run dev` — Vite dev server on http://localhost:5173 serving the React app at `/`. Vite is **only** for the extension build pipeline; the marketing site has no dev story (it's pure static HTML, open `marketing/index.html` directly if you need to preview it).
+- `npm run build` — typecheck + `vite build --mode extension` to `extension/app/` (the bundled extension app; gitignored). Uses the root `index.html` as the React entry. The extension is the only thing that gets built; the marketing site has no build step (see below).
+- `npm run check:marketing` — `node scripts/check-marketing.mjs`. Verifies every relative href/src in `marketing/*.html` resolves to a file. Run automatically by `test.yml` before the test suite so a typo'd asset path fails the PR.
 - `npm run lint` — Biome check (lint + format diff). `npm run format` to autoformat.
 - `npm test` — full suite: Vitest unit tests then Playwright e2e. This is the verification command; always run it whole. `npm run test:unit` runs only Vitest (node env, `src/**/*.test.ts{,x}`); `npm run test:unit:watch` for watch mode; notable suites: `src/textChunk.test.ts` (highlight chunker) and `src/worker/splitToFit.test.ts` (phoneme-token splitter). `npm run test:e2e` runs only Playwright (Chromium only, single worker, 5-min test timeout, reuses an existing dev server on :5173). Single specs (e.g. `npx vitest run src/textChunk.test.ts`, `npx playwright test -g "synth saves session"`) are fine for iterating on a failure but never sufficient for verifying a change.
-- `npm run icons` — regenerate the PNG icon set (192/512/maskable/apple-touch) from `public/favicon.svg` via `scripts/generate-icons.mjs` (sharp). Run after touching the SVG and commit the outputs.
 
 Playwright launches Chrome with `--enable-features=SharedArrayBuffer` — needed so the worker can run ONNX. If you change the e2e harness, preserve that flag.
 
@@ -66,45 +66,24 @@ The worker picks `device: "webgpu"` when `navigator.gpu` exists, otherwise `wasm
 
 `App.tsx` holds `status: AppStatus` (a discriminated union — `first-launch | loading | downloading | ready | synthesising | error`) and `doc: DocState` (current draft/loaded session). `modified` is derived: text differs from `savedText`, OR the saved audio's voice differs from the currently selected voice (changing voice invalidates audio). Navigating away from a modified doc opens `DiscardDialog`.
 
-### PWA layer
+### Marketing page
 
-The app is a real installable PWA. Three pieces own this:
-
-- **`public/manifest.webmanifest`** — installable metadata. `display: standalone`, dark `theme_color`, per-size PNG icons (incl. a dedicated maskable variant), `share_target` (GET `title`/`text`/`url`), `file_handlers` for `.txt`/`.md`, `launch_handler: navigate-existing`.
-- **`src/sw.ts`** (bundled by `vite-plugin-pwa` in `injectManifest` mode to `dist/sw.js`) — does four jobs: (1) inject COOP/COEP/CORP headers on every response so the page becomes `crossOriginIsolated` (required for SharedArrayBuffer / threaded WASM on GitHub Pages, which can't set the headers itself); (2) precache the app shell from the Workbox manifest; (3) cache-first the Kokoro model weights from huggingface.co into `catm-model-v1`; (4) serve the cached `index.html` as a navigation fallback when the network is unreachable. The SW does **not** call `skipWaiting()` itself — see update flow below.
-- **`src/main.tsx`** — registers the SW (PROD only), reloads once on first install so the page reloads with COI headers, listens for waiting workers, dispatches `catm:update-ready`, and reloads on `controllerchange`. It also polls `reg.update()` every 30 min and on `visibilitychange→visible` so long-lived reader tabs notice new deploys.
-
-#### SW update flow
-
-A new deploy installs silently. `<UpdateBanner>` (`src/pwa/UpdateBanner.tsx`) listens for `catm:update-ready` and shows a prompt; on confirm it posts `{ type: "SKIP_WAITING" }` to the waiting worker. The SW's message handler calls `skipWaiting()`, which fires `controllerchange`, and `main.tsx` reloads exactly once. **Do not move `skipWaiting` back into the SW's `install` handler** — it would tear down the controller mid-synthesis.
-
-#### External ingest
-
-`share_target` and `file_handlers` both feed `src/pwa/ingest.ts`:
-
-- `consumeShareTarget()` reads `?title=&text=&url=` from `location.search` once on mount, then strips them via `history.replaceState` so a reload doesn't re-import.
-- `onFileLaunch()` subscribes to `window.launchQueue` and reads the dropped `FileSystemFileHandle`(s).
-
-Both surfaces only ingest into an **empty draft** (`doc.id === null && doc.sourceText === ""`). Otherwise the launch is dropped silently to avoid clobbering unsaved work.
-
-#### iOS specifics
-
-`index.html` sets `viewport-fit=cover` + `apple-mobile-web-app-status-bar-style=black-translucent` so dark mode reads correctly in the standalone PWA. `body` carries `env(safe-area-inset-*)` padding and `.shell` uses `min-height: calc(100dvh - top - bottom)` so a single viewport still fits without forcing a scroll.
+`marketing/` holds a hand-written static HTML page (no JS, no React) styled to match the app's aesthetic — same `radial-gradient` body background and dot-SVG overlay, same `c` brand mark, same hero card / kicker / accent-gradient text treatment as the onboarding card. Assets next to it (`favicon.svg`, `demo.gif`, `privacy.html`) are referenced with relative paths. **There is no build step** — `deploy.yml` uploads `marketing/` directly to GitHub Pages. `scripts/check-marketing.mjs` is a CI-only lint that verifies all relative refs resolve before the deploy fires. **`marketing/privacy.html` is mandatory for the Chrome Web Store** (the extension reads selected page content); do not delete it during cleanup.
 
 ### Extension build
 
-`extension/` is a Chrome MV3 extension that bundles the same React app and renders it inside Chrome's side panel.
+`extension/` is a Chrome MV3 extension that bundles the React app and renders it inside Chrome's side panel.
 
-- **Two builds, one source tree.** `vite build` produces the PWA in `dist/`. `vite build --mode extension` produces `extension/app/` (gitignored). The PWA plugin is gated off in extension mode (no SW — the manifest sets COOP/COEP directly), and a couple of runtime paths are mode-gated via `src/runtime.ts` (`IS_EXTENSION` from `import.meta.env.MODE`, `IS_SIDE_PANEL` from `?ctx` not being `tab`).
-- **Manifest** (`extension/manifest.json`) declares `side_panel.default_path = "app/index.html"`, `sidePanel` permission, CSP `"script-src 'self' 'wasm-unsafe-eval'"`, and COOP/COEP keys so the page is `crossOriginIsolated` without needing the PWA's header-injecting SW. **No `host_permissions`** — the extension never touches `catm-app.github.io`.
+- **Single Vite project, one entry.** `index.html` at the repo root is the React app entry. `vite build --mode extension` produces `extension/app/` from it; `npm run dev` serves the same file at `/` for the e2e harness. The marketing build is outside Vite entirely (see above), so there's no `rollupOptions.input` override or `copyPublicDir` filter to maintain. `src/runtime.ts` exports a single `IS_SIDE_PANEL` flag derived from the URL (`chrome-extension:` protocol AND no `?ctx=tab`) — no build-mode flag is needed because the React app's only non-extension consumer is the dev harness, and `consumeExtensionShare` safely no-ops when `globalThis.chrome` is undefined.
+- **Manifest** (`extension/manifest.json`) declares `side_panel.default_path = "app/index.html"`, `sidePanel` permission, CSP `"script-src 'self' 'wasm-unsafe-eval'"`, and COOP/COEP keys so the page is `crossOriginIsolated`. **No `host_permissions`** — the extension never touches `catm-app.github.io`.
 - **Background SW** (`extension/background.js`) calls `chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true })` so the toolbar icon opens the panel, and registers a `"Read it to me"` context menu. On menu click it calls `chrome.sidePanel.open({ windowId })` **synchronously before** any await, then writes the selection to `chrome.storage.session` under `catm:pending-share`. Awaiting before `sidePanel.open` consumes the user gesture and the panel stays closed — preserve the ordering.
-- **Side-panel ingest** (`src/pwa/extensionIngest.ts`) drains `chrome.storage.session["catm:pending-share"]` on mount and subscribes to `chrome.storage.onChanged` so a menu fire while the panel is already open still ingests live. Replaces the old PWA-side `bridge.js` content-script handoff entirely.
+- **Side-panel ingest** (`src/extensionIngest.ts`) drains `chrome.storage.session["catm:pending-share"]` on mount and subscribes to `chrome.storage.onChanged` so a menu fire while the panel is already open still ingests live. Exported `IngestedDraft` is the shape `App.tsx` consumes.
 - **WebGPU in MV3.** In extension mode the worker configures `@huggingface/transformers`'s env *before* loading Kokoro:
   - `env.backends.onnx.wasm.numThreads = 1` — multi-threaded WASM spawns Emscripten pthread workers via `blob:` URLs; MV3 forbids `blob:` in `script-src`.
   - `env.backends.onnx.wasm.proxy = false` — the proxy worker also spawns via `blob:`.
   - `env.backends.onnx.wasm.wasmPaths = undefined` — defaults to a jsDelivr CDN URL; MV3 forbids remote scripts. `undefined` makes ORT use the bundled wasm shipped under `extension/app/assets/`.
-  Same pattern used by `tantara/transformers.js-chrome` in production. WebGPU otherwise works the same way it does in the PWA.
-- **Model cache.** No SW means no `catm-model-v1` Cache Storage interception; instead `src/worker/modelCache.ts` patches `globalThis.fetch` inside the worker to do the same cache-first routing for `huggingface.co` URLs. Same bucket name (`catm-model-v1`) so the offline-after-first-download invariant holds.
+  Same pattern used by `tantara/transformers.js-chrome` in production.
+- **Model cache.** `src/worker/modelCache.ts` patches `globalThis.fetch` inside the worker to do cache-first routing for `huggingface.co` URLs into the `catm-model-v1` Cache Storage bucket, so the offline-after-first-download invariant holds.
 - **Side-panel layout.** Top-to-bottom: sticky `.panel-brandbar` (catm logo + name + live WebGPU/WASM device chip + popout button) → `<main>` (untouched ReaderView) → full `<Rail>` (sessions, perf, model, storage, reset). CSS `order` on `.shell-panel` reorders the desktop rail-then-main into brand-then-main-then-rail. The Rail's internal `.brand` is hidden in panel mode to avoid duplicating the brandbar.
 - **Popout to tab.** `<PopoutButton>` in the brandbar (only rendered when `IS_SIDE_PANEL`) calls `chrome.tabs.create({ url: chrome.runtime.getURL("app/index.html?ctx=tab") })` then `window.close()`. Same origin as the panel → shared OPFS/IDB/model cache; the `window.close()` ensures only one view at a time, no IDB race. The tab renders the full desktop shell (rail beside main).
 
@@ -114,6 +93,6 @@ Both surfaces only ingest into an **empty draft** (`doc.id === null && doc.sourc
 - **Biome** is the linter/formatter (2-space, double quotes, semicolons, 100-col). `noNonNullAssertion` is off; `noExplicitAny` is a warning.
 - **Fonts are self-hosted** via `@fontsource-variable/inter` and `@fontsource-variable/jetbrains-mono` (imported in `src/main.tsx`). The family names are `"Inter Variable"` / `"JetBrains Mono Variable"`; legacy `"Inter"` / `"JetBrains Mono"` stay in the stack as fallbacks. No Google Fonts at runtime.
 - Tests live next to source as `*.test.ts(x)`. Vitest runs in `node` env — anything browser-specific (Web Workers, OPFS, WebCodecs, hls.js) is **not** unit-testable here; cover it in Playwright e2e instead.
-- E2E philosophy (from user memory): drive real user journeys end-to-end; do not write shell-loaded smoke tests, do not mock the worker or storage.
-- `vite.config.ts` excludes `onnxruntime-web` and `kokoro-js` from dep optimisation and sets `worker.format: "es"` — needed for the ESM worker + WebGPU shaders to load correctly. The PWA plugin's `globPatterns` includes `png` and `woff2` so icons and self-hosted fonts make it into the precache. Don't change these without testing the worker boot path and offline launch.
+- E2E philosophy (from user memory): drive real user journeys end-to-end; do not write shell-loaded smoke tests, do not mock the worker or storage. E2E specs `page.goto("/")` — the dev server serves the React app there.
+- `vite.config.ts` sets `worker.format: "es"` so the ESM worker + WebGPU shaders load correctly. The extension build only overrides `outDir`. Don't add a `publicDir` or `rollupOptions.input` override — the marketing site lives in `marketing/` and is built outside Vite, and the React entry is just the default root `index.html`.
 - `base: "./"` in vite config produces relative asset URLs so the GitHub Pages deploy works under a subpath.

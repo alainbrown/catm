@@ -11,5 +11,5 @@ test-results
 .env.*
 !.env.example
 *.tsbuildinfo
-test-fixtures/
 extension.zip
+extension/app/

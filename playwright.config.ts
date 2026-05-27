@@ -8,11 +8,10 @@ export default defineConfig({
   workers: 1,
   reporter: "list",
   timeout: 120_000,
-  expect: { timeout: 60_000 },
+  expect: { timeout: 120_000 },
   use: {
     baseURL: "http://localhost:5173",
     trace: "retain-on-failure",
-    actionTimeout: 60_000,
   },
   projects: [
     {

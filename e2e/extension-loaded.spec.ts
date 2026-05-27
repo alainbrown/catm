@@ -152,4 +152,38 @@ test.describe("loaded extension end-to-end", () => {
       await ctx.close();
     }
   });
+
+  // Closes the "production extension synth path is untested" gap. The other
+  // e2e specs all drive synth via `npm run dev` (Vite, http://localhost). A
+  // bundling regression on the chrome-extension:// origin — CSP, missing
+  // WASM, broken model-cache fetch, anything — would only surface here.
+  test("synth round-trip on the loaded extension", async () => {
+    test.setTimeout(5 * 60 * 1000);
+    const { ctx, extId } = await launchWithExtension();
+    try {
+      const page = await ctx.newPage();
+      const assertNoPageErrors = watchPageErrors(page, "extension synth");
+      await readyExtensionApp(page, extId);
+
+      await page.getByLabel("Text").fill("Hello world from the production extension.");
+      await page.getByTestId("speak").click();
+
+      const audio = page.getByTestId("audio");
+      await expect
+        .poll(async () => audio.evaluate((el) => (el as HTMLAudioElement).src), {
+          timeout: 120_000,
+        })
+        .toMatch(/^blob:/);
+      await expect
+        .poll(async () => audio.evaluate((el) => (el as HTMLAudioElement).duration), {
+          timeout: 30_000,
+        })
+        .toBeGreaterThan(0);
+      await expect(page.getByTestId("library-row")).toHaveCount(1);
+
+      assertNoPageErrors();
+    } finally {
+      await ctx.close();
+    }
+  });
 });

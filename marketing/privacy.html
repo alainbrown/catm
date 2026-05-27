@@ -8,7 +8,7 @@
     <meta name="robots" content="index, follow" />
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <title>catm — privacy</title>
-    <meta name="description" content="catm privacy policy. catm runs entirely in your browser — no servers, no accounts, no telemetry." />
+    <meta name="description" content="catm privacy policy. catm is a Chrome extension that runs entirely on your device — no servers, no accounts, no telemetry." />
     <style>
       :root {
         --bg: #fafbfc;
@@ -127,61 +127,65 @@
       </header>
 
       <h1>Privacy</h1>
-      <p class="updated">Last updated: 2026-05-25</p>
+      <p class="updated">Last updated: 2026-05-26</p>
 
       <p class="lede">
-        catm is designed so that everything happens on your device. No accounts, no servers, no telemetry. This page is the formal statement of that — for both the web app at <a href="https://catm-app.github.io/">catm-app.github.io</a> and the <strong>Send to catm</strong> Chrome extension.
+        catm is a Chrome extension that turns text into speech entirely on your device. No accounts, no servers, no telemetry. This page is the formal statement of that — for the extension itself and for this marketing site at <a href="https://catm-app.github.io/">catm-app.github.io</a>.
       </p>
 
       <h2>Where things run</h2>
       <p>
-        catm is a single-page web app served from GitHub Pages. After your first visit:
+        The runnable app lives inside the Chrome extension and renders in Chrome's side panel. This site at <code>catm-app.github.io</code> is a static marketing page that points visitors at the Chrome Web Store — it does not run the app.
       </p>
+      <p>The first time you open the side panel:</p>
       <ul>
-        <li>The app shell is cached locally as a Progressive Web App.</li>
-        <li>The Kokoro 82M text-to-speech model is downloaded once from <code>huggingface.co</code> and stored in your browser's HTTP cache (~310&nbsp;MB).</li>
-        <li>Synthesis runs in your browser via ONNX Runtime Web — WebGPU when available, multi-threaded WASM otherwise.</li>
+        <li>The Kokoro 82M text-to-speech model is downloaded once from <code>huggingface.co</code> and cached locally in the browser's Cache Storage (~310&nbsp;MB). Subsequent sessions are fully offline.</li>
+        <li>Synthesis runs inside the extension via ONNX Runtime Web — WebGPU when available, single-threaded WASM as a fallback. The WASM runtime ships bundled with the extension; nothing is fetched remotely at synth time.</li>
         <li>Text you paste, saved sessions, and the audio they produce live only on your device: session metadata in IndexedDB, audio fragments in the Origin Private File System (OPFS).</li>
       </ul>
       <p>
-        catm has no backend. No request ever leaves your browser carrying your text or your audio.
+        The extension has no backend. No request ever leaves your browser carrying your text or your audio.
       </p>
 
       <h2>Network requests catm makes</h2>
       <ul>
-        <li>Static app files from <code>catm-app.github.io</code> (GitHub Pages).</li>
-        <li>The one-time download of the Kokoro model from <code>huggingface.co</code>.</li>
+        <li>The extension makes exactly one network request, on first use: downloading the Kokoro model from <code>huggingface.co</code>. After that, the extension is fully offline.</li>
+        <li>This marketing page at <code>catm-app.github.io</code> serves static HTML from GitHub Pages. It loads no scripts and makes no XHR requests.</li>
         <li>Nothing else.</li>
       </ul>
       <p>
         There are no analytics, no error-reporting services, no third-party scripts, and no trackers.
       </p>
 
-      <h2>The "Send to catm" Chrome extension</h2>
+      <h2>The catm Chrome extension</h2>
       <p>
-        The extension exists only to make it easier to send text you are already reading to catm. It does these things:
+        The extension does these things:
       </p>
       <ul>
-        <li>Adds a context-menu entry, <strong>Send selection to catm</strong>, that appears when you right-click on selected text.</li>
-        <li>On click, opens <code>catm-app.github.io</code> with the selected text passed as a URL query parameter — along with the active tab's title and URL, so catm can show useful context.</li>
-        <li>Clicking the toolbar icon opens (or focuses) catm.</li>
+        <li>Adds a context-menu entry, <strong>Read it to me</strong>, that appears when you right-click on selected text. Clicking it opens catm's side panel and queues the selection for reading. The active tab's title and URL are passed alongside the text so the side panel can label the session.</li>
+        <li>Clicking the toolbar icon opens the side panel.</li>
       </ul>
+      <p>
+        Selection delivery happens entirely inside the browser, via <code>chrome.storage.session</code> — an in-memory store that the browser clears when you close the window. The side panel reads the pending selection on mount and then deletes it. No network request is involved.
+      </p>
       <p>It does <strong>not</strong>:</p>
       <ul>
-        <li>Read any page contents on its own. The extension has no content scripts and no broad host permission. It only sees text you yourself select and then explicitly send via the context menu.</li>
-        <li>Communicate with any server. The selected text is passed to a new tab as a URL parameter; the extension itself makes no network requests.</li>
-        <li>Store anything. The extension does not use <code>chrome.storage</code>, cookies, or any other persistent state.</li>
-        <li>Sync anything between devices.</li>
+        <li>Read pages on its own. There are no content scripts and no host permissions, so the extension cannot read or modify the pages you visit. It only sees text you yourself select and then explicitly send via the menu.</li>
+        <li>Communicate with any server. The selection travels from the background service worker to the side panel via local storage; it never leaves the browser.</li>
+        <li>Sync anything between devices. The extension does not use <code>chrome.storage.sync</code>.</li>
       </ul>
-      <p>
-        The only permissions it requests are <code>contextMenus</code> plus host access to <code>https://catm-app.github.io/*</code> — the latter so it can find and re-use an existing catm tab instead of opening duplicates.
-      </p>
+      <p>The permissions the extension requests, and why:</p>
+      <ul>
+        <li><code>contextMenus</code> — to register the <strong>Read it to me</strong> menu entry.</li>
+        <li><code>sidePanel</code> — to open the side panel where the app runs.</li>
+        <li><code>storage</code> — to pass the selected text from the menu click to the side panel via <code>chrome.storage.session</code>, which is cleared automatically when you close the window.</li>
+        <li><code>tabs</code> — to read the active tab's title and URL so the side panel can label the session. No tab contents are read.</li>
+      </ul>
 
       <h2>How to delete your data</h2>
       <ul>
-        <li><strong>Inside catm:</strong> use the <em>Delete everything</em> button. It purges IndexedDB sessions, OPFS audio, your onboarding and voice preferences, and the cached Kokoro model.</li>
-        <li><strong>From the browser:</strong> clear site data for <code>catm-app.github.io</code> in your browser settings.</li>
-        <li><strong>The extension:</strong> uninstall it from <code>chrome://extensions</code>. It has nothing else to clean up.</li>
+        <li><strong>Inside the side panel:</strong> use the <em>Delete everything</em> button. It purges IndexedDB sessions, OPFS audio, your onboarding and voice preferences, and the cached Kokoro model.</li>
+        <li><strong>From the browser:</strong> uninstall the extension from <code>chrome://extensions</code>. Removing the extension removes its storage, OPFS, and cached model along with it.</li>
       </ul>
 
       <h2>Children</h2>

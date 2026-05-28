@@ -2,6 +2,7 @@
 
 [![Test](https://github.com/catm-app/catm-app.github.io/actions/workflows/test.yml/badge.svg)](https://github.com/catm-app/catm-app.github.io/actions/workflows/test.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
+[![Chrome Web Store](https://img.shields.io/chrome-web-store/v/imkogmgncjobcjeofjeekegihcikgbbm?label=Chrome%20Web%20Store&logo=googlechrome&logoColor=white)](https://chromewebstore.google.com/detail/imkogmgncjobcjeofjeekegihcikgbbm)
 
 **Get it →** [catm-app.github.io](https://catm-app.github.io/)
 

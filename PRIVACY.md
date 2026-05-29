@@ -1,63 +1,71 @@
-# Privacy
+# Privacy Policy
 
-_Last updated: 2026-05-26_
+_Last updated: 2026-05-29_
 
-catm is a Chrome extension that turns text into speech entirely on your device. No accounts, no servers, no telemetry. This document is the formal statement of that.
+catm is a Chrome extension that converts text to speech entirely on your device. It has no backend, no accounts, and no telemetry. Your text and the audio it produces never leave your browser.
 
-## Where things run
+## Summary
 
-The runnable app lives inside the Chrome extension and renders in Chrome's side panel.
+- **No servers.** All speech synthesis runs locally inside the extension.
+- **No accounts.** There is nothing to sign up for.
+- **No tracking.** No analytics, error reporting, third-party scripts, or trackers.
+- **One network request, ever.** On first use the extension downloads the speech model; after that it works fully offline.
 
-The first time you open the side panel:
+## How it works
 
-- The Kokoro 82M text-to-speech model is downloaded once from `huggingface.co` and cached locally in the browser's Cache Storage (~310 MB). Subsequent sessions are fully offline.
-- Synthesis runs inside the extension via ONNX Runtime Web — WebGPU when available, single-threaded WASM as a fallback. The WASM runtime ships bundled with the extension; nothing is fetched remotely at synth time.
-- Text you paste, saved sessions, and the audio they produce live only on your device: session metadata in IndexedDB, audio fragments in the Origin Private File System (OPFS).
+The app runs in Chrome's side panel. The first time you open it:
 
-The extension has no backend. No request ever leaves your browser carrying your text or your audio.
+- The Kokoro 82M text-to-speech model (~310 MB) is downloaded once from `huggingface.co` and stored in the browser's Cache Storage. Every later session loads the model from that cache and needs no network access.
+- Synthesis runs in the extension via ONNX Runtime Web — WebGPU when available, single-threaded WASM otherwise. The WASM runtime is bundled with the extension; nothing is fetched remotely at synthesis time.
 
-## Network requests catm makes
+## What is stored, and where
 
-- The extension makes exactly one network request, on first use: downloading the Kokoro model from `huggingface.co`. After that, the extension is fully offline.
-- Nothing else.
+Everything catm stores lives on your device, in your browser's per-extension storage:
 
-There are no analytics, no error-reporting services, no third-party scripts, and no trackers.
+- **Saved readings** — session titles, the source text, and playback metadata are kept in IndexedDB.
+- **Generated audio** — stored as fragments in the Origin Private File System (OPFS).
+- **Preferences** — your onboarding state, selected voice, and playback speed are kept in `localStorage`.
 
-## The catm Chrome extension
+None of this is transmitted anywhere, and none of it syncs between devices.
 
-The extension does these things:
+## The network requests catm makes
 
-- Adds a context-menu entry, **Read aloud**, that appears when you right-click on selected text. Clicking it opens catm's side panel and queues the selection for reading. The active tab's title is passed alongside the text so the side panel can label the session.
-- Clicking the toolbar icon opens the side panel.
+- **First use only:** downloading the speech model from `huggingface.co`.
+- **Nothing else.**
 
-Selection delivery happens entirely inside the browser, via `chrome.storage.session` — an in-memory store that the browser clears when you close the window. The side panel reads the pending selection on mount and then deletes it. No network request is involved.
+## What the extension can and cannot do
 
-It does **not**:
+The extension adds a **Read aloud** entry to the right-click menu when you select text, and opens the side panel when you click its toolbar icon. When you choose **Read aloud**, the selected text is handed to the side panel through `chrome.storage.session` — an in-memory area the browser clears when the window closes. The side panel reads that text on open, then deletes it. No network request is involved.
 
-- Read pages on its own. There are no content scripts and no host permissions, so the extension cannot read or modify the pages you visit. It only sees text you yourself select and then explicitly send via the menu.
-- Communicate with any server. The selection travels from the background service worker to the side panel via local storage; it never leaves the browser.
-- Sync anything between devices. The extension does not use `chrome.storage.sync`.
+The extension does **not**:
 
-The permissions the extension requests, and why:
+- Read or modify the pages you visit. It has no content scripts and no host permissions, so it can only ever see text you select and explicitly send via the menu.
+- Talk to any server. The selection moves from the background service worker to the side panel through local browser storage and never leaves the browser.
+- Sync anything. It does not use `chrome.storage.sync`.
 
-- `contextMenus` — to register the **Read aloud** menu entry.
+## Permissions
+
+The extension requests only what it needs:
+
+- `contextMenus` — to add the **Read aloud** right-click entry.
 - `sidePanel` — to open the side panel where the app runs.
-- `storage` — to pass the selected text from the menu click to the side panel via `chrome.storage.session`, which is cleared automatically when you close the window.
-- `tabs` — to read the active tab's title so the side panel can label the session. No tab contents are read.
+- `storage` — to pass selected text from the menu to the side panel via `chrome.storage.session`, which the browser clears when the window closes.
 
-## How to delete your data
+It does not request `tabs`, host permissions, or any access to the content of the pages you browse.
 
-- **Inside the side panel:** use the _Delete everything_ button. It purges IndexedDB sessions, OPFS audio, your onboarding and voice preferences, and the cached Kokoro model.
-- **From the browser:** uninstall the extension from `chrome://extensions`. Removing the extension removes its storage, OPFS, and cached model along with it.
+## Deleting your data
+
+- **In the app:** use **Delete everything** in the side panel. It removes your saved readings (IndexedDB), generated audio (OPFS), your preferences, and the cached speech model.
+- **From Chrome:** uninstall the extension at `chrome://extensions`. Removing it removes all of its storage, audio, and the cached model with it.
 
 ## Children
 
-catm is general-purpose. It does not knowingly collect personal information from children — because it does not collect personal information from anyone.
+catm is general-purpose and does not knowingly collect personal information from children — because it does not collect personal information from anyone.
 
-## Changes to this policy
+## Changes
 
-Material changes will be reflected in the "Last updated" date at the top of this document and in the project's commit history. The current and historical versions of this policy are public at the source-code link below.
+Material changes are reflected in the "Last updated" date above and in the project's commit history.
 
 ## Contact
 
-Source code, issues, and the change history for this policy live at [github.com/catm-app/catm-app.github.io](https://github.com/catm-app/catm-app.github.io).
+Source code, issues, and the history of this policy live at [github.com/catm-app/catm-app.github.io](https://github.com/catm-app/catm-app.github.io).

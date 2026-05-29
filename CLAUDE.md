@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **catm** is a 100% in-browser long-form text-to-speech reader, shipped as a Chrome extension. All synthesis runs locally — the Kokoro 82M TTS model is downloaded once into the browser's HTTP cache and run via ONNX Runtime Web (WebGPU with WASM fallback). There is no server.
 
-`catm-app.github.io` is a **marketing landing page** (hand-written static HTML in `marketing/`) that points visitors at the Chrome Web Store. The runnable React app only ships inside the extension. Deploys to GitHub Pages from `main` via `.github/workflows/deploy.yml`.
+`alainbrown.com/catm` is a **marketing landing page** (hand-written static HTML in `marketing/`) that points visitors at the Chrome Web Store. The runnable React app only ships inside the extension. Deploys to GitHub Pages from `main` via `.github/workflows/deploy.yml`.
 
 ## Commands
 
@@ -75,7 +75,7 @@ The worker picks `device: "webgpu"` when `navigator.gpu` exists, otherwise `wasm
 `extension/` is a Chrome MV3 extension that bundles the React app and renders it inside Chrome's side panel.
 
 - **Single Vite project, one entry.** `index.html` at the repo root is the React app entry. `vite build --mode extension` produces `extension/app/` from it; `npm run dev` serves the same file at `/` for the e2e harness. The marketing build is outside Vite entirely (see above), so there's no `rollupOptions.input` override or `copyPublicDir` filter to maintain. `src/runtime.ts` exports a single `IS_SIDE_PANEL` flag derived from the URL (`chrome-extension:` protocol AND no `?ctx=tab`) — no build-mode flag is needed because the React app's only non-extension consumer is the dev harness, and `consumeExtensionShare` safely no-ops when `globalThis.chrome` is undefined.
-- **Manifest** (`extension/manifest.json`) declares `side_panel.default_path = "app/index.html"`, `sidePanel` permission, CSP `"script-src 'self' 'wasm-unsafe-eval'"`, and COOP/COEP keys so the page is `crossOriginIsolated`. **No `host_permissions`** — the extension never touches `catm-app.github.io`.
+- **Manifest** (`extension/manifest.json`) declares `side_panel.default_path = "app/index.html"`, `sidePanel` permission, CSP `"script-src 'self' 'wasm-unsafe-eval'"`, and COOP/COEP keys so the page is `crossOriginIsolated`. **No `host_permissions`** — the extension never touches `alainbrown.com/catm`.
 - **Background SW** (`extension/background.js`) calls `chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true })` so the toolbar icon opens the panel, and registers a `"Read aloud"` context menu. On menu click it calls `chrome.sidePanel.open({ windowId })` **synchronously before** any await, then writes the selection to `chrome.storage.session` under `catm:pending-share`. Awaiting before `sidePanel.open` consumes the user gesture and the panel stays closed — preserve the ordering.
 - **Side-panel ingest** (`src/extensionIngest.ts`) drains `chrome.storage.session["catm:pending-share"]` on mount and subscribes to `chrome.storage.onChanged` so a menu fire while the panel is already open still ingests live. Exported `IngestedDraft` is the shape `App.tsx` consumes.
 - **WebGPU in MV3.** In extension mode the worker configures `@huggingface/transformers`'s env *before* loading Kokoro:

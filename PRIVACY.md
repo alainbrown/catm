@@ -68,4 +68,4 @@ Material changes are reflected in the "Last updated" date above and in the proje
 
 ## Contact
 
-Source code, issues, and the history of this policy live at [github.com/catm-app/catm-app.github.io](https://github.com/catm-app/catm-app.github.io).
+Source code, issues, and the history of this policy live at [github.com/alainbrown/catm](https://github.com/alainbrown/catm).

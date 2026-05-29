@@ -6,13 +6,13 @@
   "description": "100% in-browser long-form text-to-speech reader, shipped as a Chrome extension. Kokoro 82M TTS via ONNX Runtime Web (WebGPU/WASM). No server.",
   "author": "Alain Brown",
   "license": "MIT",
-  "homepage": "https://catm-app.github.io/",
+  "homepage": "https://alainbrown.com/catm/",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/catm-app/catm-app.github.io.git"
+    "url": "git+https://github.com/alainbrown/catm.git"
   },
   "bugs": {
-    "url": "https://github.com/catm-app/catm-app.github.io/issues"
+    "url": "https://github.com/alainbrown/catm/issues"
   },
   "scripts": {
     "dev": "vite",

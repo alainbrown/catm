@@ -1,10 +1,10 @@
 # catm — come and talk to me
 
-[![Test](https://github.com/catm-app/catm-app.github.io/actions/workflows/test.yml/badge.svg)](https://github.com/catm-app/catm-app.github.io/actions/workflows/test.yml)
+[![Test](https://github.com/alainbrown/catm/actions/workflows/test.yml/badge.svg)](https://github.com/alainbrown/catm/actions/workflows/test.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 [![Chrome Web Store](https://img.shields.io/chrome-web-store/v/imkogmgncjobcjeofjeekegihcikgbbm?label=Chrome%20Web%20Store&logo=googlechrome&logoColor=white)](https://chromewebstore.google.com/detail/imkogmgncjobcjeofjeekegihcikgbbm)
 
-**Get it →** [catm-app.github.io](https://catm-app.github.io/)
+**Get it →** [alainbrown.com/catm](https://alainbrown.com/catm/)
 
 <p align="center">
   <img src="./docs/demo.gif" alt="catm — select text, right-click Read aloud, listen — everything runs in the browser" width="720" />
@@ -39,7 +39,7 @@ Other scripts:
 | `npm run check:marketing` | Verify every relative href/src in `marketing/*.html` resolves |
 | `npm test` | Full suite — Vitest (unit) + Playwright (e2e) |
 
-The marketing site at `catm-app.github.io` has no build step — `deploy.yml` uploads `marketing/` directly to GitHub Pages.
+The marketing site at `alainbrown.com/catm` has no build step — `deploy.yml` uploads `marketing/` directly to GitHub Pages.
 
 ## Browser requirements
 
@@ -69,7 +69,7 @@ Then `chrome://extensions` → Developer mode → **Load unpacked** → pick the
 
 ## Privacy
 
-Everything runs in your browser — no server, no upload, no account. Full policy at [catm-app.github.io/privacy.html](https://catm-app.github.io/privacy.html).
+Everything runs in your browser — no server, no upload, no account. Full policy in [PRIVACY.md](./PRIVACY.md).
 
 ## License
 

@@ -218,17 +218,6 @@ export function Rail({
           Delete everything
         </button>
       </section>
-
-      <div className="foot-line privacy">
-        <a
-          href="./privacy.html"
-          target="_blank"
-          rel="noopener noreferrer"
-          data-testid="privacy-link"
-        >
-          Privacy
-        </a>
-      </div>
     </aside>
   );
 }

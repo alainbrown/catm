@@ -765,20 +765,6 @@ textarea {
   background: var(--bg-2);
   border: 1px solid var(--border);
 }
-.foot-line.privacy {
-  border-top: 1px solid var(--border);
-  padding-top: 10px;
-  font-size: 11.5px;
-  color: var(--ink-3);
-}
-.foot-line.privacy a {
-  color: inherit;
-  text-decoration: none;
-}
-.foot-line.privacy a:hover {
-  color: var(--ink-0);
-}
-
 .foot-badge {
   display: inline-flex;
   align-items: center;

@@ -1,7 +1,7 @@
 {
   "name": "catm",
   "private": true,
-  "version": "0.2.6",
+  "version": "0.2.7",
   "type": "module",
   "description": "100% in-browser long-form text-to-speech reader, shipped as a Chrome extension. Kokoro 82M TTS via ONNX Runtime Web (WebGPU/WASM). No server.",
   "author": "Alain Brown",

@@ -2,21 +2,9 @@
 // bundled app in a tab via `chrome.tabs.create`, then closes the panel
 // so we never have two views fighting over the same OPFS / IDB.
 
-interface ChromeTabs {
-  create: (opts: { url: string }) => Promise<unknown>;
-}
-interface ChromeRuntime {
-  getURL: (path: string) => string;
-}
-interface ChromeGlobal {
-  tabs?: ChromeTabs;
-  runtime?: ChromeRuntime;
-}
-declare const chrome: ChromeGlobal | undefined;
-
 async function popOut(): Promise<void> {
-  const url = chrome?.runtime?.getURL("src/sidepanel/index.html?ctx=tab");
-  if (!url || !chrome?.tabs) return;
+  if (typeof chrome === "undefined") return;
+  const url = chrome.runtime.getURL("src/sidepanel/index.html?ctx=tab");
   try {
     await chrome.tabs.create({ url });
   } catch (err) {

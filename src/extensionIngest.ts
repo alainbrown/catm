@@ -8,37 +8,6 @@ interface PendingShare {
   text?: unknown;
 }
 
-interface ChromeStorageChange<T> {
-  newValue?: T;
-  oldValue?: T;
-}
-
-interface ChromeStorageArea {
-  get: (key: string) => Promise<Record<string, unknown>>;
-  remove: (key: string) => Promise<void>;
-}
-
-interface ChromeStorageGlobal {
-  session?: ChromeStorageArea;
-  onChanged: {
-    addListener: (
-      cb: (changes: Record<string, ChromeStorageChange<unknown>>, area: string) => void,
-    ) => void;
-    removeListener: (
-      cb: (changes: Record<string, ChromeStorageChange<unknown>>, area: string) => void,
-    ) => void;
-  };
-}
-
-interface ChromeGlobal {
-  storage?: ChromeStorageGlobal;
-}
-
-// Bare-identifier `chrome` would ReferenceError outside the extension origin.
-function getChromeGlobal(): ChromeGlobal | undefined {
-  return (globalThis as { chrome?: ChromeGlobal }).chrome;
-}
-
 function toDraft(raw: unknown): IngestedDraft | null {
   if (!raw || typeof raw !== "object") return null;
   const p = raw as PendingShare;
@@ -48,10 +17,9 @@ function toDraft(raw: unknown): IngestedDraft | null {
 }
 
 export function consumeExtensionShare(handler: (draft: IngestedDraft) => void): () => void {
-  const chromeGlobal = getChromeGlobal();
-  const session = chromeGlobal?.storage?.session;
-  const storage = chromeGlobal?.storage;
-  if (!session || !storage) return () => {};
+  if (typeof chrome === "undefined") return () => {};
+  const session = chrome.storage.session;
+  const storage = chrome.storage;
 
   const drain = async () => {
     try {
@@ -67,7 +35,7 @@ export function consumeExtensionShare(handler: (draft: IngestedDraft) => void): 
 
   void drain();
 
-  const onChanged = (changes: Record<string, ChromeStorageChange<unknown>>, area: string) => {
+  const onChanged = (changes: { [key: string]: chrome.storage.StorageChange }, area: string) => {
     if (area !== "session") return;
     if (!(PENDING_KEY in changes)) return;
     if (changes[PENDING_KEY]?.newValue === undefined) return; // removal — ignore

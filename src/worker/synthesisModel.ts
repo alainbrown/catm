@@ -1,16 +1,8 @@
-import { KokoroTTS, TextSplitterStream } from "kokoro-js";
+import { KokoroTTS } from "kokoro-js";
 import { phonemize } from "phonemizer";
-import { splitToFit } from "./splitToFit";
+import { splitSentences } from "./sentenceSplitter";
+import { TextBuffer } from "./textBuffer";
 import type { VoiceId } from "./types";
-
-// Kokoro caps input at 510 phoneme tokens (see `generate_from_ids` in
-// kokoro-js: `Math.min(Math.max(dims-2,0),509)`). Anything longer is silently
-// truncated by the tokenizer (`{truncation: true}` is hardcoded). We measure
-// with our own phonemize+tokenize and split below this threshold; the margin
-// covers small differences between our measurement and kokoro's internal
-// text-normalisation step (Dr.→Doctor, currency, years), which can grow
-// phoneme count slightly.
-const MAX_TOKENS = 480;
 
 export interface SynthesisSentence {
   text: string;
@@ -110,18 +102,15 @@ export class KokoroSynthesisClient implements SynthesisClient {
           : never
         : never,
     };
-    const splitter = new TextSplitterStream();
-    splitter.push(text);
-    splitter.close();
-    for (const sentence of splitter) {
+    const buffer = new TextBuffer(text, { splitSentences, measure });
+    while (buffer.hasNext()) {
       if (isCancelled()) return;
-      const pieces = await splitToFit(sentence, MAX_TOKENS, measure);
-      for (const piece of pieces) {
-        if (isCancelled()) return;
-        const result = await tts.generate(piece, genOpts);
-        this.rate = result.sampling_rate;
-        await onSentence({ text: piece, pcm: result.audio });
-      }
+      const piece = await buffer.next();
+      if (piece === null) break;
+      if (isCancelled()) return;
+      const result = await tts.generate(piece, genOpts);
+      this.rate = result.sampling_rate;
+      await onSentence({ text: piece, pcm: result.audio });
     }
   }
 }

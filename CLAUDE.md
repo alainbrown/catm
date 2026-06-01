@@ -92,8 +92,8 @@ The worker picks `device: "webgpu"` when `navigator.gpu` exists, otherwise `wasm
 `demo/` is a sibling Remotion project that renders every demo/marketing asset. It is **not** part of the extension build — its own `package.json` / `node_modules`, never imported from `src/`. Renderer entry: `./demo/render.sh` (Docker-based; bakes Chrome Headless Shell + Linux libs into a `catm-demo-renderer` image so the host doesn't need them). `render.sh` (or `render.sh all`) renders to the gitignored `demo/out/` then `publish`es each artefact into its committed home — so a re-record never leaves an asset stale by hand:
 
 - `docs/demo.gif` — README hero.
-- `docs/cws/*.png` — CWS store listing (5 scene stills + `promo-small`/`promo-marquee` tiles).
-- `docs/youtube/demo.mp4` + `docs/youtube/thumbnail.png` — the YouTube upload bundle. The video is a 1920×1080 16:9 master (the 1280×800 render pillarboxed with the brand background via ffmpeg); the thumbnail is 1280×720. **Not** deployed to Pages.
+- `docs/store/*.png` — CWS store listing (`screenshot-1..5` scene stills + `marquee`/`promo-tile` tiles).
+- `docs/youtube-master.mp4` + `docs/youtube-thumbnail.png` — the YouTube upload bundle. The video is a 1920×1080 16:9 master (the 1280×800 render pillarboxed with the brand background via ffmpeg); the thumbnail is 1280×720. **Not** deployed to Pages.
 - `marketing/demo.mp4` + `marketing/demo-poster.png` — the landing-page `<video>` loop (native 1280×800) and its poster. These ship to GitHub Pages, so they must live in `marketing/`.
 
 Two non-obvious dependencies in `src/` exist for the demo and must not be "cleaned up":

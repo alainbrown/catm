@@ -1,11 +1,15 @@
 #!/usr/bin/env bash
 # Build a Chrome Web Store upload artefact from extension/.
-# Output: ./extension.zip at the repo root, with manifest.json at the zip's root.
+# Output: ./catm-v<version>.zip at the repo root, with manifest.json at the
+# zip's root. The version is read from package.json (the single source of
+# truth); the manifest is kept in lockstep by scripts/sync-version.mjs.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-out="$(pwd)/extension.zip"
+version="$(node -p "require('./package.json').version")"
+zipname="catm-v${version}.zip"
+out="$(pwd)/${zipname}"
 rm -f "$out"
 
 # Prefer the host's zip/unzip when present (CI runners have them, so we avoid
@@ -22,11 +26,11 @@ if command -v zip >/dev/null 2>&1 && command -v unzip >/dev/null 2>&1; then
 else
   docker run --rm -v "$(pwd)":/work -w /work alpine:3.21 sh -c "
     apk add --no-cache --quiet zip > /dev/null
-    cd extension && zip -r -X /work/extension.zip . -x '.*' -x '*/.*' -x '*.DS_Store' > /dev/null
+    cd extension && zip -r -X \"/work/${zipname}\" . -x '.*' -x '*/.*' -x '*.DS_Store' > /dev/null
   "
   echo "wrote $out"
   ls -lh "$out"
   echo
   echo "contents:"
-  docker run --rm -v "$(pwd)":/work -w /work alpine:3.21 sh -c "apk add --no-cache --quiet unzip > /dev/null && unzip -l /work/extension.zip"
+  docker run --rm -v "$(pwd)":/work -w /work alpine:3.21 sh -c "apk add --no-cache --quiet unzip > /dev/null && unzip -l \"/work/${zipname}\""
 fi

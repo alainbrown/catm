@@ -1,19 +1,19 @@
 # Releases the catm Chrome extension.
 #
-# Triggers
-#   • Test workflow on main completing successfully — gated on
-#     `extension/manifest.json` version having actually bumped vs the
-#     parent commit. Pushes that change the bundle without bumping ride
-#     along with the next bump.
-#   • Manual workflow_dispatch (skips the test-gate; intended for
-#     re-uploading a known-good build).
+# Trigger
+#   • Push to main. A release only proceeds when package.json's version
+#     (the single source of truth) changed vs the parent commit, AND the
+#     full Test suite passes. Pushes that change the bundle without bumping
+#     ride along with the next bump.
 #
-# What it does (only if the version bumped)
-#   • Builds extension/app/ via `npm run build`, zips it.
-#   • Uploads the zip as a workflow artifact.
-#   • Creates a GitHub Release tagged ext-v<version> with the zip attached.
-#   • If CWS_* secrets are configured: uploads + publishes to the Chrome
-#     Web Store via chrome-webstore-upload-cli.
+# Pipeline
+#   detect     — compare package.json version to HEAD~1; emit version/changed.
+#   check-tag  — skip the release if the ext-v<version> tag already exists.
+#   test       — `uses: ./.github/workflows/test.yml` — the release gate.
+#                Release only proceeds if the unit + e2e suite passes.
+#   release    — build extension/app/, zip it, create the GitHub Release,
+#                and (if CWS_* secrets are set) auto-publish to the Chrome
+#                Web Store via chrome-webstore-upload-cli.
 #
 # Secrets to add (Repo settings → Secrets and variables → Actions)
 #   CWS_APP_ID         — extension ID from the Chrome Web Store dashboard
@@ -26,11 +26,8 @@
 name: Release extension
 
 on:
-  workflow_run:
-    workflows: ['Test']
-    types: [completed]
+  push:
     branches: [main]
-  workflow_dispatch:
 
 permissions:
   contents: write  # to create GitHub releases
@@ -40,56 +37,78 @@ concurrency:
   cancel-in-progress: false  # never cancel an in-flight publish
 
 jobs:
-  guard:
-    # Skip when the upstream Test workflow didn't succeed. Manual dispatch
-    # has no workflow_run context; the first clause short-circuits.
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+  detect:
     runs-on: ubuntu-latest
     outputs:
-      bumped: ${{ steps.ver.outputs.bumped }}
-      current: ${{ steps.ver.outputs.current }}
-      sha: ${{ steps.ver.outputs.sha }}
+      changed: ${{ steps.ver.outputs.changed }}
+      version: ${{ steps.ver.outputs.version }}
     steps:
       - uses: actions/checkout@v4
         with:
-          # workflow_run gives us the upstream commit; manual dispatch uses HEAD.
-          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
           fetch-depth: 2
 
       - name: Detect version bump
         id: ver
         run: |
-          current=$(jq -r .version extension/manifest.json)
-          sha=$(git rev-parse HEAD)
-          echo "current=$current" >> "$GITHUB_OUTPUT"
-          echo "sha=$sha" >> "$GITHUB_OUTPUT"
-          if git cat-file -e HEAD~1:extension/manifest.json 2>/dev/null; then
-            previous=$(git show HEAD~1:extension/manifest.json | jq -r .version)
+          version=$(jq -r .version package.json)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if git cat-file -e HEAD~1:package.json 2>/dev/null; then
+            previous=$(git show HEAD~1:package.json | jq -r .version)
           else
             previous=""
           fi
-          if [ "$current" != "$previous" ]; then
-            echo "bumped=true" >> "$GITHUB_OUTPUT"
-            echo "Version bumped: ${previous:-<none>} → $current"
+          if [ "$version" != "$previous" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "Version bumped: ${previous:-<none>} → $version"
           else
-            echo "bumped=false" >> "$GITHUB_OUTPUT"
-            echo "Version unchanged ($current) — skipping release"
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Version unchanged ($version) — skipping release"
           fi
 
-  release:
-    needs: guard
-    if: needs.guard.outputs.bumped == 'true'
+  check-tag:
+    needs: detect
+    if: needs.detect.outputs.changed == 'true'
     runs-on: ubuntu-latest
+    outputs:
+      exists: ${{ steps.tag.outputs.exists }}
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ needs.guard.outputs.sha }}
+          fetch-depth: 0
+
+      - name: Check whether release tag already exists
+        id: tag
+        run: |
+          tag="ext-v${{ needs.detect.outputs.version }}"
+          if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "Tag $tag already exists — skipping release"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "Tag $tag is free"
+          fi
+
+  # The gate: release only proceeds if the full test suite passes.
+  test:
+    needs: [detect, check-tag]
+    if: needs.detect.outputs.changed == 'true' && needs.check-tag.outputs.exists == 'false'
+    uses: ./.github/workflows/test.yml
+
+  release:
+    needs: [detect, check-tag, test]
+    if: needs.detect.outputs.changed == 'true' && needs.check-tag.outputs.exists == 'false'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
       - run: npm ci
+
+      - name: Verify version is in sync
+        run: npm run check:version
 
       - name: Validate background.js syntax
         run: node --check extension/background.js
@@ -99,25 +118,26 @@ jobs:
         # step or the artefact would ship without the React app.
         run: npm run build
 
-      - name: Build extension.zip
+      - name: Build release zip
         run: ./scripts/package-extension.sh
 
       - name: Upload zip as workflow artifact
         uses: actions/upload-artifact@v4
         with:
-          name: extension-v${{ needs.guard.outputs.current }}-${{ needs.guard.outputs.sha }}
-          path: extension.zip
+          name: catm-v${{ needs.detect.outputs.version }}
+          path: catm-v${{ needs.detect.outputs.version }}.zip
           retention-days: 90
 
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          tag="ext-v${{ needs.guard.outputs.current }}"
-          gh release create "$tag" extension.zip \
-            --title "Extension v${{ needs.guard.outputs.current }}" \
-            --target "${{ needs.guard.outputs.sha }}" \
-            --notes "Auto-built from ${{ needs.guard.outputs.sha }}. If CWS auto-publish is not configured, upload extension.zip to the Chrome Web Store dashboard manually."
+          tag="ext-v${{ needs.detect.outputs.version }}"
+          zip="catm-v${{ needs.detect.outputs.version }}.zip"
+          gh release create "$tag" "$zip" \
+            --title "Extension v${{ needs.detect.outputs.version }}" \
+            --target "${{ github.sha }}" \
+            --notes "Auto-built from ${{ github.sha }}. If CWS auto-publish is not configured, upload $zip to the Chrome Web Store dashboard manually."
 
       - name: Publish to Chrome Web Store
         env:
@@ -132,7 +152,7 @@ jobs:
             exit 0
           fi
           npx --yes chrome-webstore-upload-cli@3 upload \
-            --source extension.zip \
+            --source catm-v${{ needs.detect.outputs.version }}.zip \
             --extension-id "$CWS_APP_ID" \
             --client-id "$CWS_CLIENT_ID" \
             --client-secret "$CWS_CLIENT_SECRET" \

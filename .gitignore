@@ -12,4 +12,5 @@ test-results
 !.env.example
 *.tsbuildinfo
 extension.zip
+catm-v*.zip
 extension/app/

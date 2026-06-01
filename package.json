@@ -1,7 +1,7 @@
 {
   "name": "catm",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.6",
   "type": "module",
   "description": "100% in-browser long-form text-to-speech reader, shipped as a Chrome extension. Kokoro 82M TTS via ONNX Runtime Web (WebGPU/WASM). No server.",
   "author": "Alain Brown",
@@ -16,10 +16,12 @@
   },
   "scripts": {
     "dev": "vite",
+    "prebuild": "node scripts/sync-version.mjs",
     "build": "tsc -b && vite build --mode extension",
     "preview": "vite preview",
     "lint": "biome check .",
     "check:marketing": "node scripts/check-marketing.mjs",
+    "check:version": "node scripts/sync-version.mjs --check",
     "format": "biome format --write .",
     "test": "vitest run && npm run build && playwright test",
     "test:unit": "vitest run",

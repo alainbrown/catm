@@ -16,9 +16,10 @@
 #
 # Committed homes (publish copies out/ → these; `gif` writes docs/demo.gif itself):
 #   docs/demo.gif                README hero
-#   docs/cws/*.png               CWS store listing — 5 stills + 2 promo tiles
-#   docs/youtube/demo.mp4        YouTube upload master (1080p) — NOT deployed to Pages
-#   docs/youtube/thumbnail.png   YouTube thumbnail (1280×720)
+#   docs/store/screenshot-1..5.png       CWS store listing — 5 scene stills (1280×800)
+#   docs/store/{marquee,promo-tile}.png  CWS promo tiles (1400×560, 440×280)
+#   docs/youtube-master.mp4      YouTube upload master (1080p) — NOT deployed to Pages
+#   docs/youtube-thumbnail.png   YouTube thumbnail (1280×720)
 #   marketing/demo.mp4           landing-page <video> loop (1280×800)
 #   marketing/demo-poster.png    landing-page <video> poster (opening frame)
 
@@ -92,16 +93,20 @@ render_youtube() {
 # from a single render so nothing goes stale by hand.
 publish() {
   local docs="../docs" mkt="../marketing"
-  mkdir -p "$docs/cws" "$docs/youtube"
+  mkdir -p "$docs/store"
+  # scene stills → numbered CWS screenshots (order = demo scene order)
+  local i=1
   for n in onboarding sidepanel voices fulltab privacy; do
-    cp "out/still-${n}.png" "$docs/cws/${n}.png"
+    cp "out/still-${n}.png" "$docs/store/screenshot-${i}.png"
+    i=$((i + 1))
   done
-  cp out/promo-small.png out/promo-marquee.png "$docs/cws/"
+  cp out/promo-small.png "$docs/store/promo-tile.png"
+  cp out/promo-marquee.png "$docs/store/marquee.png"
   cp out/demo.mp4 "$mkt/demo.mp4"
   cp out/still-onboarding.png "$mkt/demo-poster.png"
-  cp out/youtube-master.mp4 "$docs/youtube/demo.mp4"
-  cp out/youtube-thumbnail.png "$docs/youtube/thumbnail.png"
-  echo "Published: docs/cws/*.png, docs/youtube/{demo.mp4,thumbnail.png}, marketing/{demo.mp4,demo-poster.png}"
+  cp out/youtube-master.mp4 "$docs/youtube-master.mp4"
+  cp out/youtube-thumbnail.png "$docs/youtube-thumbnail.png"
+  echo "Published: docs/store/{screenshot-1..5,marquee,promo-tile}.png, docs/{youtube-master.mp4,youtube-thumbnail.png}, marketing/{demo.mp4,demo-poster.png}"
 }
 
 case "${1:-all}" in

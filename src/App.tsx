@@ -220,7 +220,7 @@ export function App(): React.JSX.Element {
           await onReadRef.current();
         }
         setDoc({ ...EMPTY_DOC, sourceText: draft.text });
-        setAutoSynthPending(true);
+        setAutoSynthPending(draft.play);
       })();
     };
     return consumeExtensionShare(ingest);

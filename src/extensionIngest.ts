@@ -1,11 +1,15 @@
 export interface IngestedDraft {
   text: string;
+  // Whether the panel should auto-synth on ingest. "Read selection" sets it;
+  // "Read page" clears it so the article only stages in the editor.
+  play: boolean;
 }
 
 const PENDING_KEY = "catm:pending-share";
 
 interface PendingShare {
   text?: unknown;
+  play?: unknown;
 }
 
 function toDraft(raw: unknown): IngestedDraft | null {
@@ -13,7 +17,7 @@ function toDraft(raw: unknown): IngestedDraft | null {
   const p = raw as PendingShare;
   const text = typeof p.text === "string" ? p.text.trim() : "";
   if (text.length === 0) return null;
-  return { text };
+  return { text, play: p.play !== false };
 }
 
 export function consumeExtensionShare(handler: (draft: IngestedDraft) => void): () => void {

@@ -10,7 +10,6 @@ export default defineConfig({
   timeout: 120_000,
   expect: { timeout: 120_000 },
   use: {
-    baseURL: "http://localhost:5173",
     trace: "retain-on-failure",
   },
   projects: [
@@ -33,10 +32,4 @@ export default defineConfig({
       },
     },
   ],
-  webServer: {
-    command: "npm run dev",
-    url: "http://localhost:5173",
-    reuseExistingServer: !process.env.CI,
-    timeout: 60 * 1000,
-  },
 });

@@ -15,7 +15,7 @@ interface ChromeGlobal {
 declare const chrome: ChromeGlobal | undefined;
 
 async function popOut(): Promise<void> {
-  const url = chrome?.runtime?.getURL("app/index.html?ctx=tab");
+  const url = chrome?.runtime?.getURL("src/sidepanel/index.html?ctx=tab");
   if (!url || !chrome?.tabs) return;
   try {
     await chrome.tabs.create({ url });

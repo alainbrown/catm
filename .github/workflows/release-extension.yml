@@ -11,7 +11,7 @@
 #   check-tag  — skip the release if the ext-v<version> tag already exists.
 #   test       — `uses: ./.github/workflows/test.yml` — the release gate.
 #                Release only proceeds if the unit + e2e suite passes.
-#   release    — build extension/app/, zip it, create the GitHub Release,
+#   release    — build dist/, zip it, create the GitHub Release,
 #                and (if CWS_* secrets are set) auto-publish to the Chrome
 #                Web Store via chrome-webstore-upload-cli.
 #
@@ -107,15 +107,9 @@ jobs:
           cache: npm
       - run: npm ci
 
-      - name: Verify version is in sync
-        run: npm run check:version
-
-      - name: Validate background.js syntax
-        run: node --check extension/background.js
-
-      - name: Build extension app bundle
-        # extension/app/ is gitignored; it has to be built before the zip
-        # step or the artefact would ship without the React app.
+      - name: Build extension bundle
+        # dist/ is gitignored; crxjs + Vite generate it (manifest, bundled SW,
+        # side-panel HTML/JS, icons) and it has to exist before the zip step.
         run: npm run build
 
       - name: Build release zip

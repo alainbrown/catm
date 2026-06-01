@@ -7,8 +7,8 @@ import { expect, test, withPageErrorWatch } from "./fixtures";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(__dirname, "..");
-const EXT_DIR = join(REPO_ROOT, "extension");
-const APP_INDEX = join(EXT_DIR, "app", "index.html");
+const EXT_DIR = join(REPO_ROOT, "dist");
+const APP_INDEX = join(EXT_DIR, "src", "sidepanel", "index.html");
 
 const LONG_TEXT = [
   "catm is a long-form text-to-speech reader that runs entirely in your browser.",
@@ -51,7 +51,7 @@ test("catm full journey on the loaded extension", async () => {
 
     const page = await ctx.newPage();
     await withPageErrorWatch(page, "catm full journey", async () => {
-      await page.goto(`chrome-extension://${extId}/app/index.html?ctx=tab`);
+      await page.goto(`chrome-extension://${extId}/src/sidepanel/index.html?ctx=tab`);
       await page.evaluate(async () => {
         indexedDB.deleteDatabase("catm");
         localStorage.removeItem("catm:onboarded");
@@ -240,7 +240,7 @@ test("catm full journey on the loaded extension", async () => {
       // true. History now lives in a left slide-in drawer; perf + reset are
       // tab-only. The session, model cache, and OPFS audio all persist across
       // the navigation (same extension origin).
-      await page.goto(`chrome-extension://${extId}/app/index.html`);
+      await page.goto(`chrome-extension://${extId}/src/sidepanel/index.html`);
       await page.waitForFunction(() => document.documentElement.dataset.ttsDevice !== undefined);
 
       // Management chrome is dropped from the panel.

@@ -9,7 +9,7 @@
       "!**/test-results",
       "!**/playwright-report",
       "!**/design",
-      "!**/extension/app"
+      "!**/dist"
     ]
   },
   "formatter": { "enabled": true, "indentStyle": "space", "indentWidth": 2, "lineWidth": 100 },

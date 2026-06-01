@@ -18,12 +18,8 @@ import {
   measureStorage,
   renameSession,
   resetSession,
-  type SegmentEntry,
   type SessionMeta,
   type StorageBreakdown,
-  writeInit,
-  writePlaylist,
-  writeSegment,
 } from "./storage/sessionStore";
 import type { AppStatus, DocState, PerfState } from "./types";
 import { OnboardingView } from "./views/OnboardingView";
@@ -110,20 +106,14 @@ function writeOnboarded(): void {
 
 interface ActiveSynth {
   sessionId: string;
-  segments: SegmentEntry[];
-  totalDuration: number;
+  voice: VoiceId;
   playbackStarted: boolean;
   cancelled: boolean;
   chunkDurations: number[];
   chunkTexts: string[];
   resolve: () => void;
   reject: (err: Error) => void;
-  pendingWrites: Promise<void>;
 }
-
-// Mount after this many segments so hls.js's first playlist read prefetches
-// the whole window — otherwise audio starts before the buffer is filled.
-const PLAYBACK_BUFFER_SEGMENTS = 3;
 
 const SYNTH_CANCELLED = "__catm_synth_cancelled__";
 
@@ -352,29 +342,14 @@ export function App(): React.JSX.Element {
         }
         return;
       }
-      if (msg.type === "fragment-init") {
+      if (msg.type === "playback-ready") {
         const active = activeSynthsRef.current.get(msg.txnId);
-        if (active && !active.cancelled) void writeInit(active.sessionId, msg.bytes);
-        return;
-      }
-      if (msg.type === "fragment-media") {
-        const active = activeSynthsRef.current.get(msg.txnId);
-        if (!active || active.cancelled) return;
-        active.pendingWrites = active.pendingWrites.then(async () => {
-          if (active.cancelled) return;
-          await writeSegment(active.sessionId, msg.index, msg.bytes);
-          if (active.cancelled) return;
-          active.segments.push({ index: msg.index, durationSec: msg.durationSec });
-          active.totalDuration += msg.durationSec;
-          await writePlaylist(active.sessionId, active.segments, false);
-          if (!active.playbackStarted && active.segments.length >= PLAYBACK_BUFFER_SEGMENTS) {
-            active.playbackStarted = true;
-            setDoc((d) =>
-              d.id === active.sessionId ? { ...d, hasAudio: true, audioVoice: voice } : d,
-            );
-            setPlayToken((t) => t + 1);
-          }
-        });
+        if (!active || active.cancelled || active.playbackStarted) return;
+        active.playbackStarted = true;
+        setDoc((d) =>
+          d.id === active.sessionId ? { ...d, hasAudio: true, audioVoice: active.voice } : d,
+        );
+        setPlayToken((t) => t + 1);
         return;
       }
       if (msg.type === "chunk-encoded") {
@@ -399,18 +374,9 @@ export function App(): React.JSX.Element {
           return;
         }
         void (async () => {
-          // Drain in-flight fragment-media writes before sealing the playlist.
-          await active.pendingWrites;
-          await writePlaylist(active.sessionId, active.segments, true);
-          await finalizeDuration(active.sessionId, active.totalDuration);
+          // The worker wrote the HLS files (incl. ENDLIST); just finalize IDB.
+          await finalizeDuration(active.sessionId, msg.audioSec);
           await finalizeChunks(active.sessionId, active.chunkDurations, active.chunkTexts);
-          if (!active.playbackStarted && active.segments.length > 0) {
-            active.playbackStarted = true;
-            setDoc((d) =>
-              d.id === active.sessionId ? { ...d, hasAudio: true, audioVoice: voice } : d,
-            );
-            setPlayToken((t) => t + 1);
-          }
           await refreshLibrary();
           setLiveChunkDurations(null);
           setLiveChunkTexts(null);
@@ -440,7 +406,7 @@ export function App(): React.JSX.Element {
 
     const warmup: InMsg = { type: "warmup" };
     w.postMessage(warmup);
-  }, [refreshLibrary, voice]);
+  }, [refreshLibrary]);
 
   useEffect(() => {
     startWorker();
@@ -522,18 +488,16 @@ export function App(): React.JSX.Element {
     const completion = new Promise<void>((resolve, reject) => {
       activeSynthsRef.current.set(txnId, {
         sessionId,
-        segments: [],
-        totalDuration: 0,
+        voice,
         playbackStarted: false,
         cancelled: false,
         chunkDurations: [],
         chunkTexts: [],
         resolve,
         reject,
-        pendingWrites: Promise.resolve(),
       });
     });
-    w.postMessage({ type: "synth-start", txnId, voice } as InMsg);
+    w.postMessage({ type: "synth-start", txnId, sessionId, voice } as InMsg);
     w.postMessage({ type: "synth-text", txnId, text: trimmed } as InMsg);
     w.postMessage({ type: "synth-end", txnId } as InMsg);
     try {

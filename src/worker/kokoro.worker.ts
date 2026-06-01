@@ -1,9 +1,10 @@
 /// <reference lib="webworker" />
 
 import { env as hfEnv } from "@huggingface/transformers";
-import { ProgressiveEncoder } from "../hls/encode";
+import { KokoroModel } from "./model";
 import { installModelCacheFetch } from "./modelCache";
-import { KokoroSynthesisClient } from "./synthesisModel";
+import { Orchestrator } from "./orchestrator";
+import { splitSentences } from "./sentenceSplitter";
 import type { VoiceId } from "./types";
 import type { DeviceInfo, InMsg, LoadedDevice, OutMsg } from "./workerProtocol";
 import { createHandlers } from "./workerProtocol";
@@ -39,7 +40,7 @@ const DEFAULT_VOICE: VoiceId = "af_heart";
 const device: LoadedDevice =
   typeof navigator !== "undefined" && "gpu" in navigator ? "webgpu" : "wasm";
 
-const synthClient = new KokoroSynthesisClient({
+const model = new KokoroModel({
   device,
   onProgress: (event) => {
     post({
@@ -103,7 +104,7 @@ async function probeAdapter(): Promise<{
 async function load(): Promise<DeviceInfo> {
   const t0 = performance.now();
   const [, adapter] = await Promise.all([
-    synthClient.ensureLoaded(),
+    model.ensureLoaded(),
     device === "webgpu" ? probeAdapter() : Promise.resolve({ name: "", vendor: "", features: [] }),
   ]);
   return {
@@ -117,11 +118,9 @@ async function load(): Promise<DeviceInfo> {
 
 const handlers = createHandlers<VoiceId>({
   load,
-  synthesizePcm: (text, voice) => synthClient.synthesize(text, voice),
-  streamSentences: (text, voice, onSentence, isCancelled) =>
-    synthClient.stream(text, voice, onSentence, isCancelled),
-  createEncoder: (sampleRate, onInit, onSegment) =>
-    new ProgressiveEncoder(sampleRate, onInit, onSegment),
+  synthesizePcm: (text, voice) => model.generate(text, voice),
+  createOrchestrator: () =>
+    new Orchestrator({ model, splitSentences, sampleRate: SAMPLE_RATE, post }),
   post: (msg, transfer = []) => post(msg, transfer),
   sampleRate: SAMPLE_RATE,
   defaultVoice: DEFAULT_VOICE,

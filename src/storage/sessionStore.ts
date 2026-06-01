@@ -65,21 +65,6 @@ function deriveTitle(sourceText: string): string {
   return `${collapsed.slice(0, 57)}…`;
 }
 
-async function writeFile(
-  dir: FileSystemDirectoryHandle,
-  name: string,
-  data: Uint8Array | string,
-): Promise<void> {
-  const file = await dir.getFileHandle(name, { create: true });
-  const writable = await file.createWritable();
-  const blob =
-    typeof data === "string"
-      ? new Blob([data], { type: "application/vnd.apple.mpegurl" })
-      : new Blob([data as BlobPart]);
-  await writable.write(blob);
-  await writable.close();
-}
-
 export interface CreateSessionInput {
   sourceText: string;
   voice: VoiceId;
@@ -148,46 +133,6 @@ export async function renameSession(id: string, rawTitle: string): Promise<void>
     title: trimmed.slice(0, 120),
     titleEdited: true,
   });
-}
-
-export async function writeInit(id: string, bytes: Uint8Array): Promise<void> {
-  const dir = await sessionDir(id);
-  await writeFile(dir, "init.mp4", bytes);
-}
-
-export async function writeSegment(id: string, index: number, bytes: Uint8Array): Promise<void> {
-  const dir = await sessionDir(id);
-  await writeFile(dir, `seg-${index}.m4s`, bytes);
-}
-
-export interface SegmentEntry {
-  index: number;
-  durationSec: number;
-}
-
-export async function writePlaylist(
-  id: string,
-  segments: SegmentEntry[],
-  ended: boolean,
-): Promise<void> {
-  const dir = await sessionDir(id);
-  // TARGETDURATION:1 makes hls.js poll the playlist about once per second.
-  const targetDuration = 1;
-  const lines: string[] = [
-    "#EXTM3U",
-    "#EXT-X-VERSION:7",
-    `#EXT-X-TARGETDURATION:${targetDuration}`,
-    "#EXT-X-PLAYLIST-TYPE:EVENT",
-    "#EXT-X-MEDIA-SEQUENCE:0",
-    '#EXT-X-MAP:URI="init.mp4"',
-  ];
-  for (const seg of segments) {
-    lines.push(`#EXTINF:${seg.durationSec.toFixed(3)},`);
-    lines.push(`seg-${seg.index}.m4s`);
-  }
-  if (ended) lines.push("#EXT-X-ENDLIST");
-  lines.push("");
-  await writeFile(dir, "playlist.m3u8", lines.join("\n"));
 }
 
 export async function finalizeDuration(id: string, durationSec: number): Promise<void> {

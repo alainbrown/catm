@@ -11,5 +11,5 @@
     "noEmit": true,
     "types": ["node"]
   },
-  "include": ["e2e"]
+  "include": ["tests/e2e"]
 }

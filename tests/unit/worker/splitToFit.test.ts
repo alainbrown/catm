@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { splitToFit } from "./splitToFit";
+import { splitToFit } from "../../../src/worker/splitToFit";
 
 const byChars = async (s: string) => s.length;
 

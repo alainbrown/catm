@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { chunkText, locateChunks } from "./textChunk";
+import { chunkText, locateChunks } from "../../src/textChunk";
 
 describe("chunkText", () => {
   it("returns no chunks for empty or whitespace input", () => {

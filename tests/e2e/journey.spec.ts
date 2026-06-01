@@ -6,7 +6,7 @@ import { chromium } from "@playwright/test";
 import { expect, test, withPageErrorWatch } from "./fixtures";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const REPO_ROOT = join(__dirname, "..");
+const REPO_ROOT = join(__dirname, "..", "..");
 const EXT_DIR = join(REPO_ROOT, "dist");
 const APP_INDEX = join(EXT_DIR, "src", "sidepanel", "index.html");
 

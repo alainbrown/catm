@@ -1,10 +1,8 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { TextBuffer } from "../../../src/worker/textBuffer";
 
+// Token count == character count, so targets below are in characters.
 const byChars = async (s: string) => s.length;
-const splitByLine = (t: string) => t.split(/(?<=\n)/).filter((s) => s.length > 0);
-// One sentence per slice, so the token-fit step is observable through next().
-const splitWhole = (t: string) => (t.length > 0 ? [t] : []);
 
 async function drain(buf: TextBuffer): Promise<string[]> {
   const out: string[] = [];
@@ -16,97 +14,63 @@ async function drain(buf: TextBuffer): Promise<string[]> {
   return out;
 }
 
+const opts = { targetMinTokens: 20, targetMaxTokens: 40, absoluteMaxTokens: 60 };
+
 describe("TextBuffer", () => {
-  it("yields every piece in order and reconstructs the input", async () => {
-    const text = "one\ntwo\nthree\nfour\n";
-    const buf = new TextBuffer(
-      text,
-      { splitSentences: splitByLine, measure: byChars },
-      { maxTokens: 1000, batchChars: 4 },
+  it("splits on sentence punctuation, NOT on newlines (hard-wrapped sentences stay whole)", async () => {
+    // One sentence hard-wrapped across three lines, then a second sentence.
+    const text =
+      "Understanding deep learning requires\nmany simple\nconcepts. Our goal is intuition.";
+    const buf = new TextBuffer(text, { measure: byChars }, { ...opts, targetMaxTokens: 1000 });
+    const chunks = await drain(buf);
+    // No chunk ends mid-sentence at a wrap; the wrapped sentence is intact.
+    expect(chunks.join(" ")).toContain(
+      "Understanding deep learning requires many simple concepts.",
     );
-    const pieces = await drain(buf);
-    expect(pieces).toEqual(["one\n", "two\n", "three\n", "four\n"]);
-    expect(pieces.join("")).toBe(text);
+    expect(chunks.some((c) => /requires$|simple$/.test(c))).toBe(false);
   });
 
-  it("hasNext()/next(): true until drained, then null and false", async () => {
-    const buf = new TextBuffer("a\nb\n", { splitSentences: splitByLine, measure: byChars });
+  it("groups short sentences together up to the target", async () => {
+    const text = "One. Two. Three. Four. Five.";
+    const buf = new TextBuffer(text, { measure: byChars }, opts);
+    const chunks = await drain(buf);
+    // All are short, so they coalesce rather than emit one tiny chunk each.
+    expect(chunks.length).toBeLessThan(5);
+    for (const c of chunks) expect(c.length).toBeLessThanOrEqual(opts.absoluteMaxTokens);
+  });
+
+  it("starts a new chunk rather than exceed target_max", async () => {
+    // Two ~25-char sentences; target_max 40 → can't combine → two chunks.
+    const a = "aaaaaaaaaaaaaaaaaaaaaaa.";
+    const b = "bbbbbbbbbbbbbbbbbbbbbbb.";
+    const buf = new TextBuffer(`${a} ${b}`, { measure: byChars }, opts);
+    expect(await drain(buf)).toEqual([a, b]);
+  });
+
+  it("never emits a chunk over absolute_max — sub-splits a long sentence on commas", async () => {
+    const text = "alpha beta, gamma delta, epsilon zeta, eta theta, iota kappa lambda mu nu.";
+    const buf = new TextBuffer(text, { measure: byChars }, opts);
+    const chunks = await drain(buf);
+    for (const c of chunks) expect(c.length).toBeLessThanOrEqual(opts.absoluteMaxTokens);
+    expect(chunks.length).toBeGreaterThan(1);
+  });
+
+  it("hasNext()/next(): true until drained, then null", async () => {
+    const buf = new TextBuffer("Hello there. Bye now.", { measure: byChars }, opts);
     expect(buf.hasNext()).toBe(true);
-    expect(await buf.next()).toBe("a\n");
-    expect(await buf.next()).toBe("b\n");
-    expect(buf.hasNext()).toBe(false);
-    expect(await buf.next()).toBeNull();
+    await drain(new TextBuffer("x", { measure: byChars }, opts));
+    expect(await new TextBuffer("", { measure: byChars }, opts).next()).toBeNull();
   });
 
-  it("segments in bounded slices — never the whole text at once", async () => {
-    const text = Array.from({ length: 30 }, (_, i) => `line${String(i).padStart(4, "0")}\n`).join(
-      "",
-    );
-    const spy = vi.fn(splitByLine);
-    const buf = new TextBuffer(
-      text,
-      { splitSentences: spy, measure: byChars },
-      { maxTokens: 1000, batchChars: 50 },
-    );
-    const pieces = await drain(buf);
-
-    expect(pieces.join("")).toBe(text);
-    expect(spy.mock.calls.length).toBeGreaterThan(1);
-    for (const [arg] of spy.mock.calls) {
-      expect(arg.length).toBeLessThan(text.length);
-      expect(arg.length).toBeLessThanOrEqual(50 + 9);
-      expect(arg.endsWith("\n")).toBe(true);
-    }
-  });
-
-  it("only refills when the queue is drained (lazy, not eager)", async () => {
-    const text = "a\nb\nc\nd\ne\nf\n";
-    const spy = vi.fn(splitByLine);
-    const buf = new TextBuffer(
-      text,
-      { splitSentences: spy, measure: byChars },
-      { maxTokens: 1000, batchChars: 2 },
-    );
-    expect(spy).not.toHaveBeenCalled();
-    await buf.next();
-    expect(spy).toHaveBeenCalledTimes(1);
+  it("treats text with no terminal punctuation as one sentence (then caps it)", async () => {
+    const buf = new TextBuffer("one two three four five", { measure: byChars }, { ...opts });
+    const chunks = await drain(buf);
+    expect(chunks.join(" ")).toBe("one two three four five");
   });
 
   it("empty text has no next", async () => {
-    const buf = new TextBuffer("", { splitSentences: splitByLine, measure: byChars });
+    const buf = new TextBuffer("   \n  ", { measure: byChars }, opts);
     expect(buf.hasNext()).toBe(false);
     expect(await buf.next()).toBeNull();
-  });
-});
-
-describe("TextBuffer token fitting", () => {
-  it("keeps a sentence that already fits as a single piece", async () => {
-    const buf = new TextBuffer(
-      "hello world",
-      { splitSentences: splitWhole, measure: byChars },
-      { maxTokens: 100 },
-    );
-    expect(await drain(buf)).toEqual(["hello world"]);
-  });
-
-  it("splits an oversize sentence at whitespace; pieces fit and reconstruct", async () => {
-    const buf = new TextBuffer(
-      "alpha beta gamma delta",
-      { splitSentences: splitWhole, measure: byChars },
-      { maxTokens: 8 },
-    );
-    const pieces = await drain(buf);
-    expect(pieces).toEqual(["alpha", " beta", " gamma", " delta"]);
-    expect(pieces.join("")).toBe("alpha beta gamma delta");
-    for (const p of pieces) expect(p.length).toBeLessThanOrEqual(8);
-  });
-
-  it("returns a single oversize word unchanged when there is no whitespace to split on", async () => {
-    const buf = new TextBuffer(
-      "supercalifragilisticexpialidocious",
-      { splitSentences: splitWhole, measure: byChars },
-      { maxTokens: 5 },
-    );
-    expect(await drain(buf)).toEqual(["supercalifragilisticexpialidocious"]);
   });
 });

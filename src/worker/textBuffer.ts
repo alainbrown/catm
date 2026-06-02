@@ -1,81 +1,144 @@
-// Read-ahead buffer over the input text. Refills its queue by segmenting the
-// next bounded slice only when drained, so it never segments the whole text at
-// once. Segmentation and token measurement are injected.
+// Read-ahead buffer that turns the input text into synthesis chunks, following
+// Kokoro-FastAPI's smart_split strategy: split into whole sentences, then group
+// them toward a token target and sub-split any over-long sentence, so every
+// emitted chunk stays under Kokoro's 510-token input cap (nothing truncates).
+// Token counting is injected (phonemize + tokenize).
 
-const DEFAULT_BATCH_CHARS = 2000;
-const DEFAULT_MAX_TOKENS = 480;
+// Defaults from Kokoro-FastAPI (target_min/target_max/absolute_max), all below
+// the 510-token cap so generation never truncates.
+const TARGET_MIN_TOKENS = 175;
+const TARGET_MAX_TOKENS = 250;
+const ABSOLUTE_MAX_TOKENS = 450;
 
 export interface TextBufferDeps {
-  splitSentences: (text: string) => string[];
   measure: (text: string) => Promise<number>;
 }
 
 export interface TextBufferOptions {
-  maxTokens?: number;
-  batchChars?: number;
+  targetMinTokens?: number;
+  targetMaxTokens?: number;
+  absoluteMaxTokens?: number;
 }
 
 export class TextBuffer {
-  private readonly text: string;
-  private readonly splitSentences: (text: string) => string[];
+  private readonly sentences: string[];
   private readonly measure: (text: string) => Promise<number>;
-  private readonly maxTokens: number;
-  private readonly batchChars: number;
-  private cursor = 0;
+  private readonly targetMin: number;
+  private readonly targetMax: number;
+  private readonly absoluteMax: number;
+  private index = 0;
   private queue: string[] = [];
 
   constructor(text: string, deps: TextBufferDeps, opts: TextBufferOptions = {}) {
-    this.text = text;
-    this.splitSentences = deps.splitSentences;
     this.measure = deps.measure;
-    this.maxTokens = opts.maxTokens ?? DEFAULT_MAX_TOKENS;
-    this.batchChars = opts.batchChars ?? DEFAULT_BATCH_CHARS;
+    this.targetMin = opts.targetMinTokens ?? TARGET_MIN_TOKENS;
+    this.targetMax = opts.targetMaxTokens ?? TARGET_MAX_TOKENS;
+    this.absoluteMax = opts.absoluteMaxTokens ?? ABSOLUTE_MAX_TOKENS;
+    this.sentences = splitSentences(text);
   }
 
   hasNext(): boolean {
-    return this.queue.length > 0 || this.cursor < this.text.length;
+    return this.queue.length > 0 || this.index < this.sentences.length;
   }
 
-  // Returns null once the text is fully consumed.
+  // Returns the next chunk, or null once all sentences are consumed.
   async next(): Promise<string | null> {
-    if (this.queue.length === 0) await this.refill();
+    if (this.queue.length === 0) await this.buildChunks();
     return this.queue.shift() ?? null;
   }
 
-  private async refill(): Promise<void> {
-    while (this.queue.length === 0 && this.cursor < this.text.length) {
-      const slice = this.takeSlice();
-      for (const sentence of this.splitSentences(slice)) {
-        const pieces = await splitToFit(sentence, this.maxTokens, this.measure);
-        for (const piece of pieces) this.queue.push(piece);
+  // Group sentences toward the token target until at least one chunk is ready.
+  private async buildChunks(): Promise<void> {
+    let chunk = "";
+    let tokens = 0;
+    while (this.index < this.sentences.length) {
+      const sentence = this.sentences[this.index] as string;
+      const count = await this.measure(sentence);
+
+      // A single sentence over the hard cap: flush the current chunk, then
+      // sub-split this one on commas (then whitespace) so no piece truncates.
+      if (count > this.absoluteMax) {
+        this.index++;
+        if (chunk) this.queue.push(chunk);
+        for (const piece of await this.splitOverlong(sentence)) this.queue.push(piece);
+        return;
+      }
+
+      if (chunk === "") {
+        chunk = sentence;
+        tokens = count;
+        this.index++;
+      } else if (tokens + count <= this.targetMax) {
+        chunk = `${chunk} ${sentence}`;
+        tokens += count;
+        this.index++;
+      } else if (tokens < this.targetMin && tokens + count <= this.absoluteMax) {
+        // Under the minimum: keep filling past target_max, up to the hard cap.
+        chunk = `${chunk} ${sentence}`;
+        tokens += count;
+        this.index++;
+      } else {
+        break; // chunk is full enough; emit it and start fresh next time
       }
     }
+    if (chunk) this.queue.push(chunk);
   }
 
-  // ~batchChars of text, extended to the next newline so slices end at a line
-  // boundary (newlines are already sentence terminators).
-  private takeSlice(): string {
-    const start = this.cursor;
-    let end = Math.min(start + this.batchChars, this.text.length);
-    if (end < this.text.length) {
-      const nl = this.text.indexOf("\n", end);
-      end = nl === -1 ? this.text.length : nl + 1;
+  // Split a sentence that exceeds the hard cap: greedily pack comma clauses,
+  // falling back to whitespace splitting for any clause still too large.
+  private async splitOverlong(sentence: string): Promise<string[]> {
+    const out: string[] = [];
+    let buf = "";
+    let bufTokens = 0;
+    for (const clause of sentence.split(/(?<=,)/)) {
+      const count = await this.measure(clause);
+      if (count > this.absoluteMax) {
+        if (buf) {
+          out.push(buf);
+          buf = "";
+          bufTokens = 0;
+        }
+        for (const piece of await splitToFit(clause, this.absoluteMax, this.measure))
+          out.push(piece);
+        continue;
+      }
+      if (buf === "") {
+        buf = clause;
+        bufTokens = count;
+      } else if (bufTokens + count <= this.absoluteMax) {
+        buf += clause;
+        bufTokens += count;
+      } else {
+        out.push(buf);
+        buf = clause;
+        bufTokens = count;
+      }
     }
-    this.cursor = end;
-    return this.text.slice(start, end);
+    if (buf) out.push(buf.trim());
+    return out.map((p) => p.trim()).filter((p) => p.length > 0);
   }
 }
 
-/**
- * Recursively split `text` until every returned piece measures within
- * `maxTokens`. Splits at the first whitespace at or after the string's
- * midpoint; the whitespace stays with the right piece so concatenating the
- * result reproduces the original text exactly.
- *
- * If a piece exceeds `maxTokens` but contains no whitespace from its midpoint
- * onward (a single word longer than the limit), it is returned as-is — there
- * is nothing to split on, and downstream synthesis must handle it.
- */
+// Split into whole sentences on sentence punctuation followed by whitespace or
+// end-of-string — deliberately NOT on newlines, so a hard-wrapped line doesn't
+// cut a sentence in half. Whitespace is collapsed first so wraps become spaces.
+// (Pattern from Kokoro-FastAPI's get_sentence_info.)
+function splitSentences(text: string): string[] {
+  const collapsed = text.replace(/\s+/g, " ").trim();
+  if (collapsed.length === 0) return [];
+  const parts = collapsed.split(/([.!?;:])(?=\s|$)/);
+  const sentences: string[] = [];
+  for (let i = 0; i < parts.length; i += 2) {
+    const body = parts[i] ?? "";
+    const punct = parts[i + 1] ?? "";
+    const sentence = `${body}${punct}`.trim();
+    if (sentence.length > 0) sentences.push(sentence);
+  }
+  return sentences;
+}
+
+// Recursively split at the first whitespace from the midpoint until every piece
+// fits maxTokens. A piece with no splittable whitespace is returned as-is.
 async function splitToFit(
   text: string,
   maxTokens: number,
@@ -91,11 +154,9 @@ async function splitToFit(
     }
   }
   if (splitAt === -1) return [text];
-  const left = text.slice(0, splitAt);
-  const right = text.slice(splitAt);
   const [l, r] = await Promise.all([
-    splitToFit(left, maxTokens, measure),
-    splitToFit(right, maxTokens, measure),
+    splitToFit(text.slice(0, splitAt), maxTokens, measure),
+    splitToFit(text.slice(splitAt), maxTokens, measure),
   ]);
   return [...l, ...r];
 }

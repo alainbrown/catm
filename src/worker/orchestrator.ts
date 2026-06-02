@@ -10,7 +10,6 @@ const PLAYBACK_BUFFER_SEGMENTS = 3;
 
 export interface OrchestratorDeps {
   model: KokoroModel;
-  splitSentences: (text: string) => string[];
   sampleRate: number;
   post: (msg: OutMsg) => void;
 }
@@ -41,7 +40,7 @@ export class Orchestrator {
     if (!this.audio) throw new Error("orchestrator not started");
     const audio = this.audio;
     const measure = this.deps.model.makeMeasure(this.voice);
-    const buffer = new TextBuffer(text, { splitSentences: this.deps.splitSentences, measure });
+    const buffer = new TextBuffer(text, { measure });
     while (buffer.hasNext()) {
       if (isCancelled()) return;
       const piece = await buffer.next();

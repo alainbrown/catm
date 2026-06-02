@@ -4,7 +4,6 @@ import { env as hfEnv } from "@huggingface/transformers";
 import { KokoroModel } from "./model";
 import { installModelCacheFetch } from "./modelCache";
 import { Orchestrator } from "./orchestrator";
-import { splitSentences } from "./sentenceSplitter";
 import type { VoiceId } from "./types";
 import type { DeviceInfo, InMsg, LoadedDevice, OutMsg } from "./workerProtocol";
 import { createHandlers } from "./workerProtocol";
@@ -119,8 +118,7 @@ async function load(): Promise<DeviceInfo> {
 const handlers = createHandlers<VoiceId>({
   load,
   synthesizePcm: (text, voice) => model.generate(text, voice),
-  createOrchestrator: () =>
-    new Orchestrator({ model, splitSentences, sampleRate: SAMPLE_RATE, post }),
+  createOrchestrator: () => new Orchestrator({ model, sampleRate: SAMPLE_RATE, post }),
   post: (msg, transfer = []) => post(msg, transfer),
   sampleRate: SAMPLE_RATE,
   defaultVoice: DEFAULT_VOICE,

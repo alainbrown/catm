@@ -7,9 +7,8 @@ import {
   writeSegment,
 } from "../storage/hlsWrite";
 
-// Push buffer: PCM in, HLS files out. Encodes via ProgressiveEncoder and writes
-// init.mp4 / seg-N.m4s / playlist.m3u8 straight to OPFS for one session. The
-// player consumes those files from OPFS; nothing round-trips through main.
+// Push buffer: PCM in, HLS files (init.mp4 / seg-N.m4s / playlist.m3u8) written
+// straight to OPFS for one session via ProgressiveEncoder.
 export class AudioBuffer {
   private readonly encoder: ProgressiveEncoder;
   // Serialise the (sync) encoder callbacks' async OPFS writes in emission order.

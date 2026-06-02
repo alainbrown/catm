@@ -1,11 +1,8 @@
-// Read-ahead buffer that turns the input text into synthesis chunks, following
-// Kokoro-FastAPI's smart_split strategy: split into whole sentences, then group
-// them toward a token target and sub-split any over-long sentence, so every
-// emitted chunk stays under Kokoro's 510-token input cap (nothing truncates).
-// Token counting is injected (phonemize + tokenize).
+// Turns input text into synthesis chunks (Kokoro-FastAPI smart_split): split
+// into whole sentences, group toward a token target, sub-split over-long ones.
+// Every chunk stays under Kokoro's 510-token cap, so generation never truncates.
 
-// Defaults from Kokoro-FastAPI (target_min/target_max/absolute_max), all below
-// the 510-token cap so generation never truncates.
+// Kokoro-FastAPI defaults; all below the 510-token cap.
 const TARGET_MIN_TOKENS = 175;
 const TARGET_MAX_TOKENS = 250;
 const ABSOLUTE_MAX_TOKENS = 450;
@@ -41,13 +38,11 @@ export class TextBuffer {
     return this.queue.length > 0 || this.index < this.sentences.length;
   }
 
-  // Returns the next chunk, or null once all sentences are consumed.
   async next(): Promise<string | null> {
     if (this.queue.length === 0) await this.buildChunks();
     return this.queue.shift() ?? null;
   }
 
-  // Group sentences toward the token target until at least one chunk is ready.
   private async buildChunks(): Promise<void> {
     let chunk = "";
     let tokens = 0;
@@ -55,8 +50,7 @@ export class TextBuffer {
       const sentence = this.sentences[this.index] as string;
       const count = await this.measure(sentence);
 
-      // A single sentence over the hard cap: flush the current chunk, then
-      // sub-split this one on commas (then whitespace) so no piece truncates.
+      // Over-cap single sentence: flush, then sub-split it.
       if (count > this.absoluteMax) {
         this.index++;
         if (chunk) this.queue.push(chunk);
@@ -73,7 +67,7 @@ export class TextBuffer {
         tokens += count;
         this.index++;
       } else if (tokens < this.targetMin && tokens + count <= this.absoluteMax) {
-        // Under the minimum: keep filling past target_max, up to the hard cap.
+        // Below target_min: fill past target_max, up to the hard cap.
         chunk = `${chunk} ${sentence}`;
         tokens += count;
         this.index++;
@@ -84,8 +78,7 @@ export class TextBuffer {
     if (chunk) this.queue.push(chunk);
   }
 
-  // Split a sentence that exceeds the hard cap: greedily pack comma clauses,
-  // falling back to whitespace splitting for any clause still too large.
+  // Pack comma clauses up to the cap; whitespace-split any clause still too big.
   private async splitOverlong(sentence: string): Promise<string[]> {
     const out: string[] = [];
     let buf = "";
@@ -119,10 +112,8 @@ export class TextBuffer {
   }
 }
 
-// Split into whole sentences on sentence punctuation followed by whitespace or
-// end-of-string — deliberately NOT on newlines, so a hard-wrapped line doesn't
-// cut a sentence in half. Whitespace is collapsed first so wraps become spaces.
-// (Pattern from Kokoro-FastAPI's get_sentence_info.)
+// Sentences split on punctuation + whitespace/EOL, NOT on newlines, so a
+// hard-wrapped line isn't cut mid-sentence. Whitespace is collapsed first.
 function splitSentences(text: string): string[] {
   const collapsed = text.replace(/\s+/g, " ").trim();
   if (collapsed.length === 0) return [];

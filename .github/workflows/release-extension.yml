@@ -5,11 +5,8 @@
 #     that run completes successfully, this workflow fires. A release only
 #     proceeds when package.json's version (the single source of truth) changed
 #     vs the parent commit. Pushes that change the bundle without bumping ride
-#     along with the next bump.
-#
-# The tests are the gate implicitly: this workflow only triggers on a *successful*
-# Test run, so there is no separate test job here — and no duplicate test run
-# competing with the push-triggered one (which previously cancelled it).
+#     along with the next bump. Tests are the gate: this only fires on a
+#     successful Test run, so there is no test job here.
 #
 # Pipeline
 #   detect     — compare package.json version to HEAD~1; emit version/changed.
@@ -43,8 +40,7 @@ concurrency:
 
 jobs:
   detect:
-    # Only when the Test run we're chaining off of passed. The tested commit is
-    # workflow_run.head_sha (workflow_run otherwise defaults to the branch head).
+    # head_sha is the tested commit (workflow_run otherwise defaults to the branch head).
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     outputs:

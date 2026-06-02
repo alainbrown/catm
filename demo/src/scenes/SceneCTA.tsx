@@ -88,7 +88,7 @@ export function SceneCTA({ overlay }: SceneCTAProps): React.JSX.Element {
           letterSpacing: "-0.015em",
         }}
       >
-        Long-form text-to-speech, in your browser, free.
+        Long-form text-to-speech. In your browser. Free.
       </div>
 
       <div

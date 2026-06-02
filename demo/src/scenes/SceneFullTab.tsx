@@ -33,10 +33,10 @@ export function SceneFullTab({ overlay }: SceneFullTabProps): React.JSX.Element 
         overlay={overlay}
         title={
           <>
-            Pop out for the <em style={{ color: "#5b6cff", fontStyle: "normal" }}>full reader</em>.
+            Pop out to the <em style={{ color: "#5b6cff", fontStyle: "normal" }}>full reader</em>.
           </>
         }
-        subtitle="Articles, chapters, RFCs — all stored locally in a searchable library."
+        subtitle="Library, composer, and playback side by side — articles, chapters, and whole RFCs in one tab."
       />
     </AbsoluteFill>
   );

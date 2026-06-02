@@ -5,7 +5,7 @@
 # Usage:
 #   ./render.sh                  — full pipeline: render everything, then publish
 #   ./render.sh video            — full video to out/demo.mp4
-#   ./render.sh stills           — one PNG per scene to out/still-*.png (overlay off)
+#   ./render.sh stills           — one captioned PNG per scene to out/still-*.png (overlay on)
 #   ./render.sh still <frame>    — single PNG (overlay off) to out/still-<frame>.png
 #   ./render.sh tiles            — CWS promo tiles to out/promo-{small,marquee}.png
 #   ./render.sh thumbnail        — 1280×720 YouTube thumbnail to out/youtube-thumbnail.png
@@ -45,17 +45,18 @@ run_remotion() {
     "$@"
 }
 
-# Stills with overlay disabled, one per scene midpoint. Frames must be kept
-# in sync with the SCENES timing in src/Demo.tsx.
+# Captioned stills, one per scene at its zoom/copy apex (overlay ON so the
+# marketing line is burned in). Frames must be kept in sync with the SCENES
+# timing in src/theme.ts and each scene's zoom keyframes.
 render_stills() {
   build_image
-  for pair in "70:onboarding" "330:sidepanel" "600:voices" "870:fulltab" "1140:privacy"; do
+  for pair in "70:onboarding" "288:sidepanel" "600:voices" "870:fulltab" "1140:privacy"; do
     frame="${pair%%:*}"
     name="${pair##*:}"
     echo "── still: $name (frame $frame) ──"
     run_remotion npx remotion still Demo \
       --frame="$frame" \
-      --props='{"overlay":false}' \
+      --props='{"overlay":true}' \
       "out/still-${name}.png"
   done
 }

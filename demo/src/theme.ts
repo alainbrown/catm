@@ -8,8 +8,9 @@ const { fontFamily: JBM_FAMILY } = loadJetBrainsMono();
 
 export const FPS = 30;
 
-// Scene durations in frames. The frame midpoints below must stay in sync
-// with render.sh's CWS still extraction.
+// Scene durations in frames. Each scene's zoom/copy apex is where render.sh
+// extracts the captioned CWS still — keep those still frames in sync with
+// these durations and the per-scene zoom keyframes.
 export const SCENES = {
   onboarding: 150, //  5s — opens the side panel onboarding
   sidepanel: 360, // 12s — reading with highlight

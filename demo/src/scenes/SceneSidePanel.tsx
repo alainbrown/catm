@@ -7,13 +7,21 @@ import { MOCK_SESSIONS, SAMPLE_CHUNK_DURATIONS, SAMPLE_CHUNKS, SAMPLE_TEXT } fro
 import { CopyOverlay } from "../overlay/CopyOverlay";
 import { DemoApp } from "../shells/DemoApp";
 import { MockWebpage } from "../shells/MockWebpage";
+import { ZoomFrame } from "../shells/ZoomFrame";
 
 const SIDE_PANEL_WIDTH = 420;
 const TOTAL_DURATION_SEC = 40;
 
-// Drawer beat, in local scene frames. Kept after the CWS still frame (local
-// ~192, composition 330) so the still stays a clean reading shot while the
-// video shows the slide-in.
+// Zoom beat (local scene frames). Push into the panel while the highlight
+// travels, hold through the captioned CWS still (local ~150, composition
+// 288), then ease back to 1× before the drawer needs the full width.
+const ZOOM_IN_START = 56;
+const ZOOM_IN_END = 92;
+const ZOOM_OUT_START = 198;
+const ZOOM_OUT_END = 212;
+
+// Drawer beat, in local scene frames. Kept after the zoom-out so the
+// slide-in plays across the full-width frame.
 const DRAWER_IN = 215;
 const DRAWER_FULL = 236;
 const DRAWER_OUT = 318;
@@ -56,37 +64,47 @@ export function SceneSidePanel({ overlay }: SceneSidePanelProps): React.JSX.Elem
   );
 
   return (
-    <AbsoluteFill style={{ background: "#1a1c20", display: "flex", flexDirection: "row" }}>
-      <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
-        <MockWebpage selection={null} contextMenu={null} />
-      </div>
-
-      <div
-        style={{
-          width: SIDE_PANEL_WIDTH,
-          flexShrink: 0,
-          background: "var(--bg-0)",
-          borderLeft: "1px solid var(--border)",
-        }}
+    <AbsoluteFill style={{ background: "#1a1c20" }}>
+      <ZoomFrame
+        scale={1.45}
+        origin="100% 50%"
+        inStart={ZOOM_IN_START}
+        inEnd={ZOOM_IN_END}
+        outStart={ZOOM_OUT_START}
+        outEnd={ZOOM_OUT_END}
+        style={{ display: "flex", flexDirection: "row" }}
       >
-        <DemoApp
-          mode="panel"
-          sessions={MOCK_SESSIONS}
-          activeId={"s-current"}
-          title="The deep sea has been hiding from us"
-          sourceText={SAMPLE_TEXT}
-          voice="af_heart"
-          speed={1.25}
-          status={{ kind: "ready", device: "webgpu" }}
-          currentTime={clampedTime}
-          durationSec={TOTAL_DURATION_SEC}
-          chunkDurations={SAMPLE_CHUNK_DURATIONS}
-          chunkTexts={SAMPLE_CHUNKS}
-          playing={true}
-          showDock={true}
-          drawerProgress={drawerProgress}
-        />
-      </div>
+        <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
+          <MockWebpage selection={null} contextMenu={null} />
+        </div>
+
+        <div
+          style={{
+            width: SIDE_PANEL_WIDTH,
+            flexShrink: 0,
+            background: "var(--bg-0)",
+            borderLeft: "1px solid var(--border)",
+          }}
+        >
+          <DemoApp
+            mode="panel"
+            sessions={MOCK_SESSIONS}
+            activeId={"s-current"}
+            title="The deep sea has been hiding from us"
+            sourceText={SAMPLE_TEXT}
+            voice="af_heart"
+            speed={1.25}
+            status={{ kind: "ready", device: "webgpu" }}
+            currentTime={clampedTime}
+            durationSec={TOTAL_DURATION_SEC}
+            chunkDurations={SAMPLE_CHUNK_DURATIONS}
+            chunkTexts={SAMPLE_CHUNKS}
+            playing={true}
+            showDock={true}
+            drawerProgress={drawerProgress}
+          />
+        </div>
+      </ZoomFrame>
 
       {overlay ? (
         <>
@@ -95,11 +113,11 @@ export function SceneSidePanel({ overlay }: SceneSidePanelProps): React.JSX.Elem
               overlay={overlay}
               title={
                 <>
-                  Long-form,{" "}
-                  <em style={{ color: "#5b6cff", fontStyle: "normal" }}>natural voices</em>.
+                  Whole articles, in a{" "}
+                  <em style={{ color: "#5b6cff", fontStyle: "normal" }}>natural voice</em>.
                 </>
               }
-              subtitle="Audio is generated locally in the browser. The text highlights along with the voice, so you can follow or skim."
+              subtitle="Synthesised right in your browser. The text highlights as it reads, so you can follow along or skim ahead."
             />
           </div>
           <div style={{ opacity: libraryOpacity }}>
@@ -109,10 +127,10 @@ export function SceneSidePanel({ overlay }: SceneSidePanelProps): React.JSX.Elem
               title={
                 <>
                   Your library,{" "}
-                  <em style={{ color: "#5b6cff", fontStyle: "normal" }}>one tap away</em>.
+                  <em style={{ color: "#5b6cff", fontStyle: "normal" }}>always to hand</em>.
                 </>
               }
-              subtitle="Every reading is saved locally. Slide out the history to pick up where you left off."
+              subtitle="Every reading is saved on your device. Slide out the history and pick up exactly where you left off."
             />
           </div>
         </>

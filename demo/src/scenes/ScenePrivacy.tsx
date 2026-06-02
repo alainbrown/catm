@@ -128,10 +128,11 @@ export function ScenePrivacy({ overlay }: ScenePrivacyProps): React.JSX.Element 
         startFrame={12}
         title={
           <>
-            Nothing leaves <em style={{ color: "#5b6cff", fontStyle: "normal" }}>your browser</em>.
+            Nothing ever leaves{" "}
+            <em style={{ color: "#5b6cff", fontStyle: "normal" }}>your device</em>.
           </>
         }
-        subtitle="No accounts, no telemetry, no servers — the voice and your recordings live on your device."
+        subtitle="No accounts, no servers, no telemetry — the voice model and every recording stay in your browser."
       />
     </AbsoluteFill>
   );

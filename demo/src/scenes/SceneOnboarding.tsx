@@ -7,11 +7,20 @@ import { ARTICLE_LEAD, MOCK_SESSIONS, SAMPLE_CHUNK_DURATIONS, SAMPLE_CHUNKS } fr
 import { CopyOverlay } from "../overlay/CopyOverlay";
 import { DemoApp } from "../shells/DemoApp";
 import { MockWebpage } from "../shells/MockWebpage";
+import { ZoomFrame } from "../shells/ZoomFrame";
 
 const SELECTION_START_FRAME = 18;
 const MENU_FRAME = 48;
 const PANEL_FRAME = 80;
 const SIDE_PANEL_TARGET_WIDTH = 420;
+
+// Zoom into the right-click menu while it's open (the captioned CWS still
+// sits at local ~70), then release as the side panel opens so the article
+// reflow plays across the full-width frame.
+const ZOOM_IN_START = 34;
+const ZOOM_IN_END = 56;
+const ZOOM_OUT_START = 76;
+const ZOOM_OUT_END = 94;
 
 interface SceneOnboardingProps {
   overlay: boolean;
@@ -43,47 +52,54 @@ export function SceneOnboarding({ overlay }: SceneOnboardingProps): React.JSX.El
   const panelWidth = panelProgress * SIDE_PANEL_TARGET_WIDTH;
 
   return (
-    <AbsoluteFill style={{ background: "#1a1c20", display: "flex", flexDirection: "row" }}>
-      <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
-        <MockWebpage
-          selection={selection}
-          contextMenu={menuOpen ? { x: 460, y: 320 } : null}
-        />
-      </div>
-
-      <div
-        style={{
-          width: panelWidth,
-          flexShrink: 0,
-          background: "var(--bg-0)",
-          borderLeft: "1px solid var(--border)",
-          // Mild shadow only while opening — matches Chrome's panel reveal.
-          boxShadow:
-            panelProgress > 0 && panelProgress < 1
-              ? "-1px 0 0 rgba(13,14,18,0.06), -12px 0 24px rgba(13,14,18,0.08)"
-              : "-1px 0 0 rgba(13,14,18,0.06)",
-          overflow: "hidden",
-        }}
+    <AbsoluteFill style={{ background: "#1a1c20" }}>
+      <ZoomFrame
+        scale={1.35}
+        origin="44% 46%"
+        inStart={ZOOM_IN_START}
+        inEnd={ZOOM_IN_END}
+        outStart={ZOOM_OUT_START}
+        outEnd={ZOOM_OUT_END}
+        style={{ display: "flex", flexDirection: "row" }}
       >
-        <div style={{ width: SIDE_PANEL_TARGET_WIDTH, height: "100%" }}>
-          <DemoApp
-            mode="panel"
-            sessions={MOCK_SESSIONS.slice(0, 1)}
-            activeId={"s-current"}
-            title="The deep sea has been hiding from us"
-            sourceText={ARTICLE_LEAD}
-            voice="af_heart"
-            speed={1.25}
-            status={{ kind: "ready", device: "webgpu" }}
-            currentTime={0}
-            durationSec={40}
-            chunkDurations={SAMPLE_CHUNK_DURATIONS}
-            chunkTexts={SAMPLE_CHUNKS}
-            playing={false}
-            showDock={false}
-          />
+        <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
+          <MockWebpage selection={selection} contextMenu={menuOpen ? { x: 460, y: 320 } : null} />
         </div>
-      </div>
+
+        <div
+          style={{
+            width: panelWidth,
+            flexShrink: 0,
+            background: "var(--bg-0)",
+            borderLeft: "1px solid var(--border)",
+            // Mild shadow only while opening — matches Chrome's panel reveal.
+            boxShadow:
+              panelProgress > 0 && panelProgress < 1
+                ? "-1px 0 0 rgba(13,14,18,0.06), -12px 0 24px rgba(13,14,18,0.08)"
+                : "-1px 0 0 rgba(13,14,18,0.06)",
+            overflow: "hidden",
+          }}
+        >
+          <div style={{ width: SIDE_PANEL_TARGET_WIDTH, height: "100%" }}>
+            <DemoApp
+              mode="panel"
+              sessions={MOCK_SESSIONS.slice(0, 1)}
+              activeId={"s-current"}
+              title="The deep sea has been hiding from us"
+              sourceText={ARTICLE_LEAD}
+              voice="af_heart"
+              speed={1.25}
+              status={{ kind: "ready", device: "webgpu" }}
+              currentTime={0}
+              durationSec={40}
+              chunkDurations={SAMPLE_CHUNK_DURATIONS}
+              chunkTexts={SAMPLE_CHUNKS}
+              playing={false}
+              showDock={false}
+            />
+          </div>
+        </div>
+      </ZoomFrame>
 
       <CopyOverlay
         overlay={overlay}
@@ -93,10 +109,10 @@ export function SceneOnboarding({ overlay }: SceneOnboardingProps): React.JSX.El
         startFrame={24}
         title={
           <>
-            Select. <em style={{ color: "#5b6cff", fontStyle: "normal" }}>Read aloud.</em>
+            Select it. <em style={{ color: "#5b6cff", fontStyle: "normal" }}>Hear it.</em>
           </>
         }
-        subtitle="Right-click any text on any page. The side panel opens with your selection ready to listen to."
+        subtitle="Right-click any text on any page — the side panel opens with your selection cued up and ready to play."
       />
     </AbsoluteFill>
   );

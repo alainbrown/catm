@@ -14,9 +14,6 @@ on:
   push:
     branches: [main]
   pull_request:
-  # Allow the release pipeline to invoke this workflow as a gate
-  # (release-extension.yml calls `uses: ./.github/workflows/test.yml`).
-  workflow_call:
 
 concurrency:
   group: test-${{ github.ref }}

@@ -1,19 +1,22 @@
 # Releases the catm Chrome extension.
 #
 # Trigger
-#   • Push to main. A release only proceeds when package.json's version
-#     (the single source of truth) changed vs the parent commit, AND the
-#     full Test suite passes. Pushes that change the bundle without bumping
-#     ride along with the next bump.
+#   • Chains off the Test workflow. Every push to main runs Test once; when
+#     that run completes successfully, this workflow fires. A release only
+#     proceeds when package.json's version (the single source of truth) changed
+#     vs the parent commit. Pushes that change the bundle without bumping ride
+#     along with the next bump.
+#
+# The tests are the gate implicitly: this workflow only triggers on a *successful*
+# Test run, so there is no separate test job here — and no duplicate test run
+# competing with the push-triggered one (which previously cancelled it).
 #
 # Pipeline
 #   detect     — compare package.json version to HEAD~1; emit version/changed.
 #   check-tag  — skip the release if the ext-v<version> tag already exists.
-#   test       — `uses: ./.github/workflows/test.yml` — the release gate.
-#                Release only proceeds if the unit + e2e suite passes.
-#   release    — build dist/, zip it, create the GitHub Release,
-#                and (if CWS_* secrets are set) auto-publish to the Chrome
-#                Web Store via chrome-webstore-upload-cli.
+#   release    — build dist/, zip it, create the GitHub Release, and (if CWS_*
+#                secrets are set) auto-publish to the Chrome Web Store via
+#                chrome-webstore-upload-cli.
 #
 # Secrets to add (Repo settings → Secrets and variables → Actions)
 #   CWS_APP_ID         — extension ID from the Chrome Web Store dashboard
@@ -26,18 +29,23 @@
 name: Release extension
 
 on:
-  push:
+  workflow_run:
+    workflows: ["Test"]
+    types: [completed]
     branches: [main]
 
 permissions:
-  contents: write  # to create GitHub releases
+  contents: write # to create GitHub releases
 
 concurrency:
   group: release-extension
-  cancel-in-progress: false  # never cancel an in-flight publish
+  cancel-in-progress: false # never cancel an in-flight publish
 
 jobs:
   detect:
+    # Only when the Test run we're chaining off of passed. The tested commit is
+    # workflow_run.head_sha (workflow_run otherwise defaults to the branch head).
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     outputs:
       changed: ${{ steps.ver.outputs.changed }}
@@ -45,6 +53,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.workflow_run.head_sha }}
           fetch-depth: 2
 
       - name: Detect version bump
@@ -74,6 +83,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.workflow_run.head_sha }}
           fetch-depth: 0
 
       - name: Check whether release tag already exists
@@ -88,18 +98,14 @@ jobs:
             echo "Tag $tag is free"
           fi
 
-  # The gate: release only proceeds if the full test suite passes.
-  test:
-    needs: [detect, check-tag]
-    if: needs.detect.outputs.changed == 'true' && needs.check-tag.outputs.exists == 'false'
-    uses: ./.github/workflows/test.yml
-
   release:
-    needs: [detect, check-tag, test]
+    needs: [detect, check-tag]
     if: needs.detect.outputs.changed == 'true' && needs.check-tag.outputs.exists == 'false'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
 
       - uses: actions/setup-node@v4
         with:
@@ -128,10 +134,11 @@ jobs:
         run: |
           tag="ext-v${{ needs.detect.outputs.version }}"
           zip="catm-v${{ needs.detect.outputs.version }}.zip"
+          sha="${{ github.event.workflow_run.head_sha }}"
           gh release create "$tag" "$zip" \
             --title "Extension v${{ needs.detect.outputs.version }}" \
-            --target "${{ github.sha }}" \
-            --notes "Auto-built from ${{ github.sha }}. If CWS auto-publish is not configured, upload $zip to the Chrome Web Store dashboard manually."
+            --target "$sha" \
+            --notes "Auto-built from $sha. If CWS auto-publish is not configured, upload $zip to the Chrome Web Store dashboard manually."
 
       - name: Publish to Chrome Web Store
         env:

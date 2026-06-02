@@ -68,7 +68,7 @@ The worker picks `device: "webgpu"` when `navigator.gpu` exists, otherwise `wasm
 
 ### Marketing page
 
-`marketing/` holds a hand-written static HTML page (no JS, no React) styled to match the app's aesthetic — same `radial-gradient` body background and dot-SVG overlay, same `c` brand mark, same gradient accents. Assets next to it (`favicon.svg`, `privacy.html`) are referenced with relative paths. **There is no build step** — `deploy.yml` uploads `marketing/` directly to GitHub Pages. `scripts/check-marketing.mjs` is a CI-only lint that verifies all relative refs resolve before the deploy fires. **`marketing/privacy.html`** documents the extension's (entirely local) data handling for the Chrome Web Store listing; do not delete it during cleanup.
+`marketing/` holds a hand-written static HTML page (no JS, no React) styled to match the app's aesthetic — same `radial-gradient` body background and dot-SVG overlay, same `c` brand mark, same gradient accents. The `favicon.svg` next to it is referenced with a relative path. **There is no build step** — `deploy.yml` uploads `marketing/` directly to GitHub Pages. `scripts/check-marketing.mjs` is a CI-only lint that verifies all relative refs resolve before the deploy fires. The Chrome Web Store privacy policy points at `PRIVACY.md` in the repo, not a page under `marketing/`.
 
 ### Extension build
 

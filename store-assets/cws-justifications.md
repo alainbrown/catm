@@ -67,4 +67,4 @@ Check a row only if the extension actually handles that category. catm is local-
 
 ## Privacy policy URL
 
-> https://alainbrown.com/catm/privacy.html (source: `PRIVACY.md` in the repo).
+> https://github.com/alainbrown/catm/blob/main/PRIVACY.md

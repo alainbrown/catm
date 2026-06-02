@@ -2236,6 +2236,9 @@ textarea {
   grid-template-columns: 1fr;
   display: flex;
   flex-direction: column;
+  /* Hard cap so min-height:0 children shrink and the editor scrolls internally. */
+  height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  overflow: hidden;
 }
 
 /* Brandbar: hidden by default; shown in side panel + on mobile. */

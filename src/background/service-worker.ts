@@ -1,10 +1,13 @@
-import type { PageTextPayload } from "../content/extract";
-import extractScript from "../content/extract?script";
-
+const PENDING_KEY = "catm:pending-read";
 const ROOT_MENU_ID = "catm-root";
-const SELECTION_MENU_ID = "catm-read-selection";
 const PAGE_MENU_ID = "catm-read-page";
-const PENDING_KEY = "catm:pending-share";
+const SELECTION_MENU_ID = "catm-read-selection";
+
+interface PendingRead {
+  text?: string;
+  html?: string;
+  play: boolean;
+}
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
@@ -26,87 +29,44 @@ chrome.runtime.onInstalled.addListener(() => {
   });
 });
 
-// Icon click opens the side panel (instead of firing chrome.action.onClicked).
+// Make the toolbar icon open the side panel (instead of firing
+// chrome.action.onClicked).
 chrome.sidePanel
   .setPanelBehavior({ openPanelOnActionClick: true })
   .catch((err) => console.error("[catm] setPanelBehavior:", err));
 
-// `play` controls whether the side panel auto-synths on ingest: true for
-// "Read selection" (read-aloud semantics), false for "Read page" (stage the
-// extracted article in the editor so it can be trimmed before reading).
-function stageText(text: string, play: boolean) {
+// Stash text/HTML for the side panel to pick up. Exposed on globalThis so e2e
+// can drive panel delivery without a real content tab.
+function stage(pending: PendingRead): void {
   chrome.storage.session
-    .set({ [PENDING_KEY]: { text, play, ts: Date.now() } })
+    .set({ [PENDING_KEY]: pending })
     .catch((err) => console.error("[catm] storage.session.set:", err));
 }
+(globalThis as typeof globalThis & { __catmStage?: typeof stage }).__catmStage = stage;
 
-// Extracted so e2e can drive the ingest end-to-end: there is no public API
-// to fire `chrome.contextMenus.onClicked` programmatically, so tests invoke
-// this via `serviceWorker.evaluate(...)`.
-function ingestSelection({ text, windowId }: { text?: string; windowId?: number }) {
-  const trimmed = text?.trim();
-  if (!trimmed) return;
-  // chrome.sidePanel.open() needs a synchronous user gesture — any await
-  // before calling it consumes the gesture and the panel stays closed.
-  // Open first, persist after.
-  if (windowId != null) {
-    chrome.sidePanel
-      .open({ windowId })
-      .catch((err) => console.error("[catm] sidePanel.open:", err));
-  }
-  stageText(trimmed, true);
-}
-(
-  globalThis as typeof globalThis & {
-    __catmIngestSelection?: typeof ingestSelection;
-  }
-).__catmIngestSelection = ingestSelection;
-
-// Inject the Readability extractor into the clicked tab and resolve the text it
-// messages back. A context-menu click grants activeTab for that tab — exactly
-// what scripting.executeScript needs, with no broad host permission. Resolves
-// null on injection failure (restricted pages) or if nothing arrives in time.
-function runExtractor(tabId: number): Promise<PageTextPayload | null> {
-  return new Promise((resolve) => {
-    let settled = false;
-    const finish = (value: PageTextPayload | null) => {
-      if (settled) return;
-      settled = true;
-      chrome.runtime.onMessage.removeListener(listener);
-      resolve(value);
-    };
-    const listener = (msg: unknown, sender: chrome.runtime.MessageSender) => {
-      const m = msg as { type?: string; payload?: PageTextPayload };
-      if (m?.type === "catm-page-text" && sender.tab?.id === tabId) finish(m.payload ?? null);
-    };
-    chrome.runtime.onMessage.addListener(listener);
-    chrome.scripting
-      .executeScript({ target: { tabId }, files: [extractScript] })
-      .catch(() => finish(null));
-    setTimeout(() => finish(null), 10_000);
-  });
-}
-
-function readPage({ tabId, windowId }: { tabId?: number; windowId?: number }) {
-  if (tabId == null) return;
-  // Open within the click's user gesture, before any await (see ingestSelection).
-  if (windowId != null) {
-    chrome.sidePanel
-      .open({ windowId })
-      .catch((err) => console.error("[catm] sidePanel.open:", err));
-  }
-  void runExtractor(tabId)
-    .then((payload) => {
-      const trimmed = payload?.text.trim();
-      if (trimmed) stageText(trimmed, false);
-    })
-    .catch((err) => console.error("[catm] readPage:", err));
+// Open synchronously within the click gesture (an await first loses it).
+function openPanel(windowId: number | undefined): void {
+  if (windowId == null) return;
+  chrome.sidePanel.open({ windowId }).catch((err) => console.error("[catm] sidePanel.open:", err));
 }
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
+  if (!tab) return;
   if (info.menuItemId === SELECTION_MENU_ID) {
-    ingestSelection({ text: info.selectionText, windowId: tab?.windowId });
-  } else if (info.menuItemId === PAGE_MENU_ID) {
-    readPage({ tabId: tab?.id, windowId: tab?.windowId });
+    const text = info.selectionText?.trim();
+    openPanel(tab.windowId);
+    if (text) stage({ text, play: true });
+  } else if (info.menuItemId === PAGE_MENU_ID && tab.id != null) {
+    const tabId = tab.id;
+    openPanel(tab.windowId);
+    // Copy the page's HTML out; the side panel runs Readability on it. activeTab
+    // (granted by the click) covers the injection — no host permission needed.
+    chrome.scripting
+      .executeScript({ target: { tabId }, func: () => document.documentElement.outerHTML })
+      .then(([res]) => {
+        const html = (res?.result as string) ?? "";
+        if (html.trim()) stage({ html, play: false });
+      })
+      .catch((err) => console.error("[catm] read page:", err));
   }
 });

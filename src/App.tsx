@@ -5,7 +5,7 @@ import { DiscardDialog } from "./components/DiscardDialog";
 import { HistoryDrawer } from "./components/HistoryDrawer";
 import { PopoutButton } from "./components/PopoutButton";
 import { Rail } from "./components/Rail";
-import { consumeExtensionShare, type IngestedDraft } from "./extensionIngest";
+import { consumePendingRead } from "./extensionRead";
 import { encodePcmToCompleteMp4 } from "./hls/encode";
 import { IS_SIDE_PANEL } from "./runtime";
 import {
@@ -135,6 +135,7 @@ export function App(): React.JSX.Element {
   const [showReadyStamp, setShowReadyStamp] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [autoSynthPending, setAutoSynthPending] = useState(false);
   const [voice, setVoice] = useState<VoiceId>(() => readVoice());
   const [liveChunkDurations, setLiveChunkDurations] = useState<number[] | null>(null);
   const [liveChunkTexts, setLiveChunkTexts] = useState<string[] | null>(null);
@@ -189,34 +190,16 @@ export function App(): React.JSX.Element {
     });
   }, []);
 
-  // "Read aloud" implies action: save whatever's loaded (so the user
-  // doesn't lose unsaved edits or the previous share's session), then swap
-  // in the new text and queue synth. Refs mirror state each render so the
-  // ingest callback (fired from a chrome.storage listener — outside React's
-  // render cycle) can read current values synchronously.
-  const docRef = useRef(doc);
-  docRef.current = doc;
-  const [autoSynthPending, setAutoSynthPending] = useState(false);
-
-  const modifiedRef = useRef(modified);
-  modifiedRef.current = modified;
-  const onReadRef = useRef<() => Promise<void>>(async () => {});
-
+  // Read page / Read selection drop text into the editor; selection (play)
+  // auto-synths once the worker is ready.
   useEffect(() => {
-    const ingest = (draft: IngestedDraft) => {
-      if (!draft.text || draft.text.length === 0) return;
-      void (async () => {
-        if (modifiedRef.current) {
-          await onReadRef.current();
-        }
-        setDoc({ ...EMPTY_DOC, sourceText: draft.text });
-        setAutoSynthPending(draft.play);
-      })();
-    };
-    return consumeExtensionShare(ingest);
+    return consumePendingRead((read) => {
+      setDoc({ ...EMPTY_DOC, sourceText: read.text });
+      if (read.play) setAutoSynthPending(true);
+    });
   }, []);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: onRead recreates every render; the autoSynthPending guard short-circuits unintended re-fires
+  // biome-ignore lint/correctness/useExhaustiveDependencies: onRead recreates every render; the autoSynthPending guard prevents re-fires
   useEffect(() => {
     if (!autoSynthPending) return;
     if (status.kind !== "ready") return;
@@ -515,7 +498,6 @@ export function App(): React.JSX.Element {
       setStatus({ kind: "error", message });
     }
   }
-  onReadRef.current = onRead;
 
   function onCancelSynth(): void {
     const w = workerRef.current;

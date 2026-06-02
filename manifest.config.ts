@@ -14,8 +14,7 @@ export default defineManifest({
   manifest_version: 3,
   name: "catm",
   short_name: "catm",
-  description:
-    "On-device long-form text-to-speech in a side panel. Right-click → Read selection or Read page.",
+  description: "On-device long-form text-to-speech in a side panel. Right-click → Read page.",
   version: pkg.version,
   icons: {
     "16": "public/icons/16.png",
@@ -25,7 +24,7 @@ export default defineManifest({
     "128": "public/icons/128.png",
     "512": "public/icons/512.png",
   },
-  permissions: ["contextMenus", "storage", "sidePanel", "activeTab", "scripting"],
+  permissions: ["sidePanel", "contextMenus", "scripting", "activeTab", "storage"],
   action: {
     default_title: "Open catm side panel",
   },

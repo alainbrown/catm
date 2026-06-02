@@ -72,24 +72,28 @@ test("catm full journey on the loaded extension", async () => {
       await page.getByTestId("voice-am_michael").click();
       await expect(page.getByTestId("voice-chip")).toContainText("am_michael");
 
-      // Ingest path: right-click selection on some other tab fires the
-      // background SW's __catmIngestSelection, which writes to
-      // chrome.storage.session — the side panel's consumeExtensionShare
-      // drains that on mount and via onChanged. windowId:null skips
-      // chrome.sidePanel.open() (no user gesture from SW.evaluate).
-      await sw.evaluate(
-        async ({ text }: { text: string }) =>
-          // @ts-expect-error global injected by background.js
-          (globalThis as never).__catmIngestSelection({
-            text,
-            windowId: null,
-          }),
-        { text: LONG_TEXT },
-      );
+      // Read page (play=false): SW stashes the page HTML; the panel runs
+      // Readability on it and drops the article text into the editor, no synth.
+      // Via __catmStage — Playwright can't fire a real menu / inject a content tab.
+      const ARTICLE_HTML = `<!doctype html><html><head><title>Deep sea</title></head><body><nav>home about</nav><article><h1>The deep sea</h1><p>${LONG_TEXT}</p></article><footer>copyright</footer></body></html>`;
+      await sw.evaluate((html: string) => {
+        (globalThis as never as { __catmStage: (p: unknown) => void }).__catmStage({
+          html,
+          play: false,
+        });
+      }, ARTICLE_HTML);
+      await expect(page.getByTestId("text-input")).toContainText("runs entirely in your browser");
+
+      // Read selection (play=true): stages text and auto-synths once ready — no
+      // speak.click(). This drives the read-aloud path end to end.
+      await sw.evaluate((text: string) => {
+        (globalThis as never as { __catmStage: (p: unknown) => void }).__catmStage({
+          text,
+          play: true,
+        });
+      }, LONG_TEXT);
       await expect(page.getByTestId("text-input")).toContainText(LONG_TEXT);
 
-      // "Read aloud" implies action — no speak.click() here. The ingest
-      // handler in App.tsx queues synth automatically when the worker is ready.
       const audio = page.getByTestId("audio");
       await expect
         .poll(async () => audio.evaluate((el) => (el as HTMLAudioElement).src))
@@ -184,34 +188,6 @@ test("catm full journey on the loaded extension", async () => {
       const libraryRow = page.getByTestId("library-row");
       await expect(libraryRow).toHaveCount(1);
       await expect(libraryRow.locator(".voice-tag")).toHaveText("am_michael");
-
-      // Second "Read aloud" while the panel is still open used to be a
-      // silent no-op (the ingest guard refused to clobber any non-empty doc).
-      // It should now save the current session (no-op when unmodified) and
-      // swap in the new text + synth.
-      const SECOND_SHARE = "A shorter follow-up sentence shared while the side panel was open.";
-      const prevAudioSrc = await audio.evaluate((el) => (el as HTMLAudioElement).src);
-      await sw.evaluate(
-        async ({ text }: { text: string }) =>
-          // @ts-expect-error global injected by background.js
-          (globalThis as never).__catmIngestSelection({ text, windowId: null }),
-        { text: SECOND_SHARE },
-      );
-      await expect(page.getByTestId("text-input")).toContainText(SECOND_SHARE);
-      await expect
-        .poll(async () => audio.evaluate((el) => (el as HTMLAudioElement).src))
-        .not.toBe(prevAudioSrc);
-      await expect
-        .poll(async () => audio.evaluate((el) => (el as HTMLAudioElement).duration), {
-          timeout: 30_000,
-        })
-        .toBeGreaterThan(1);
-      await expect(libraryRow).toHaveCount(2);
-
-      // Drop the older row so the rest of the journey keeps operating on a
-      // single library entry.
-      await page.getByTestId("library-delete").last().click();
-      await expect(libraryRow).toHaveCount(1);
 
       await page.reload();
       await page.waitForFunction(() => document.documentElement.dataset.ttsDevice !== undefined);

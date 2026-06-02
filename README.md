@@ -7,19 +7,19 @@
 **Get it →** [alainbrown.com/catm](https://alainbrown.com/catm/)
 
 <p align="center">
-  <img src="./docs/demo.gif" alt="catm — select text, right-click Read aloud, listen — everything runs in the browser" width="720" />
+  <img src="./docs/demo.gif" alt="catm — paste text into the side panel and listen — everything runs in the browser" width="720" />
 </p>
 
-A 100% in-browser long-form text-to-speech reader, shipped as a Chrome extension. Select any text on any page, right-click **Read aloud**, and the side panel reads it back to you. Synthesis runs locally on your machine — no server, no upload, no account.
+A 100% in-browser long-form text-to-speech reader, shipped as a Chrome extension. Paste any text into the side panel — or right-click to **Read selection** or **Read page** — and it reads it back to you. Synthesis runs locally on your machine — no server, no upload, no account.
 
 The Kokoro 82M TTS model is downloaded once into the extension's HTTP cache (~310 MB) and run via ONNX Runtime Web (WebGPU when available, WASM fallback). After the first read, catm works fully offline.
 
 ## Highlights
 
 - **Local TTS.** Kokoro 82M via ONNX Runtime Web. Text never leaves the browser.
-- **Progressive playback.** Streamed HLS — start listening within a few seconds of clicking Read; the rest synthesises and appends as you go.
+- **Progressive playback.** Streamed HLS — start listening within a few seconds of clicking Generate; the rest synthesises and appends as you go.
 - **Persistent library.** Sessions are saved as fragmented MP4 in OPFS. Open old reads instantly, no re-synth.
-- **Right-click to listen.** A context-menu entry on any page drops the selection into the side panel and starts reading.
+- **Right-click to read.** *Read selection* reads the highlighted text aloud; *Read page* pulls a page's main text into the editor to trim and read.
 - **Offline-first.** Once the model is cached, the entire extension — including all reads — works with no network.
 
 ## Run locally
@@ -51,11 +51,11 @@ The marketing site at `alainbrown.com/catm` has no build step — `deploy.yml` u
 
 `src/App.tsx` owns the state and drives a Web Worker (`src/worker/kokoro.worker.ts`) that runs Kokoro. Text is streamed sentence-by-sentence through kokoro-js (with a phoneme-token-aware splitter that respects Kokoro's 510-token input cap), each sentence is synthesised to PCM, fed through a WebCodecs AAC encoder into fragmented MP4, and written to OPFS as live HLS (`init.mp4` + `seg-N.m4s` + a continually-updated `playlist.m3u8`). `hls.js` plays it back via a custom `opfs://` loader. Session metadata lives in IndexedDB; the audio bytes live in OPFS. A small `fetch` wrapper in the worker provides a cache-first route for the Kokoro model weights from huggingface.co into the `catm-model-v1` Cache Storage bucket.
 
-See [`CLAUDE.md`](./CLAUDE.md) for the deeper map (storage layers, worker concurrency invariant, extension ingest).
+See [`CLAUDE.md`](./CLAUDE.md) for the deeper map (storage layers, worker concurrency invariant, extension build).
 
 ## Browser extension
 
-catm is a Chrome MV3 extension — built via `@crxjs/vite-plugin` into `dist/` — that hosts the full app inside Chrome's **side panel**, plus a right-click **"Read aloud"** entry that drops the current selection into the panel and opens it. The same bundle runs in a popped-out tab via the arrow icon in the panel's brand bar — both views share OPFS / IndexedDB / the cached model since they're the same `chrome-extension://` origin.
+catm is a Chrome MV3 extension — built via `@crxjs/vite-plugin` into `dist/` — that hosts the full app inside Chrome's **side panel**; clicking the toolbar icon opens it, and right-click **Read selection** / **Read page** entries drop text into the panel. The same bundle runs in a popped-out tab via the arrow icon in the panel's brand bar — both views share OPFS / IndexedDB / the cached model since they're the same `chrome-extension://` origin.
 
 The extension is self-contained: the build bundles the React app, the service worker, and the generated manifest into `dist/` and uses no remote scripts. WebGPU works inside the panel — the worker disables ORT-Web's blob-based loaders (`numThreads = 1`, `proxy = false`, `wasmPaths = undefined`) so nothing trips MV3's CSP.
 

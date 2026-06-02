@@ -12,12 +12,13 @@ export const FPS = 30;
 // extracts the captioned CWS still — keep those still frames in sync with
 // these durations and the per-scene zoom keyframes.
 export const SCENES = {
-  onboarding: 150, //  5s — opens the side panel onboarding
-  sidepanel: 360, // 12s — reading with highlight
-  voices: 180, //  6s — voice picker open
-  fulltab: 360, // 12s — popout + library + composer
-  privacy: 180, //  6s — storage breakdown
-  cta: 120, //  4s — Add to Chrome
+  onboarding: 110, // 3.7s — opens the side panel onboarding
+  progressive: 240, //  8s — streaming/instant-start explainer (no UI still)
+  sidepanel: 240, //  8s — reading with highlight
+  voices: 120, //  4s — voice picker open
+  fulltab: 150, //  5s — popout + library + composer
+  privacy: 120, //  4s — storage breakdown
+  cta: 90, //  3s — Add to Chrome
 } as const;
 
 export const TRANSITION_FRAMES = 12;

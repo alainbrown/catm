@@ -50,7 +50,7 @@ run_remotion() {
 # timing in src/theme.ts and each scene's zoom keyframes.
 render_stills() {
   build_image
-  for pair in "70:onboarding" "288:sidepanel" "600:voices" "870:fulltab" "1140:privacy"; do
+  for pair in "48:onboarding" "248:progressive" "421:sidepanel" "654:voices" "880:privacy"; do
     frame="${pair%%:*}"
     name="${pair##*:}"
     echo "── still: $name (frame $frame) ──"
@@ -95,9 +95,11 @@ render_youtube() {
 publish() {
   local docs="../docs" mkt="../marketing"
   mkdir -p "$docs/store"
-  # scene stills → numbered CWS screenshots (order = demo scene order)
+  # scene stills → numbered CWS screenshots (curated for the listing: lead
+  # with the reading experience, then the instant-start story, then how you
+  # invoke it, voices, and the privacy close).
   local i=1
-  for n in onboarding sidepanel voices fulltab privacy; do
+  for n in sidepanel progressive onboarding voices privacy; do
     cp "out/still-${n}.png" "$docs/store/screenshot-${i}.png"
     i=$((i + 1))
   done

@@ -6,6 +6,7 @@ import { SceneCTA } from "./scenes/SceneCTA";
 import { SceneFullTab } from "./scenes/SceneFullTab";
 import { SceneOnboarding } from "./scenes/SceneOnboarding";
 import { ScenePrivacy } from "./scenes/ScenePrivacy";
+import { SceneProgressive } from "./scenes/SceneProgressive";
 import { SceneSidePanel } from "./scenes/SceneSidePanel";
 import { SceneVoices } from "./scenes/SceneVoices";
 import { COLORS, SCENES, TRANSITION_FRAMES } from "./theme";
@@ -25,6 +26,11 @@ export function Demo({ overlay }: DemoProps): React.JSX.Element {
       <TransitionSeries>
         <TransitionSeries.Sequence durationInFrames={SCENES.onboarding}>
           <SceneOnboarding overlay={overlay} />
+        </TransitionSeries.Sequence>
+        <TransitionSeries.Transition {...fadeT()} />
+
+        <TransitionSeries.Sequence durationInFrames={SCENES.progressive}>
+          <SceneProgressive overlay={overlay} />
         </TransitionSeries.Sequence>
         <TransitionSeries.Transition {...fadeT()} />
 

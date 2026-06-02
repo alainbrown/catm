@@ -13,19 +13,19 @@ const SIDE_PANEL_WIDTH = 420;
 const TOTAL_DURATION_SEC = 40;
 
 // Zoom beat (local scene frames). Push into the panel while the highlight
-// travels, hold through the captioned CWS still (local ~150, composition
-// 288), then ease back to 1× before the drawer needs the full width.
-const ZOOM_IN_START = 56;
-const ZOOM_IN_END = 92;
-const ZOOM_OUT_START = 198;
-const ZOOM_OUT_END = 212;
+// travels, hold through the captioned CWS still (local ~95), then ease back
+// to 1× before the drawer needs the full width.
+const ZOOM_IN_START = 38;
+const ZOOM_IN_END = 62;
+const ZOOM_OUT_START = 132;
+const ZOOM_OUT_END = 142;
 
 // Drawer beat, in local scene frames. Kept after the zoom-out so the
 // slide-in plays across the full-width frame.
-const DRAWER_IN = 215;
-const DRAWER_FULL = 236;
-const DRAWER_OUT = 318;
-const DRAWER_GONE = 340;
+const DRAWER_IN = 144;
+const DRAWER_FULL = 158;
+const DRAWER_OUT = 212;
+const DRAWER_GONE = 226;
 
 interface SceneSidePanelProps {
   overlay: boolean;
@@ -33,9 +33,9 @@ interface SceneSidePanelProps {
 
 export function SceneSidePanel({ overlay }: SceneSidePanelProps): React.JSX.Element {
   const frame = useCurrentFrame();
-  // Scene runs ~12 s; drive playback through the source text a touch faster
-  // than realtime so the highlight visibly progresses.
-  const currentTime = (frame / 30) * (TOTAL_DURATION_SEC / 12);
+  // Scene runs ~8 s; drive playback through the source text faster than
+  // realtime so the highlight travels the whole text within the scene.
+  const currentTime = (frame / 30) * (TOTAL_DURATION_SEC / 8);
   const cumulative = SAMPLE_CHUNK_DURATIONS.reduce((acc, d) => {
     acc.push((acc[acc.length - 1] ?? 0) + d);
     return acc;

@@ -9,18 +9,18 @@ import { DemoApp } from "../shells/DemoApp";
 import { MockWebpage } from "../shells/MockWebpage";
 import { ZoomFrame } from "../shells/ZoomFrame";
 
-const SELECTION_START_FRAME = 18;
-const MENU_FRAME = 48;
-const PANEL_FRAME = 80;
+const SELECTION_START_FRAME = 10;
+const MENU_FRAME = 32;
+const PANEL_FRAME = 58;
 const SIDE_PANEL_TARGET_WIDTH = 420;
 
 // Zoom into the right-click menu while it's open (the captioned CWS still
-// sits at local ~70), then release as the side panel opens so the article
+// sits at local ~48), then release as the side panel opens so the article
 // reflow plays across the full-width frame.
-const ZOOM_IN_START = 34;
-const ZOOM_IN_END = 56;
-const ZOOM_OUT_START = 76;
-const ZOOM_OUT_END = 94;
+const ZOOM_IN_START = 24;
+const ZOOM_IN_END = 44;
+const ZOOM_OUT_START = 54;
+const ZOOM_OUT_END = 72;
 
 interface SceneOnboardingProps {
   overlay: boolean;
@@ -106,7 +106,7 @@ export function SceneOnboarding({ overlay }: SceneOnboardingProps): React.JSX.El
         // Fade in during the selection sweep so the headline is already
         // present when the right-click menu opens. This gives a window in
         // which menu + copy co-exist — needed for the CWS still.
-        startFrame={24}
+        startFrame={16}
         title={
           <>
             Select it. <em style={{ color: "#5b6cff", fontStyle: "normal" }}>Hear it.</em>

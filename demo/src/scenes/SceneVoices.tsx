@@ -2,12 +2,12 @@
 // opens naturally via VoiceChip's forceOpen prop, anchored above the chip.
 // A preview ▶ cycles through Bella → Michael → Eric.
 import { AbsoluteFill, useCurrentFrame } from "remotion";
+import type { VoiceId } from "../../../src/worker/kokoro.worker";
 import { MOCK_SESSIONS, SAMPLE_CHUNK_DURATIONS, SAMPLE_CHUNKS, SAMPLE_TEXT } from "../data";
 import { CopyOverlay } from "../overlay/CopyOverlay";
 import { DemoApp } from "../shells/DemoApp";
 import { MockWebpage } from "../shells/MockWebpage";
 import { ZoomFrame } from "../shells/ZoomFrame";
-import type { VoiceId } from "../../../src/worker/kokoro.worker";
 
 const SIDE_PANEL_WIDTH = 420;
 const PREVIEW_SEQ: VoiceId[] = ["af_bella", "am_michael", "am_eric"];
@@ -18,8 +18,8 @@ interface SceneVoicesProps {
 
 export function SceneVoices({ overlay }: SceneVoicesProps): React.JSX.Element {
   const frame = useCurrentFrame();
-  const idx = Math.min(PREVIEW_SEQ.length - 1, Math.floor((frame - 30) / 40));
-  const previewing: VoiceId | null = frame > 30 ? PREVIEW_SEQ[idx] ?? null : null;
+  const idx = Math.min(PREVIEW_SEQ.length - 1, Math.floor((frame - 24) / 28));
+  const previewing: VoiceId | null = frame > 24 ? (PREVIEW_SEQ[idx] ?? null) : null;
 
   return (
     <AbsoluteFill style={{ background: "#1a1c20" }}>

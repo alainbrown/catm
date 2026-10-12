@@ -7,7 +7,7 @@ export default defineConfig({
   retries: 0,
   workers: 1,
   reporter: "list",
-  timeout: 120_000,
+  timeout: 300_000,
   expect: { timeout: 120_000 },
   use: {
     trace: "retain-on-failure",

@@ -92,23 +92,6 @@ export function AudioPlayer({
 
   return (
     <div className="player-fake">
-      <button
-        type="button"
-        className="play-btn"
-        aria-label={playing ? "Pause" : "Play"}
-        onClick={toggle}
-      >
-        {playing ? (
-          <svg width="10" height="12" viewBox="0 0 10 12" fill="currentColor" aria-hidden="true">
-            <rect x="0" y="0" width="3" height="12" />
-            <rect x="7" y="0" width="3" height="12" />
-          </svg>
-        ) : (
-          <svg width="11" height="12" viewBox="0 0 11 12" fill="currentColor" aria-hidden="true">
-            <polygon points="1,0 11,6 1,12" />
-          </svg>
-        )}
-      </button>
       <div
         className="scrub"
         role="slider"
@@ -128,18 +111,37 @@ export function AudioPlayer({
         <div className="prepared" style={{ width: `${preparedPct}%` }} />
         <div className="played" style={{ width: `${playedPct}%` }} />
       </div>
-      <span className="time">
-        {fmt(current)} / {fmt(duration)}
-      </span>
-      <button
-        type="button"
-        className="speed-btn"
-        aria-label={`Playback speed: ${formatSpeed(speed)}. Click to change.`}
-        title="Playback speed"
-        onClick={() => onChangeSpeed(nextSpeed(speed))}
-      >
-        {formatSpeed(speed)}
-      </button>
+      <div className="player-controls">
+        <button
+          type="button"
+          className="play-btn"
+          aria-label={playing ? "Pause" : "Play"}
+          onClick={toggle}
+        >
+          {playing ? (
+            <svg width="10" height="12" viewBox="0 0 10 12" fill="currentColor" aria-hidden="true">
+              <rect x="0" y="0" width="3" height="12" />
+              <rect x="7" y="0" width="3" height="12" />
+            </svg>
+          ) : (
+            <svg width="11" height="12" viewBox="0 0 11 12" fill="currentColor" aria-hidden="true">
+              <polygon points="1,0 11,6 1,12" />
+            </svg>
+          )}
+        </button>
+        <span className="time">
+          {fmt(current)} / {fmt(duration)}
+        </span>
+        <button
+          type="button"
+          className="speed-btn"
+          aria-label={`Playback speed: ${formatSpeed(speed)}. Click to change.`}
+          title="Playback speed"
+          onClick={() => onChangeSpeed(nextSpeed(speed))}
+        >
+          {formatSpeed(speed)}
+        </button>
+      </div>
     </div>
   );
 }

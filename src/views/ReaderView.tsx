@@ -311,7 +311,6 @@ export function ReaderView(props: ReaderViewProps): React.JSX.Element {
 
         {doc.hasAudio ? (
           <div className={isStale ? "dock stale" : "dock"}>
-            <span className="stamp">{isStale ? "stale" : "ready"}</span>
             {/* biome-ignore lint/a11y/useMediaCaption: synthesised speech has no separate transcript */}
             <audio
               ref={audioRef}
@@ -325,6 +324,11 @@ export function ReaderView(props: ReaderViewProps): React.JSX.Element {
               }}
             />
             <AudioPlayer audioRef={audioRef} speed={speed} onChangeSpeed={onChangeSpeed} />
+            {isStale ? (
+              <p className="player-warning" role="status">
+                Text has changed. This audio reflects an earlier version.
+              </p>
+            ) : null}
           </div>
         ) : null}
 
